@@ -100,4 +100,11 @@ export default tseslint.config(
     files: ['**/*.{ts,tsx}'],
     languageOptions: { parserOptions: { projectService: false } },
   },
+  {
+    // tools/ altındaki script'ler Node'da koşan araçlardır, kütüphane değil.
+    files: ['tools/**/*.{mjs,js}'],
+    languageOptions: {
+      globals: { process: 'readonly', console: 'readonly', URL: 'readonly' },
+    },
+  },
 )
