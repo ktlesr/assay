@@ -2,15 +2,20 @@ import { formatProportion } from '@assay/core'
 import { Badge, EmptyState } from '@assay/ui'
 import Link from 'next/link'
 import { Shell } from './components/shell'
+import { Landing } from './landing'
+import { auth } from '../lib/auth'
 import { listSuites } from '../lib/runs'
 
 /**
- * Suite listesi — bir skill, bir satır.
+ * Kök.
  *
- * Her satır o skill'in **en son** koşumunu gösterir; geçmiş suite detayında.
- * Gösterilen her ölçüm gerçek bir koşumdan geliyor.
+ * Oturum yoksa tanıtım sayfası, varsa suite listesi. Tek adres: gelen kişi
+ * neye baktığını bilir, giren kişi işine döner.
  */
 export default async function Home() {
+  const session = await auth()
+  if (session === null) return <Landing />
+
   const suites = await listSuites()
 
   return (
@@ -21,7 +26,7 @@ export default async function Home() {
           description="Assay stores every run locally first. Run a case set with the CLI, then upload it here to keep the history and compare against it."
           action={
             <code className="font-mono text-xs text-text-faint">
-              assay run my-skill.suite.yaml --skill ./my-skill
+              assay push --suite ./my-skill.suite.yaml
             </code>
           }
         />
@@ -38,7 +43,8 @@ export default async function Home() {
                 <span>
                   <span className="font-display text-lg text-text">{skill}</span>
                   <span className="ml-3 font-mono text-xs text-text-faint">
-                    {runs.length} {runs.length === 1 ? 'run' : 'runs'} · {latest.run.pins.model}
+                    {runs.length} {runs.length === 1 ? 'run' : 'runs'} ·{' '}
+                    {latest.run.pins.model}
                   </span>
                   <span className="mt-1 block text-sm text-text-muted">
                     trigger recall {formatProportion(latest.summary.trigger.recall)}
