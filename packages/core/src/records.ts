@@ -258,6 +258,14 @@ export interface Run {
   finishedAt: string
   /** Adaptör kimliği — hangi host ortamı. */
   host: string
+  /**
+   * Ölçülen skill'in adı (`target.skill`).
+   *
+   * Pin'lerdeki `skillSource` sürümü taşır, adı değil: `anthropics/skills@abc`
+   * hangi skill'in ölçüldüğünü söylemiyor. Kayıt kendi kendine yetsin diye
+   * ad ayrıca saklanıyor — rapor ve hosted taraf suite dosyasını görmüyor.
+   */
+  skill: string
   pins: Pins
   /** Suite'te beyan edilen tekrar sayısı. */
   runs: number

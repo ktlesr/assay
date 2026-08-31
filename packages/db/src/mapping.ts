@@ -79,6 +79,7 @@ export interface CaseRow {
 
 export interface RunRow {
   id: string
+  skill: string
   startedAt: Date
   finishedAt: Date
   host: string
@@ -187,6 +188,7 @@ export function toCaseRow(testCase: SuiteCase): CaseRow {
 export function toRunRow(run: Run): RunRow {
   return {
     id: run.id,
+    skill: run.skill,
     startedAt: new Date(run.startedAt),
     finishedAt: new Date(run.finishedAt),
     host: run.host,
@@ -388,6 +390,7 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
   if (verdict === undefined) throw new Error(`unknown verdict: ${row.verdict}`)
   return {
     id: row.id,
+    skill: row.skill,
     startedAt: row.startedAt.toISOString(),
     finishedAt: row.finishedAt.toISOString(),
     host: row.host,

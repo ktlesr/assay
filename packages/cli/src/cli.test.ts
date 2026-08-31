@@ -70,6 +70,7 @@ function makeRun(
     startedAt: '2026-08-31T00:00:00.000Z',
     finishedAt: '2026-08-31T00:01:00.000Z',
     host: 'mock',
+    skill: 'widget',
     pins: { ...pins, ...overrides },
     runs: 5,
     cases: cases.map(([caseId, passed, failed, unknown]) => ({

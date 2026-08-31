@@ -128,6 +128,7 @@ export async function runSuite<S extends AgentSession>(
     startedAt,
     finishedAt: now().toISOString(),
     host: adapter.id,
+    skill: suite.target.skill,
     pins: pinsOf(suite, options.source, skillHash),
     runs: repeat,
     cases,

@@ -131,6 +131,7 @@ const run: Run = {
   startedAt: '2026-08-31T10:00:00.000Z',
   finishedAt: '2026-08-31T10:05:00.000Z',
   host: 'claude-code',
+  skill: 'docx',
   pins: {
     skillSource: 'anthropics/skills@abc',
     skillHash: 'sha256:skill',
@@ -208,10 +209,10 @@ describe('gidiş-dönüş: kanonik → Postgres → kanonik', () => {
 
     const runRow = toRunRow(run)
     await db.query(
-      `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host",
+      `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
          "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
          "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","unknownReason")
-       VALUES ($1,'s1',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::"Verdict",$13)`,
+       VALUES ($1,'s1',$2,$3,$4,$14,$5,$6,$7,$8,$9,$10,$11,$12::"Verdict",$13)`,
       [
         runRow.id,
         runRow.startedAt,
@@ -226,6 +227,7 @@ describe('gidiş-dönüş: kanonik → Postgres → kanonik', () => {
         runRow.runsPerCase,
         runRow.verdict,
         runRow.unknownReason,
+        runRow.skill,
       ],
     )
 
@@ -361,8 +363,9 @@ describe('gidiş-dönüş: kanonik → Postgres → kanonik', () => {
     restored = fromRunRow(runRows.rows[0] as never, cases)
   }, 120_000)
 
-  it('koşum kimliği, host ve verdict korunur', () => {
+  it('koşum kimliği, skill, host ve verdict korunur', () => {
     expect(restored.id).toBe(run.id)
+    expect(restored.skill).toBe(run.skill)
     expect(restored.host).toBe(run.host)
     expect(restored.verdict).toBe(run.verdict)
     expect(restored.runs).toBe(run.runs)

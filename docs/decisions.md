@@ -701,3 +701,50 @@ Gerekçe: Kullanıcının açık talimatı sözleşmenin üzerinde. Tek gelişti
 otonom bir akışta PR, incelemesi olmayan bir tören olurdu; koruma testlerde
 ve pre-commit hook'ta duruyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Tipografi: Instrument Serif + IBM Plex, Fraunces + Inter değil
+Bağlam: 2.2 Fraunces + Inter'i başlangıç noktası veriyor, daha iyisi bulunursa
+değiştirilmesini ve gerekçelendirilmesini istiyor.
+Karar: Instrument Serif (başlık) + IBM Plex Sans (gövde) + IBM Plex Mono (veri).
+Gerekçe: Fraunces yumuşak ve hümanist — bir dergi kapağı, ölçüm aleti değil.
+Inter'in tabular rakamları var ama karakteri yok ve her arayüzde duruyor.
+IBM Plex, kimliği ölçüm ve makine olan bir şirket için tasarlandı; mono kardeşi
+sans ile aynı iskeleti paylaşıyor, yani bir hash ile bir etiket aynı sesle
+konuşuyor — sertifika dilinde bu önemli.
+Geri dönüş maliyeti: düşük (token)
+
+## 2026-08-31 — `unknown` rengi antimon (soğuk arduvaz mavisi)
+Bağlam: Bağlayıcı kısıt: UNKNOWN yeşile ya da kırmızıya yakın hiçbir ton
+almayacak, nötr ama görmezden gelinemeyecek.
+Seçenekler: gri · sarı/amber · soğuk mavi-gri
+Karar: `#5B6B8A`. Ayrıca şekil farkı: pass `●`, fail `✕`, unknown `◐`.
+Gerekçe: Gri görmezden gelinir; amber uyarı rengi ve kırmızıya yakın okunur.
+Soğuk mavi-gri ikisinden de eşit uzakta, iki temada da metinden ayrışıyor.
+Antimon tahlilde gerçekten kullanılan bir metal — paletin geri kalanıyla aynı
+dünyadan. Yarım dolu daire "kısmen bilinen" demek; renk kaldırılsa bile anlam
+duruyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Tailwind kaynak yolları açıkça bildiriliyor
+Bağlam: Tailwind v4 kaynakları otomatik bulmaya çalışıyor ama bu monorepo'da
+bulamadı: üretilen stil sayfasında tek bir utility yoktu ve sayfa tamamen
+stilsiz render edildi.
+Seçenekler: otomatik tespite güvenmek · `@source` ile yolları yazmak
+Karar: `@source "../app"` ve `@source "../lib"`.
+Gerekçe: Sessizce stilsiz bir sayfa üretmek, iki satır yazmaktan çok daha
+pahalı. Ekran görüntüsü almasaydım fark edilmezdi — "arayüzü etkileyen her
+adımdan sonra ekran görüntüsü al" kuralının karşılığı bu.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Kanonik kayda `skill` alanı
+Bağlam: Koşum listesi ekranında dört skill de "skills" görünüyordu. Kayıt
+skill adını taşımıyor; `pins.skillSource` sürümü taşıyor
+(`anthropics/skills@local-install`), adı değil.
+Seçenekler: adı `skillSource`'tan ayrıştırmak · suite dosyasını okumak ·
+kayda `skill` alanı eklemek
+Karar: `Run.skill`. Prisma şemasına da eklendi.
+Gerekçe: `skillSource`'tan ayrıştırmak `owner/repo@sha` biçimini varsayar ve
+yerel bir skill'de anlamsız. Suite dosyasını okumak, kaydın kendi kendine
+yetmesi ilkesini bozar — hosted taraf suite dosyasını görmüyor.
+`expectedTrigger` ile aynı gerekçe.
+Geri dönüş maliyeti: düşük

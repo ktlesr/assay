@@ -109,6 +109,8 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/adapter-validation.md](docs/adapter-validation.md) — Claude Code adaptörünün canlı doğrulaması
 - [docs/sandbox-security.md](docs/sandbox-security.md) — sandbox güvenlik incelemesi ve kabul edilen riskler
 - [docs/dogfooding.md](docs/dogfooding.md) — üç gerçek skill üzerinde 150 koşumluk ölçüm raporu
+- [docs/design.md](docs/design.md) — tasarım dili: tahlil sertifikası
+- [docs/progress.md](docs/progress.md) — faz ilerlemesi
 - [docs/host-feasibility.md](docs/host-feasibility.md) — üç host için sinyal okunabilirlik matrisi (Faz 0 çıktısı)
 - [docs/workflow.md](docs/workflow.md) — çalışma sözleşmeleri
 

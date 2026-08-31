@@ -117,6 +117,8 @@ model Run {
   startedAt  DateTime @db.Timestamptz(3)
   finishedAt DateTime @db.Timestamptz(3)
   host       String
+  /// Ölçülen skill'in adı. Kayıt kendi kendine yetsin diye pin'lerden ayrı.
+  skill      String
 
   /// Dört pin ve iki denetçisi. Hiçbiri boş olamaz — karşılaştırmanın şartı.
   pinSkillSource      String

@@ -1,0 +1,206 @@
+/*
+ * Assay — tasarım tokenları.
+ *
+ * KONSEPT: tahlil sertifikası.
+ *
+ * Metalürjik tahlilde numune laboratuvara gider ve geri bir *sertifika* gelir:
+ * numunenin kimliği, kullanılan yöntem, ölçülen değer ve **belirsizliği**.
+ * Gösterge paneli değil, kayıt belgesi. Arayüz bu belgeyi taklit eder.
+ *
+ * Bunun üç somut sonucu var:
+ *  1. Veri **kutularda** değil, **çizgilerde** durur. Kart yok; basılı bir
+ *     tablonun cetvel çizgileri var.
+ *  2. Güven aralığı bir metin süsü değil, çizilmiş bir **açıklık**: ├────┤.
+ *     Okuyucu sayıyı okumadan önce belirsizliğin genişliğini görür.
+ *  3. Verdict bir renk lekesi değil, **işaret + küçük kapital sözcük**.
+ *     Renk körlüğünde de ayrışır.
+ *
+ * YASAKLAR (bağlayıcı): gradient yok, yumuşak gölge yok, dolgulu rozet yok.
+ * Sınırlar hairline. Sayılar tabular.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Marka renkleri — altısı isimli, gerisi bunlardan türetilir.
+ *
+ * Palet tahlil ocağından geliyor: pota, kâğıt, altın boncuk, patinalı bakır,
+ * pas, antimon. Hiçbiri bir arayüz kütüphanesinin varsayılanı değil.
+ * ------------------------------------------------------------------------- */
+:root {
+  --brand-crucible: #141310; /* pota — koyu zemin */
+  --brand-paper: #f5f2eb; /* laboratuvar kâğıdı — açık zemin */
+  --brand-assay-gold: #b08528; /* tahlil boncuğu — tek vurgu, nadir kullanılır */
+  --brand-verdigris: #2e6f55; /* patinalı bakır — pass */
+  --brand-iron-oxide: #a33b2a; /* pas — fail */
+  --brand-antimony: #5b6b8a; /* antimon — unknown. Yeşil ve kırmızıdan eşit uzak. */
+}
+
+/* ---------------------------------------------------------------------------
+ * Açık tema — kâğıt
+ * ------------------------------------------------------------------------- */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --surface: var(--brand-paper);
+  --surface-raised: #fbf9f5;
+  --surface-sunken: #ebe7dd;
+
+  --text: #1a1814;
+  --text-muted: #5f5b54;
+  --text-faint: #8b857a;
+
+  /* Hairline: 1px'te bile ezilmeyen ama bağırmayan çizgi. */
+  --rule: #d8d2c5;
+  --rule-strong: #b3ab9b;
+
+  --accent: var(--brand-assay-gold);
+  --accent-quiet: #8a6a2f;
+
+  --pass: #2b6a50;
+  --fail: #9c3627;
+  --unknown: #4d5d7c;
+
+  /* Verdict'in zemini yok; yalnızca kendi mürekkebi ve bir hairline. */
+  --pass-rule: #a8c3b4;
+  --fail-rule: #d9b0a8;
+  --unknown-rule: #b3bcce;
+
+  --focus: var(--brand-assay-gold);
+}
+
+/* ---------------------------------------------------------------------------
+ * Koyu tema — mürekkep
+ *
+ * Sonradan eklenmiş bir "dark mode" değil; aynı belgenin gece baskısı.
+ * Kontrast oranları açık temayla eşdeğer tutuldu.
+ * ------------------------------------------------------------------------- */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface: var(--brand-crucible);
+  --surface-raised: #1c1a16;
+  --surface-sunken: #0d0c0a;
+
+  --text: #ece7dc;
+  --text-muted: #9a938670;
+  --text-muted: #a29a8c;
+  --text-faint: #6f6759;
+
+  --rule: #2e2b25;
+  --rule-strong: #4a463d;
+
+  --accent: #d3a94a;
+  --accent-quiet: #a8832f;
+
+  --pass: #7fbf9d;
+  --fail: #e08878;
+  --unknown: #93a5c6;
+
+  --pass-rule: #37543f;
+  --fail-rule: #653c33;
+  --unknown-rule: #3c485f;
+
+  --focus: #d3a94a;
+}
+
+/* Sistem tercihi — kullanıcı açıkça seçmediyse. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --surface: var(--brand-crucible);
+    --surface-raised: #1c1a16;
+    --surface-sunken: #0d0c0a;
+
+    --text: #ece7dc;
+    --text-muted: #a29a8c;
+    --text-faint: #6f6759;
+
+    --rule: #2e2b25;
+    --rule-strong: #4a463d;
+
+    --accent: #d3a94a;
+    --accent-quiet: #a8832f;
+
+    --pass: #7fbf9d;
+    --fail: #e08878;
+    --unknown: #93a5c6;
+
+    --pass-rule: #37543f;
+    --fail-rule: #653c33;
+    --unknown-rule: #3c485f;
+
+    --focus: #d3a94a;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Tipografi rolleri
+ *
+ * Instrument Serif — sertifika başlığı. Yüksek kontrastlı, kazınmış hissi.
+ * IBM Plex Sans — gövde ve arayüz. Ölçüm ve makine kimliği için tasarlanmış
+ *   bir aile; gerçek tabular rakamları var.
+ * IBM Plex Mono — kimlikler, hash'ler, iz. Sans ile aynı iskeleti paylaşır,
+ *   yani bir run kimliği ile bir etiket aynı sesle konuşur.
+ *
+ * Fraunces yerine Instrument Serif seçildi: Fraunces yumuşak ve hümanist,
+ * bir ölçüm aletinden çok bir dergi kapağı. Inter yerine Plex: Inter'in
+ * tabular rakamları var ama karakteri yok ve her arayüzde duruyor.
+ * ------------------------------------------------------------------------- */
+:root {
+  --font-display: var(--font-instrument-serif), 'Iowan Old Style', Georgia, serif;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+
+  --leading-tight: 1.15;
+  --leading-normal: 1.55;
+
+  /* Küçük kapital etiketler — sertifika bölüm başlıkları. */
+  --tracking-label: 0.09em;
+}
+
+/* ---------------------------------------------------------------------------
+ * Uzam ve çizgi
+ * ------------------------------------------------------------------------- */
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Hairline: yüksek DPI'da 1px, düşükte de 1px. Yarım piksel oyunu yok. */
+  --hairline: 1px;
+  --radius: 2px; /* neredeyse keskin; yuvarlaklık bu belgenin dili değil */
+
+  --measure: 68ch;
+  --page: 60rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Hareket — bir kez, ve yalnızca ölçümde
+ *
+ * Sayfa yüklenirken hiçbir şey kaymaz. Tek hareket güven aralıklarının
+ * merkezden dışa doğru çizilmesi: ibrenin yerine oturması. Bir kez olur.
+ * ------------------------------------------------------------------------- */
+:root {
+  --settle: 420ms;
+  --ease-settle: cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --settle: 1ms;
+  }
+}

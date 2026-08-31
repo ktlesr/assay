@@ -37,6 +37,7 @@ const run = (
   startedAt: '',
   finishedAt: '',
   host: 'claude-code',
+  skill: 'docx',
   pins: { ...pins, ...overrides },
   runs: 10,
   cases: cases.map(([caseId, passed, failed, unknown]) => ({

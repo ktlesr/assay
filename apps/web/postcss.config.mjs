@@ -1,3 +1,3 @@
-// ponytail: D:\ kökündeki yabancı postcss.config.mjs'i Next'in yukarı doğru
-// aramasını durdurmak için var. Tailwind 2.2'de buraya eklenecek.
-export default { plugins: {} }
+// D:\ kökündeki yabancı postcss config'i durdurmak için yerelde duruyor
+// (docs/decisions.md). Tailwind v4 tek eklentiyle çalışıyor.
+export default { plugins: { '@tailwindcss/postcss': {} } }

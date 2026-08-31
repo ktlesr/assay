@@ -19,6 +19,7 @@ const run = (
   startedAt: '',
   finishedAt: '',
   host: 'mock',
+  skill: 'widget',
   pins: { ...pins, ...overrides },
   runs: 10,
   cases: cases.map(([caseId, passed, failed]) => ({

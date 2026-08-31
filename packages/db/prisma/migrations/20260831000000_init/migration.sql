@@ -53,6 +53,7 @@ CREATE TABLE "Run" (
     "startedAt" TIMESTAMPTZ(3) NOT NULL,
     "finishedAt" TIMESTAMPTZ(3) NOT NULL,
     "host" TEXT NOT NULL,
+    "skill" TEXT NOT NULL,
     "pinSkillSource" TEXT NOT NULL,
     "pinSkillHash" TEXT NOT NULL,
     "pinModel" TEXT NOT NULL,

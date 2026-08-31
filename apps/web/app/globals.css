@@ -1,67 +1,182 @@
-/* ponytail: düz CSS. Tailwind + tokenlar 2.2'de (tema sistemi adımı) gelecek. */
-:root {
-  color-scheme: light dark;
-  --bg: #fbfbfa;
-  --fg: #1b1b19;
-  --muted: #6b6b66;
-  --line: #e3e2de;
-  --accent: #8a6a2f;
+@import 'tailwindcss';
+@import '@assay/ui/tokens.css';
+
+/*
+ * Kaynak taraması açıkça bildiriliyor.
+ *
+ * Tailwind v4 kaynakları CSS dosyasının konumundan otomatik bulmaya çalışıyor
+ * ama bu monorepo'da bulamadı: üretilen stil sayfasında tek bir utility yoktu.
+ * Tahmine bırakmak yerine yolları yazmak, sessizce stilsiz bir sayfa
+ * üretmekten iyi.
+ */
+@source "../app";
+@source "../lib";
+
+/*
+ * Tailwind v4 tema köprüsü.
+ *
+ * Tokenlar CSS değişkeni olarak `@assay/ui` içinde tanımlı; burada Tailwind'in
+ * utility üretebilmesi için `@theme` altında yeniden bağlanıyor. Tek kaynak
+ * hâlâ tokens.css — buradaki her satır ona işaret ediyor, kendi değerini
+ * tanımlamıyor.
+ */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-accent-quiet: var(--accent-quiet);
+  --color-pass: var(--pass);
+  --color-fail: var(--fail);
+  --color-unknown: var(--unknown);
+  --color-pass-rule: var(--pass-rule);
+  --color-fail-rule: var(--fail-rule);
+  --color-unknown-rule: var(--unknown-rule);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: var(--radius);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #131311;
-    --fg: #ecebe7;
-    --muted: #96958e;
-    --line: #2b2b28;
-    --accent: #d9b56a;
-  }
+
+/* ---------------------------------------------------------------------------
+ * Taban
+ * ------------------------------------------------------------------------- */
+html {
+  background: var(--surface);
 }
-* {
-  box-sizing: border-box;
-}
+
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font:
-    15px/1.6 ui-sans-serif,
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  /* Sayılar her yerde tabular: bir sütundaki rakamlar hizalanmalı. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
-main {
-  max-width: 46rem;
-  margin: 0 auto;
-  padding: 5rem 1.5rem;
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
-h1 {
-  margin: 0;
-  font-size: 2rem;
-  letter-spacing: -0.02em;
+
+/* Odak halkası tek vurgu rengini kullanır ve her zaman görünür. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
-p {
-  color: var(--muted);
+
+/* ---------------------------------------------------------------------------
+ * Sertifika dili
+ * ------------------------------------------------------------------------- */
+
+/* Bölüm başlığı: etiket, sonra sayfanın sonuna kadar giden hairline. */
+.rule-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
-.badge {
-  display: inline-block;
-  margin-bottom: 1.25rem;
-  padding: 0.15rem 0.55rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--accent);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
+.rule-label::after {
+  content: '';
+  flex: 1;
+  height: var(--hairline);
+  background: var(--rule);
+}
+
+/* Veri satırı: kutu yok, altında cetvel çizgisi var. */
+.ruled > * + * {
+  border-top: var(--hairline) solid var(--rule);
+}
+
+/*
+ * Güven aralığı — bu arayüzün imzası.
+ *
+ * Aralık bir ilerleme çubuğu değil: uçlarında serif olan çizilmiş bir açıklık,
+ * bir kumpas veya hata çubuğu gibi. Dolgu yok, gradient yok. Ölçüm noktası
+ * aralığın içinde ayrı bir işaret.
+ */
+.interval {
+  position: relative;
+  height: 1.25rem;
+  min-width: 6rem;
+}
+.interval::before {
+  /* taban ekseni */
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: var(--hairline);
+  background: var(--rule);
+}
+.interval-span {
+  position: absolute;
+  top: 50%;
+  height: var(--hairline);
+  background: currentColor;
+  transform: translateY(-50%) scaleX(var(--settled, 1));
+  transform-origin: center;
+  transition: transform var(--settle) var(--ease-settle);
+}
+/* Uç serifleri — aralığın nerede bittiğini kesin gösterir. */
+.interval-span::before,
+.interval-span::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: var(--hairline);
+  height: 0.6rem;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+.interval-span::before {
+  left: 0;
+}
+.interval-span::after {
+  right: 0;
+}
+/* Ölçülen değer: aralığın içinde dolu bir işaret. */
+.interval-point {
+  position: absolute;
+  top: 50%;
+  width: 0.3rem;
+  height: 0.3rem;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* Verdict işareti: renk tek taşıyıcı değil, şekil de ayrışır. */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
-.empty {
-  margin-top: 3rem;
-  padding: 2.5rem 1.5rem;
-  border: 1px dashed var(--line);
-  border-radius: 10px;
-  text-align: center;
+.mark-glyph {
+  font-size: 0.7rem;
+  line-height: 1;
 }
-.empty p {
-  margin: 0.4rem 0 0;
-  font-size: 0.9rem;
+
+/* Tablo başlığı */
+.col-label {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 500;
 }

@@ -85,10 +85,10 @@ async function makeRun(suiteId: string, overrides: Record<string, unknown> = {})
     ...overrides,
   }
   await run(
-    `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host",
+    `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
        "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
        "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","unknownReason")
-     VALUES ($1,$2,now(),now(),'claude-code',$3,$4,$5,$6,$7,$8,$9,$10::"Verdict",$11)`,
+     VALUES ($1,$2,now(),now(),'claude-code','docx',$3,$4,$5,$6,$7,$8,$9,$10::"Verdict",$11)`,
     [
       id,
       suiteId,
@@ -428,10 +428,10 @@ describe('zaman ve maliyet', () => {
     const suiteId = await makeSuite()
     await expect(
       run(
-        `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host",
+        `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
            "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
            "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict")
-         VALUES ($1,$2, now(), now() - interval '1 hour', 'h','a','b','c','d',1,'e',10,'PASS')`,
+         VALUES ($1,$2, now(), now() - interval '1 hour', 'h','docx','a','b','c','d',1,'e',10,'PASS')`,
         [next(), suiteId],
       ),
     ).rejects.toThrow('run_time_ordered')
@@ -480,10 +480,10 @@ async function runSql(
   unknownReason: string | null,
 ): Promise<[string, unknown[]]> {
   return [
-    `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host",
+    `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
        "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
        "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","unknownReason")
-     VALUES ($1,$2,now(),now(),'h','a','b','c','d',1,'e',10,$3::"Verdict",$4)`,
+     VALUES ($1,$2,now(),now(),'h','docx','a','b','c','d',1,'e',10,$3::"Verdict",$4)`,
     [next(), suiteId, verdict, unknownReason],
   ]
 }
