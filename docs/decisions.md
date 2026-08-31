@@ -453,3 +453,46 @@ vakasını kalıcı olarak `unknown` yapardı — ölçülebilir bir şeyi ölç
 Kalan risk: `Skill` aracı olmadan içerik enjekte eden üçüncü bir yol varsa
 gözden kaçar; yokluğu kanıtlanamadı (docs/host-feasibility.md).
 Geri dönüş maliyeti: düşük (tek alan)
+
+## 2026-08-31 — Sandbox gözlemler, zorlamaz (Faz 1)
+Bağlam: 1.2 izolasyon teknolojisini seçmemi istiyordu; kriter kurulum kolaylığı
+değil izolasyon güvenilirliği.
+Seçenekler: Docker konteyner · işletim sistemi seviyesi jail · geçici çalışma
+dizini + host'un araç izni katmanı
+Karar: Üçüncüsü, ve **hiçbir yerde "engelleniyor" denmiyor, "gözleniyor"
+deniyor.** Her attempt kendi geçici dizininde; dosya sistemi öncesi/sonrası
+hash'lenip farkı alınıyor; çalışma dizini dışına yazma girişimleri izdeki araç
+çağrılarından okunuyor; ağ araçları host'un `--disallowed-tools` mekanizmasıyla
+reddediliyor.
+Gerekçe: Docker'ı bugün eklemek, ölçemediğimiz bir şeye altyapı yazmak olurdu
+(yığında bilinçli olarak olmayanlar listesi). Asıl risk teknoloji seçimi değil,
+**kapasiteyi olduğundan fazla göstermek**. Tavan kodda ve dokümanda açıkça
+yazılı: süreç kendi başına soket açarsa görülmez, dosya sistemi yazımı OS
+seviyesinde engellenmez. 1.3 güvenlik incelemesi bu yüzeyi ölçecek ve gerekirse
+Docker o zaman gelecek.
+Geri dönüş maliyeti: orta (sandbox arayüzü değişmeden altına konteyner konabilir)
+
+## 2026-08-31 — Adaptör varsayılan izin modu `acceptEdits`, ağ reddedilir
+Bağlam: İlk uçtan uca koşumda tamamlama vakası 0/3 geçti. İz gösterdi ki
+`--permission-mode dontAsk` `Write` ve `Bash`'i reddediyor; ajan dosyayı hiç
+yazamıyordu.
+Seçenekler: `dontAsk` (hiçbir tamamlama vakası ölçülemez) · `bypassPermissions`
+(sandbox dışına da yazar) · `acceptEdits` + ağ araçlarının reddi
+Karar: `acceptEdits`, artı `--disallowed-tools WebFetch WebSearch`.
+Gerekçe: Ajan sandbox çalışma dizinine yazabilmeli, yoksa görev tamamlama
+katmanı ölçülemez. `bypassPermissions` sandbox iddiasını tamamen boşaltırdı.
+Ağın kapalı olması `side_effect: { network: deny }` iddiasının dayandığı tek
+gerçek; açık bırakmak o assertion'ı süs hâline getirirdi.
+Geri dönüş maliyeti: düşük (adaptör seçeneği)
+
+## 2026-08-31 — Reddedilen araç çağrısı yan etki sayılmaz
+Bağlam: Canlı koşumda ajan sandbox dışına yazmayı denedi, host reddetti; ama
+`EnvDiff.writes` o yolu yazılmış gibi gösteriyordu.
+Seçenekler: denenen her yolu yazım saymak · yalnızca başarılı çağrıları saymak
+Karar: `TraceEvent`'e `id` (çağrı) ve `callId` (sonuç) alanları eklendi; sonucu
+hata olan çağrı yan etki üretmiyor, ağ çağrısı ise `blocked: true` işaretleniyor.
+Sonucu hiç gelmemiş çağrı gerçekleşmiş sayılıyor — sessizce yok sayılmıyor.
+Gerekçe: Gerçekleşmemiş bir yazımı kaydetmek, ölçüm aracında kabul edilemez bir
+yalan. Ters yön de tehlikeli: sonucu bilinmeyen çağrıyı yok saymak gerçek bir
+yan etkiyi gizleyebilirdi, o yüzden şüphe hâlinde "oldu" kabul ediliyor.
+Geri dönüş maliyeti: düşük

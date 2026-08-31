@@ -88,6 +88,10 @@ export interface TraceEvent {
   /** Olay sırası. Adaptör atar, monoton artar. */
   seq: number
   kind: TraceEventKind
+  /** `tool_call` için host'un verdiği çağrı kimliği. */
+  id?: string
+  /** `tool_result` için hangi çağrının sonucu olduğu. */
+  callId?: string
   /** ISO 8601. Host vermiyorsa yok. */
   at?: string
   /** `tool_call` / `tool_result` için araç adı. */

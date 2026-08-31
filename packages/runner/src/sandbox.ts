@@ -1,0 +1,209 @@
+/**
+ * Attempt sandbox'ı.
+ *
+ * Her attempt kendi geçici çalışma dizininde koşar. Dizin öncesi/sonrası
+ * anlık görüntüsü alınır ve fark `EnvDiff`'e çevrilir.
+ *
+ * **Tavan — açıkça söylenmesi gereken:** bu bir *gözlem* katmanı, bir *zorlama*
+ * katmanı değil. Çalışma dizini dışına yazmayı işletim sistemi seviyesinde
+ * engellemiyoruz; dışarı yazımı izden (araç çağrılarının yollarından) tespit
+ * ediyoruz. Ağ da öyle: host'un araç izni mekanizmasıyla reddediliyor ve
+ * reddedilenler kayda geçiyor, ama süreç kendi başına soket açarsa görülmez.
+ * Kapsam 1.3 güvenlik incelemesinde ölçülecek; oraya kadar hiçbir yerde
+ * "engelleniyor" denmez, "gözleniyor" denir.
+ */
+
+import { createHash } from 'node:crypto'
+import { cp, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import type { CapturedFile, EnvDiff, NetworkRequest, TraceEvent } from '@assay/core'
+
+/** Yol → içerik hash'i. Anlık görüntü. */
+export type Snapshot = ReadonlyMap<string, string>
+
+export interface Workspace {
+  /** Attempt'in çalışma dizini. */
+  dir: string
+  /** Kurulum sırasında alınan anlık görüntü. */
+  before: Snapshot
+}
+
+/** Bir attempt için temiz çalışma dizini kurar ve fixture'ları kopyalar. */
+export async function createWorkspace(options: {
+  /** Kopyalanacak fixture dizini veya dosyası. */
+  fixtures?: string | undefined
+  prefix?: string
+}): Promise<Workspace> {
+  const dir = await mkdtemp(join(tmpdir(), options.prefix ?? 'assay-work-'))
+  if (options.fixtures !== undefined && options.fixtures !== '') {
+    const source = resolve(options.fixtures)
+    const info = await stat(source).catch(() => null)
+    if (info === null) {
+      throw new Error(`fixtures path does not exist: ${options.fixtures}`)
+    }
+    await cp(source, info.isDirectory() ? dir : join(dir, basename(source)), {
+      recursive: true,
+    })
+  }
+  return { dir, before: await snapshot(dir) }
+}
+
+export async function destroyWorkspace(workspace: Workspace): Promise<void> {
+  await rm(workspace.dir, { recursive: true, force: true }).catch(() => undefined)
+}
+
+const basename = (path: string) => path.split(/[\\/]/).pop() ?? path
+
+/** Dizini özyinelemeli tarar; her dosya için içerik hash'i tutar. */
+export async function snapshot(dir: string): Promise<Snapshot> {
+  const out = new Map<string, string>()
+  await walk(dir, dir, out)
+  return out
+}
+
+async function walk(root: string, dir: string, out: Map<string, string>): Promise<void> {
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      await walk(root, full, out)
+      continue
+    }
+    if (!entry.isFile()) continue
+    const bytes = await readFile(full).catch(() => null)
+    if (bytes === null) continue
+    out.set(
+      toPosix(relative(root, full)),
+      createHash('sha256').update(bytes).digest('hex'),
+    )
+  }
+}
+
+const toPosix = (path: string) => path.split(sep).join('/')
+
+/** Çalışma dizininden yakalanan dosyalar — assertion motorunun kanıtı. */
+export async function captureFiles(dir: string): Promise<CapturedFile[]> {
+  const paths = [...(await snapshot(dir)).keys()]
+  const files: CapturedFile[] = []
+  for (const path of paths) {
+    const bytes = await readFile(join(dir, path)).catch(() => null)
+    if (bytes !== null) files.push({ path, bytes: new Uint8Array(bytes) })
+  }
+  return files
+}
+
+// ---------------------------------------------------------------------------
+// Ortam farkı
+// ---------------------------------------------------------------------------
+
+/** Dosya yazan araçlar. İz üzerinden çalışma dizini dışına yazımı yakalar. */
+const WRITING_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'MultiEdit'])
+/** Ağa çıkan araçlar. */
+const NETWORK_TOOLS = new Set(['WebFetch', 'WebSearch'])
+
+/**
+ * Ortam farkını üretir.
+ *
+ * İki kaynak birleştirilir:
+ *  1. Çalışma dizini anlık görüntü farkı — gerçekten diske ne yazıldı.
+ *  2. İzdeki araç çağrılarının yolları — çalışma dizini *dışına* yazma
+ *     girişimleri yalnızca burada görülür.
+ *
+ * `deniedTools` host tarafından reddedilen araçları taşır; bunlar
+ * `blocked: true` olarak kaydedilir.
+ */
+export function envDiff(options: {
+  workdir: string
+  before: Snapshot
+  after: Snapshot
+  trace: readonly TraceEvent[] | undefined
+  /** Host'un reddettiği araç adları (Claude Code: `permission_denials`). */
+  deniedTools?: readonly string[]
+}): EnvDiff {
+  const writes = new Set<string>()
+  const deletes = new Set<string>()
+
+  for (const [path, hash] of options.after) {
+    const previous = options.before.get(path)
+    if (previous === undefined || previous !== hash) writes.add(path)
+  }
+  for (const path of options.before.keys()) {
+    if (!options.after.has(path)) deletes.add(path)
+  }
+
+  const denied = new Set(options.deniedTools ?? [])
+  const network: NetworkRequest[] = []
+  const failedCalls = failedCallIds(options.trace)
+
+  for (const event of options.trace ?? []) {
+    if (event.kind !== 'tool_call' || event.tool === undefined) continue
+    // Reddedilen veya hata veren çağrı gerçekleşmemiştir; yan etki sayılmaz.
+    const rejected = event.id !== undefined && failedCalls.has(event.id)
+
+    if (WRITING_TOOLS.has(event.tool) && !rejected) {
+      const path = pathArgument(event.args)
+      if (path !== undefined) writes.add(outsideAware(options.workdir, path))
+    }
+
+    if (NETWORK_TOOLS.has(event.tool)) {
+      const host = hostArgument(event.args)
+      network.push({
+        host: host ?? event.tool,
+        blocked: rejected || denied.has(event.tool),
+      })
+    }
+  }
+
+  return { writes: [...writes].sort(), deletes: [...deletes].sort(), network }
+}
+
+/** Hata veya izin reddiyle sonuçlanan çağrıların kimlikleri. */
+function failedCallIds(trace: readonly TraceEvent[] | undefined): Set<string> {
+  const failed = new Set<string>()
+  for (const event of trace ?? []) {
+    if (
+      event.kind === 'tool_result' &&
+      event.isError === true &&
+      event.callId !== undefined
+    ) {
+      failed.add(event.callId)
+    }
+  }
+  return failed
+}
+
+/** Çalışma dizini içindeyse göreli, dışındaysa mutlak yol döner. */
+function outsideAware(workdir: string, path: string): string {
+  if (!isAbsolute(path)) return toPosix(path)
+  const rel = relative(resolve(workdir), resolve(path))
+  if (rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)) return toPosix(rel)
+  return toPosix(path)
+}
+
+function pathArgument(
+  args: Readonly<Record<string, unknown>> | undefined,
+): string | undefined {
+  if (args === undefined) return undefined
+  for (const key of ['file_path', 'path', 'notebook_path', 'filePath']) {
+    const value = args[key]
+    if (typeof value === 'string' && value !== '') return value
+  }
+  return undefined
+}
+
+function hostArgument(
+  args: Readonly<Record<string, unknown>> | undefined,
+): string | undefined {
+  if (args === undefined) return undefined
+  const url = args['url']
+  if (typeof url === 'string') {
+    try {
+      return new URL(url).host
+    } catch {
+      return url
+    }
+  }
+  const query = args['query']
+  return typeof query === 'string' ? 'search' : undefined
+}

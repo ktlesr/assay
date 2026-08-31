@@ -23,5 +23,8 @@
   },
   "dependencies": {
     "@assay/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0"
   }
 }

@@ -50,11 +50,32 @@ export interface ClaudeCodeAdapterOptions {
    * İzole config dizini OAuth oturumunu devralmaz, bu yüzden biri şart.
    */
   credentials?: { oauthToken?: string; apiKey?: string }
+  /**
+   * Host izin modu. Varsayılan `acceptEdits`: ajan sandbox çalışma dizininde
+   * dosya yazabilsin. `dontAsk` Write ve Bash'i reddediyor ve tamamlama
+   * vakalarını ölçülemez kılıyor — canlı koşumda görüldü.
+   */
+  permissionMode?: 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
+  /**
+   * Reddedilecek araçlar. Varsayılan olarak ağ araçları kapalı; `side_effect`
+   * assertion'ının `network: deny` iddiası ancak böyle dürüst olur.
+   */
+  deniedTools?: readonly string[]
   /** Varsayılan attempt zaman aşımı. */
   timeoutMs?: number
   /** Geçici config dizinleri koşumdan sonra silinsin mi. Hata ayıklarken false. */
   cleanup?: boolean
 }
+
+/**
+ * Ağ araçları varsayılan olarak kapalı.
+ *
+ * Sandbox işletim sistemi seviyesinde ağı engellemiyor; host'un araç izni
+ * mekanizmasıyla engelliyor. `side_effect: { network: deny }` iddiasının
+ * dayandığı tek gerçek bu — ve tavanı: süreç kendi başına soket açarsa
+ * görülmez (1.3 güvenlik incelemesi).
+ */
+const DEFAULT_DENIED_TOOLS: readonly string[] = ['WebFetch', 'WebSearch']
 
 /**
  * `claude` çalıştırılabilirini PATH üzerinde çözer.
@@ -87,12 +108,21 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
   readonly #credentials: { oauthToken?: string; apiKey?: string } | undefined
   readonly #timeoutMs: number
   readonly #cleanup: boolean
+  readonly #permissionMode: string
+  readonly #deniedTools: readonly string[]
 
   constructor(options: ClaudeCodeAdapterOptions = {}) {
     this.#binary = options.binary ?? 'claude'
     this.#credentials = options.credentials
     this.#timeoutMs = options.timeoutMs ?? 600_000
     this.#cleanup = options.cleanup ?? true
+    this.#permissionMode = options.permissionMode ?? 'acceptEdits'
+    this.#deniedTools = options.deniedTools ?? DEFAULT_DENIED_TOOLS
+  }
+
+  /** Reddedilen araçlar — runner ağ iddiasını buna göre işaretler. */
+  get deniedTools(): readonly string[] {
+    return this.#deniedTools
   }
 
   async start(config: RunConfig): Promise<ClaudeCodeSession> {
@@ -110,9 +140,12 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
       '--model',
       config.model,
       '--permission-mode',
-      'dontAsk',
+      this.#permissionMode,
       '--plugin-dir',
       config.skill.path,
+      ...(this.#deniedTools.length === 0
+        ? []
+        : ['--disallowed-tools', this.#deniedTools.join(' ')]),
     ]
 
     const env: NodeJS.ProcessEnv = {

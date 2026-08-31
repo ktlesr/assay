@@ -55,6 +55,21 @@ export { evaluateNoSwallowedErrors } from './no-swallowed-errors.js'
 
 export { evaluateTrigger, type TriggerExpectation } from './trigger.js'
 
+export {
+  countVerdicts,
+  decidedRate,
+  triggerAccuracy,
+  flakiness,
+  totals,
+  summarize,
+  type VerdictCounts,
+  type TriggerObservationPoint,
+  type TriggerAccuracy,
+  type Flakiness,
+  type Totals,
+  type RunSummary,
+} from './scoring.js'
+
 export type { HostAdapter, AgentSession, RunConfig, SessionResult } from './adapter.js'
 
 export { matchGlob, globToRegExp, normalizePath, isWithin } from './glob.js'

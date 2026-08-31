@@ -1,0 +1,251 @@
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { parseSuite, type Suite } from '@assay/core'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { runSuite, suiteHash } from './run.js'
+import { RunStore } from './store.js'
+import { BLIND_HOST, MockAdapter, type MockScenario } from './testing/mock-adapter.js'
+
+const SUITE_SOURCE = `
+version: 2
+target: { skill: widget, source: local@abc123 }
+environment:
+  host: mock
+  model: test-model-1
+  system_prompt_hash: sha256:aaa
+  active_skills: [widget, pdf]
+runs: 3
+cases:
+  - id: trigger.positive.explicit
+    prompt: Turn this draft into a widget.
+    expect: { triggered: true }
+  - id: trigger.negative.near_neighbor.readme
+    prompt: Turn this draft into a README.
+    expect: { triggered: false }
+`
+
+let suite: Suite
+let skillPath: string
+
+beforeAll(async () => {
+  const parsed = parseSuite(SUITE_SOURCE)
+  if (!parsed.ok) throw new Error(parsed.issues.map((i) => i.message).join('; '))
+  suite = parsed.suite
+  skillPath = await mkdtemp(join(tmpdir(), 'assay-skill-'))
+})
+
+const triggered = (skills: string[] = ['widget']): MockScenario => ({
+  trigger: { available: true, triggered: true, skills, complete: true, via: 'mock' },
+  trace: [
+    { seq: 1, kind: 'skill_trigger', skill: 'widget' },
+    { seq: 2, kind: 'session_end', outcome: 'completed' },
+  ],
+})
+
+const notTriggered: MockScenario = {
+  trigger: { available: true, triggered: false, skills: [], complete: true, via: 'mock' },
+  trace: [{ seq: 1, kind: 'session_end', outcome: 'completed' }],
+}
+
+const run = (
+  adapter: MockAdapter,
+  overrides: Partial<Parameters<typeof runSuite>[2]> = {},
+) => runSuite(suite, adapter, { source: SUITE_SOURCE, skillPath, ...overrides })
+
+describe('runSuite — temel akış', () => {
+  it('her vaka için suite.runs kadar attempt üretir', async () => {
+    const result = await run(new MockAdapter({ scenarios: [triggered(), notTriggered] }))
+    expect(result.runs).toBe(3)
+    expect(result.cases).toHaveLength(2)
+    for (const caseResult of result.cases) {
+      expect(caseResult.attempts).toHaveLength(3)
+      expect(caseResult.attempts.map((a) => a.index)).toEqual([0, 1, 2])
+    }
+  })
+
+  it('adaptöre vaka istemini ve skill yolunu geçer', async () => {
+    const adapter = new MockAdapter({ scenarios: [triggered()] })
+    await run(adapter)
+    expect(adapter.started).toHaveLength(6)
+    expect(adapter.started[0]?.prompt).toContain('widget')
+    expect(adapter.started[0]?.skill.path).toBe(skillPath)
+    expect(adapter.started[0]?.model).toBe('test-model-1')
+    expect(adapter.started[0]?.activeSkills).toEqual(['widget', 'pdf'])
+  })
+
+  it('her attempt kendi çalışma dizininde koşar', async () => {
+    const adapter = new MockAdapter({ scenarios: [triggered()] })
+    await run(adapter)
+    const dirs = adapter.started.map((c) => c.workdir)
+    expect(new Set(dirs).size).toBe(dirs.length)
+  })
+
+  it('ilerleme geri çağrısı her attempt için tetiklenir', async () => {
+    const seen: string[] = []
+    await run(new MockAdapter({ scenarios: [triggered(), notTriggered] }), {
+      onProgress: (event) => seen.push(`${event.caseId}#${event.attempt}`),
+    })
+    expect(seen).toHaveLength(6)
+    expect(seen[0]).toBe('trigger.positive.explicit#0')
+  })
+
+  it('repeat seçeneği suite.runs yerine geçer', async () => {
+    const result = await run(new MockAdapter({ scenarios: [triggered()] }), { repeat: 1 })
+    expect(result.runs).toBe(1)
+    expect(result.cases[0]?.attempts).toHaveLength(1)
+  })
+})
+
+describe('runSuite — verdict üretimi', () => {
+  it('doğru tetiklenme pass verir', async () => {
+    // Vaka 1 pozitif, vaka 2 negatif; senaryolar sırayla dönüyor.
+    const result = await runSuite(
+      { ...suite, cases: [suite.cases[0] as never] },
+      new MockAdapter({ scenarios: [triggered()] }),
+      { source: SUITE_SOURCE, skillPath },
+    )
+    expect(result.cases[0]?.passed).toBe(3)
+    expect(result.verdict).toBe('pass')
+  })
+
+  it('yanlış tetiklenme fail verir', async () => {
+    const result = await runSuite(
+      { ...suite, cases: [suite.cases[0] as never] },
+      new MockAdapter({ scenarios: [notTriggered] }),
+      { source: SUITE_SOURCE, skillPath },
+    )
+    expect(result.cases[0]?.failed).toBe(3)
+    expect(result.verdict).toBe('fail')
+  })
+
+  it('okunamayan sinyal unknown verir, pass değil', async () => {
+    const result = await run(new MockAdapter({ scenarios: [BLIND_HOST] }))
+    expect(result.verdict).toBe('unknown')
+    for (const caseResult of result.cases) {
+      expect(caseResult.unknown).toBe(3)
+      expect(caseResult.passed).toBe(0)
+    }
+  })
+
+  it('unknown attempt gerekçesini taşır', async () => {
+    const result = await run(new MockAdapter({ scenarios: [BLIND_HOST] }))
+    expect(result.cases[0]?.attempts[0]?.reason).toContain('could not be read')
+  })
+})
+
+describe('runSuite — değişmez #4: oran N ve GA ile', () => {
+  it('passRate Proportion tipinde ve aralık taşır', async () => {
+    const result = await runSuite(
+      { ...suite, cases: [suite.cases[0] as never] },
+      new MockAdapter({ scenarios: [triggered()] }),
+      { source: SUITE_SOURCE, skillPath },
+    )
+    const rate = result.cases[0]?.passRate
+    expect(rate?.n).toBe(3)
+    expect(rate?.rate).toBe(1)
+    expect(rate?.ci?.low).toBeGreaterThan(0)
+    expect(rate?.ci?.low).toBeLessThan(1)
+  })
+
+  it('hepsi unknown ise oran null — %0 ile karışmaz', async () => {
+    const result = await run(new MockAdapter({ scenarios: [BLIND_HOST] }))
+    expect(result.cases[0]?.passRate.n).toBe(0)
+    expect(result.cases[0]?.passRate.rate).toBeNull()
+    expect(result.cases[0]?.passRate.ci).toBeNull()
+  })
+})
+
+describe('runSuite — adaptör çökerse', () => {
+  it('start patlarsa attempt unknown olur, koşum devam eder', async () => {
+    const result = await run(
+      new MockAdapter({ scenarios: [{ failOnStart: 'host binary missing' }] }),
+    )
+    expect(result.cases).toHaveLength(2)
+    expect(result.cases[0]?.attempts[0]?.verdict).toBe('unknown')
+    expect(result.cases[0]?.attempts[0]?.reason).toContain('host binary missing')
+  })
+
+  it('readTrace patlarsa iz yok sayılır ama koşum düşmez', async () => {
+    const result = await run(
+      new MockAdapter({
+        scenarios: [{ ...triggered(), failOnReadTrace: 'transcript gone' }],
+      }),
+    )
+    expect(result.cases[0]?.attempts[0]?.verdict).toBe('pass')
+    expect(result.cases[0]?.attempts[0]?.trace).toBeUndefined()
+  })
+
+  it('bir attempt çökse de diğerleri koşar', async () => {
+    const result = await run(
+      new MockAdapter({ scenarios: [{ failOnStart: 'boom' }, triggered()] }),
+    )
+    const verdicts = result.cases.flatMap((c) => c.attempts.map((a) => a.verdict))
+    expect(verdicts).toContain('unknown')
+    expect(verdicts).toContain('pass')
+  })
+})
+
+describe('runSuite — dört pin', () => {
+  it('dört pin suite ve kaynaktan gelir', async () => {
+    const result = await run(new MockAdapter({ scenarios: [triggered()] }))
+    expect(result.pins).toMatchObject({
+      skillSource: 'local@abc123',
+      model: 'test-model-1',
+      systemPromptHash: 'sha256:aaa',
+      suiteVersion: 2,
+    })
+    expect(result.pins.suiteHash).toBe(suiteHash(SUITE_SOURCE))
+  })
+
+  it('suite içeriği değişince hash değişir, sürüm değişmese bile', () => {
+    const edited = SUITE_SOURCE.replace(
+      'Turn this draft into a widget.',
+      'Make a widget.',
+    )
+    expect(suiteHash(edited)).not.toBe(suiteHash(SUITE_SOURCE))
+  })
+
+  it("satır sonu biçimi hash'i değiştirmez", () => {
+    expect(suiteHash(SUITE_SOURCE.replace(/\n/g, '\r\n'))).toBe(suiteHash(SUITE_SOURCE))
+  })
+})
+
+describe('RunStore', () => {
+  it('koşumu yazar ve aynısını geri okur', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'assay-store-'))
+    const store = new RunStore({ root })
+    const result = await run(new MockAdapter({ scenarios: [triggered()] }))
+
+    await store.save(result)
+    const loaded = await store.load(result.id)
+    expect(loaded.id).toBe(result.id)
+    expect(loaded.pins).toEqual(result.pins)
+    expect(loaded.cases[0]?.passRate).toEqual(result.cases[0]?.passRate)
+  })
+
+  it('koşumları listeler ve en sonuncuyu verir', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'assay-store-'))
+    const store = new RunStore({ root })
+    const first = await run(new MockAdapter({ scenarios: [triggered()] }))
+    await store.save(first)
+    expect(await store.list()).toEqual([first.id])
+    expect((await store.latest())?.id).toBe(first.id)
+  })
+
+  it('boş store null döner, patlamaz', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'assay-store-'))
+    expect(await new RunStore({ root }).latest()).toBeNull()
+  })
+
+  it('tanınmayan store sürümü reddedilir', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'assay-store-'))
+    await mkdir(join(root, 'runs'), { recursive: true })
+    await writeFile(
+      join(root, 'runs', 'x.json'),
+      JSON.stringify({ storeVersion: 999, run: {} }),
+      'utf8',
+    )
+    await expect(new RunStore({ root }).load('x')).rejects.toThrow('store version 999')
+  })
+})

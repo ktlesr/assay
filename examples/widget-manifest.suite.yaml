@@ -1,0 +1,76 @@
+# Assay'in kendi uçtan uca koşumu — gerçek bir skill, gerçek bir host.
+#
+# Bu suite `examples/widget-manifest/` içindeki skill'i ölçer.
+# Koşmak için: pnpm assay run examples/widget-manifest.suite.yaml
+
+version: 1
+
+target:
+  skill: widget-manifest
+  source: assay@examples/widget-manifest
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  # Host sistem promptu hash'i vermiyor; koşum kaydında ortam hash'i tutulur.
+  system_prompt_hash: not-provided-by-host
+  active_skills: [widget-manifest]
+
+runs: 3
+
+cases:
+  - id: trigger.positive.explicit
+    prompt: |
+      Here is my draft:
+
+      # Sales dashboard
+      - revenue tile
+      - churn chart
+
+      Turn this draft into a widget manifest.
+    expect: { triggered: true }
+
+  - id: trigger.negative.near_neighbor.readme
+    prompt: |
+      Here is my draft:
+
+      # Sales dashboard
+      - revenue tile
+      - churn chart
+
+      Turn this draft into a README section.
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated
+    prompt: What is the difference between a semaphore and a mutex?
+    expect: { triggered: false }
+
+  - id: complete.writes_valid_manifest
+    prompt: |
+      Here is my draft:
+
+      # Sales dashboard
+      - revenue tile
+      - churn chart
+
+      Turn this draft into a widget manifest.
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: 'out/manifest.json' }
+        - { type: file_valid, format: json }
+        - type: json_schema
+          path: 'out/manifest.json'
+          schema:
+            type: object
+            required: [title, widgets]
+            properties:
+              title: { type: string }
+              widgets:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required: [id, type, title]
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: ['out/'], network: deny }

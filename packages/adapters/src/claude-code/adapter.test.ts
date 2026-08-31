@@ -240,3 +240,13 @@ describe('environmentHash', () => {
     expect(environmentHash({ ...init, ...patch })).not.toBe(environmentHash(init))
   })
 })
+
+describe('izin politikası', () => {
+  it('varsayılan olarak ağ araçları reddedilir', () => {
+    expect(new ClaudeCodeAdapter().deniedTools).toEqual(['WebFetch', 'WebSearch'])
+  })
+
+  it('çağıran listeyi değiştirebilir', () => {
+    expect(new ClaudeCodeAdapter({ deniedTools: [] }).deniedTools).toEqual([])
+  })
+})

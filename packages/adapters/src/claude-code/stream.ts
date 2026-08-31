@@ -215,6 +215,7 @@ export function parseSession(events: readonly unknown[]): ParsedStream {
           seq,
           kind: 'tool_call',
           tool,
+          ...(id === undefined ? {} : { id }),
           ...(args === undefined ? {} : { args }),
         })
         // Tetiklenme sinyali: Skill aracının input.skill alanı.
@@ -238,6 +239,7 @@ export function parseSession(events: readonly unknown[]): ParsedStream {
         trace.push({
           seq,
           kind: 'tool_result',
+          ...(id === undefined ? {} : { callId: id }),
           ...(tool === undefined ? {} : { tool }),
           ...(isError ? { isError: true } : {}),
           ...(isError && text !== undefined ? { error: text } : {}),
