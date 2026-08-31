@@ -1,0 +1,42 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+.secrets/
+
+# koşum artefaktları
+.assay/
+assay-runs/
+sandbox/
+tmp/
+coverage/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# yerel store (Faz 1)
+*.sqlite
+*.sqlite-journal
+*.db
+
+# editör / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
