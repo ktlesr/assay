@@ -374,3 +374,38 @@ kullanıcıya sahip olmadığı bir garantiyi satmaktır. İki farklı sistem pr
 aynı init alanlarını üretebilir. Ortam hash'i yine de gerçek bir kayma
 detektörü — sadece daha az şey iddia ediyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Çapraz-host matrisi Faz 1'e çekilmiyor, roadmap'te kalıyor
+Bağlam: 0.6'nın ilk hâli, `claude plugin eval` bulgusu yüzünden çapraz-host
+uyumluluk matrisinin "sonraki dalga"dan Faz 1'e çekilmesini önermişti. O öneri
+Codex'in ölçülebilir olduğu varsayımına dayanıyordu.
+Seçenekler: Codex adaptörünü Faz 1'e almak · metinden çıkarımla ölçmek ·
+çapraz-host'u ertelemek
+Karar: Ertelemek. Faz 1 yalnızca Claude Code adaptörüyle devam eder.
+Gerekçe: Codex deneyle sınandı ve varsayım çürüdü. (1) Tetiklenme yapısal bir
+olay olarak yayınlanmıyor; tek kanıt asistan mesajının serbest metni
+("I'm using the assay-probe skill because..."). (2) Skill seti izole
+edilemiyor: `CODEX_HOME` yalnızca config'i kapsıyor, `USERPROFILE`/`HOME`
+override'ı işe yaramadı, 1235 kullanıcı skill'i yüklendi ve bağlam bütçesi
+aşıldığı için tüm skill açıklamaları düştü. Metinden çıkarımla ölçmek
+teknik olarak mümkün ama değişmez #1'e aykırı: modelin "bu skill'i
+kullanıyorum" demesi bir gözlem değil, bir iddiadır. Ölçülemeyen bir şeye
+adaptör yazmak, yığında bilinçli olarak olmayanlar listesindeki hatanın
+aynısı olurdu.
+Geri dönüş maliyeti: düşük — `codex exec --json` akışı araç izi ve tamamlama
+için zaten yeterli; yapısal bir skill olayı çıktığı gün adaptör bir günlük iş.
+
+## 2026-08-31 — Farklılaşma çapraz-host değil, ölçüm dürüstlüğü
+Bağlam: `claude plugin eval` Faz 1 kapsamıyla örtüşüyor ve çapraz-host kaçış
+yolu kapandı. Assay'in var oluş gerekçesi yeniden tanımlanmalı.
+Seçenekler: projeyi durdurmak · çapraz-host'u zorlamak · deterministik ölçüm
+dürüstlüğüne yaslanmak
+Karar: Üçüncüsü. Üç savunma hattı: deterministik skorlama (judge yok), üç
+durumlu verdict, regresyon hafızası.
+Gerekçe: Bu spike'ta host iki kez, iki farklı sebeple "başarılı" dedi ve koşum
+hiç gerçekleşmemişti — önce "not logged in", sonra "401 revoked", ikisinde de
+`subtype: success`. Bir eşikten geçen skor bunu göremez. `claude plugin eval`
+skorlamayı LLM'e yaptırıyor; kararsızlık ölçen aracın kendisinin kararsız
+olması ölçümü açıklanamaz kılıyor. Bu iki fark teknik, bugün inşa edilebilir
+ve rakip tarafından kopyalanması ürün kararı gerektirir.
+Geri dönüş maliyeti: düşük (konumlandırma, kod değil)

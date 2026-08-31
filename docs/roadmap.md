@@ -118,6 +118,13 @@ Kurumsal satın alma gerekçesi büyük ihtimalle burada.
 altında nasıl davrandığı. Agent Skills açık bir standart olduğu için bu,
 vendor-bağımsız bir güvenilirlik katmanı olma yolu.
 
+Faz 1'e çekilmesi 0.6'da değerlendirildi ve **reddedildi**: Codex tetiklenmeyi
+yapısal bir olay olarak yayınlamıyor (tek kanıt asistan mesajının serbest
+metni) ve skill seti izole edilemiyor. Ölçülemeyen bir şeye adaptör yazmak
+olurdu. Yapısal bir skill olayı çıktığı gün yeniden değerlendirilecek —
+`codex exec --json` akışının geri kalanı zaten yeterli.
+Ayrıntı: [host-feasibility.md](host-feasibility.md).
+
 ---
 
 ## Denetim noktaları

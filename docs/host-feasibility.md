@@ -14,7 +14,7 @@ işaretlenmiştir. Doğrulanamayan her iddia **DOĞRULANMADI** etiketi taşır.
 | Host | Skill discovery | Trigger observable | Tool trace | Completion | Genel |
 |---|---|---|---|---|---|
 | **Claude Code** | Evet — **yüksek** ✅ deneyle | Kısmen — **yüksek** (model seçtiğinde) ✅ deneyle | Evet — **yüksek** ✅ deneyle | Evet — **orta** ✅ deneyle | **Ölçülebilir** |
-| **OpenAI Codex** | Evet — **orta** 📄 belge | Kısmen — **düşük** 📄 belge | Evet — **orta** 📄 belge | Evet — **orta** 📄 belge | **Muhtemelen ölçülebilir, doğrulanmadı** |
+| **OpenAI Codex** | Evet ama **izole edilemiyor** — düşük ✅ deneyle | **Yalnızca metinden çıkarım** — düşük ✅ deneyle | Evet — **orta** ✅ deneyle | Evet — **orta** ✅ deneyle | **Tetiklenme ölçülemez** |
 | **GitHub Copilot** | Evet — **orta** 📄 belge | Kısmen — **düşük** 📄 belge | Kısmen — **düşük** 📄 belge | Kısmen — **düşük** 📄 belge | **Belirsiz, doğrulanmadı** |
 
 ✅ = bu makinede deneyle görüldü · 📄 = yalnızca belgeden okundu, **DOĞRULANMADI**
@@ -223,38 +223,97 @@ Codex'te ve Copilot'ta da çalışıyor mu, ve geçen aya göre bir şey bozuldu
 
 ---
 
-## OpenAI Codex — belgeden, **DOĞRULANMADI**
+## OpenAI Codex — deneyle doğrulandı
 
-CLI bu makinede kurulu değil (`codex: yok`). Aşağıdakilerin hiçbiri deneyle
-görülmedi.
+**Sürüm:** codex-cli 0.151.0 · **Yöntem:** CLI kuruldu, aynı `assay-probe`
+skill'i `.agents/skills/` altına konuldu, `codex exec --json` ile iki koşum
+yapıldı (`CODEX_API_KEY` ile kimlik doğrulandı).
 
-**A. Skill discovery — orta.** Skill'ler `SKILL.md` biçiminde ve dört kapsamdan
-yükleniyor: repo içi `.agents/skills`, kullanıcı `$HOME/.agents/skills`, admin
-`/etc/codex/skills`, ve OpenAI'ın gömülü skill'leri. `~/.codex/config.toml`
-içinde `[[skills.config]]` girdileriyle davranış ayarlanabiliyor;
-`allow_implicit_invocation` gibi politika alanları var. Kapsam kontrolü
-mümkün görünüyor ama session-only yükleme (`--plugin-dir` muadili) belgede
-görülmedi.
+Bu bölüm 0.6'da belgeden yazılmıştı; artık deneyle yeniden yazıldı ve
+**değerlendirme aşağı çekildi.**
 
-**B. Trigger observability — düşük.** İki çağrı yolu belgeleniyor: açık
-`$skill-adı` ve prompt eşleşmesiyle örtük seçim. **Hangi skill'in
-etkinleştirildiğini bildiren bir olay veya log alanı belgede yok.** Assay'in
-en kritik sinyali burada okunamıyor olabilir; tespit büyük ihtimalle
-transkriptten çıkarım gerektirir.
+### Olay akışı — orta ✅
 
-**C. Tool trace — orta.** Codex SDK akışlı olay yayıyor: `item.completed`,
-`turn.completed` (içinde `usage`). Belgeye göre olaylar "araç çağrılarını,
-akışlı yanıtları ve dosya değişikliği bildirimlerini" kapsıyor. Tam olay adları
-ve hata olaylarının yapısı belgelenmemiş; SDK kaynağına bakmak gerekir.
+`codex exec --json` JSONL yayıyor ve yapı temiz:
 
-**D. Completion — orta.** `turn.completed` token kullanımını taşıyor;
-`outputSchema` ile yapılandırılmış çıktı mümkün.
+```json
+{"type":"thread.started","thread_id":"01a0588f-..."}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"..."}}
+{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"..."}}
+{"type":"turn.completed","usage":{"input_tokens":75904,"cached_input_tokens":56363,
+  "output_tokens":781,"reasoning_output_tokens":228}}
+```
 
-**Tahmin — hangi vaka tipleri UNKNOWN döner:** tetiklenme vakalarının
-tamamı (pozitif, negatif, yakın komşu) ve tüm coexistence vakaları. Görev
-tamamlama ve araç izi vakaları muhtemelen ölçülebilir.
+`error` birinci sınıf bir item tipi, `turn.completed` token kullanımını
+taşıyor. Araç izi ve tamamlama sinyali için yeterli.
 
----
+### Tetiklenme — düşük ✅, **yapısal sinyal yok**
+
+Skill'in seçildiğine dair tek kanıt, asistan mesajının **serbest metni**:
+
+> "I'm using the `assay-probe` skill because this request maps directly to its
+> widget-manifest workflow."
+
+`Skill` diye bir item tipi, `skill_activated` diye bir olay, `item` üzerinde
+bir `skill` alanı **yok**. Assay'in Claude Code'da `input.skill` alanından
+belirsizlik olmadan okuduğu şey, Codex'te ancak metinden çıkarımla elde
+edilebilir — ve model bunu söylemek zorunda değil, söylerken yanılabilir,
+sürüm değiştiğinde ifade değişebilir.
+
+Bu, 0.6'da "düşük, doğrulanmadı" diye tahmin edilen şeyin deneyle
+doğrulanmasıdır. Tahmin doğruydu.
+
+### Skill seti izole edilemiyor — **durdurucu** ✅
+
+İki koşumda da:
+
+```
+ERROR codex_skills_extension::loader::host: skills scan reached its traversal
+limit (root: file:///C:/Users/KESER/.agents/skills)
+
+{"type":"error","message":"Exceeded skills context budget. All skill
+descriptions were removed and 1235 additional skills were not included in
+the model-visible skills list."}
+```
+
+**1235 skill** kullanıcı dizininden yüklendi, bağlam bütçesi aştı ve
+**bütün skill açıklamaları kaldırıldı.** Yani model, skill'lerin ne yaptığını
+görmeden seçim yapmak zorunda kaldı — tetiklenme doğruluğu ölçümünün öncülü
+çöktü.
+
+`CODEX_HOME` yalnızca config dizinini izole ediyor; kullanıcı seviyesindeki
+`~/.agents/skills` etkilenmiyor. `USERPROFILE` ve `HOME` ortam değişkenlerini
+geçici bir dizine çevirmeyi denedim — **işe yaramadı**, Codex yine gerçek
+kullanıcı profilinden taradı. `--ignore-user-config` config.toml'u atlıyor,
+skill dizinini değil.
+
+Claude Code'un `--plugin-dir` + `CLAUDE_CONFIG_DIR` ikilisinin karşılığı
+Codex'te yok. `codex plugin` alt komutu marketplace kurulumu yapıyor,
+oturuma özel yükleme değil.
+
+### Ek: Windows'ta skill gövdesi yüklenemedi
+
+Codex, SKILL.md'yi bağlama enjekte etmiyor; **kabuk komutuyla okuyor**:
+
+```
+exec_command failed for `pwsh.exe -NoProfile -Command "Get-Content -Raw ...SKILL.md"`
+  rejected: blocked by policy
+```
+
+`-s read-only`, `-s workspace-write` ve `--ignore-rules` ile üç kez denendi;
+execpolicy pwsh ve cmd'yi topyekûn reddetti. Skill gövdesi hiç yüklenmedi ve
+ajan "instructions were inaccessible" deyip genel bir cevap üretti.
+
+Bunun iki sonucu var. Birincisi, Codex'te skill yüklemesi bir **araç
+çağrısı** olarak görünebilir — dolaylı bir tetiklenme sinyali. İkincisi, bu
+sinyal sandbox politikasına bağlı ve bu makinede hiç üretilmedi;
+**DOĞRULANMADI.**
+
+### Tahmin — hangi vaka tipleri UNKNOWN döner
+
+Tetiklenme vakalarının tamamı (pozitif, negatif, yakın komşu) ve tüm
+coexistence vakaları. Görev tamamlama ve araç izi vakaları ölçülebilir.
 
 ## GitHub Copilot — belgeden, **DOĞRULANMADI**
 
@@ -291,58 +350,78 @@ ihtimalle hepsi.
 
 ### Hangi host en temiz sinyali veriyor?
 
-**Claude Code, açık farkla.** Dördü de gözlenebilir, üçü yüksek güvenilirlikte,
-metin parse etmeye hiç gerek yok, ve kurulum kapsamı hem kontrol hem rapor
-edilebiliyor. Faz 1'in adaptörü bu olmalı.
+**Claude Code, tek başına.** Dördü de gözlenebilir, üçü yüksek güvenilirlikte,
+metin parse etmeye gerek yok, ve aktif skill seti hem kontrol hem rapor
+edilebiliyor.
 
-Codex ikinci sırada ama tetiklenme sinyali belgelenmemiş; adaptör yazmadan
-önce SDK kaynağını okumak gerekir. Copilot üçüncü ve şu anki belgelenmiş
-yüzeyiyle Assay'in çekirdek ölçümü için yeterli değil.
+Codex deneyden sonra **düştü**: olay akışı temiz ama tetiklenme yapısal bir
+sinyal olarak yayınlanmıyor ve skill seti izole edilemiyor. Copilot'un
+belgelenmiş yüzeyi de yeterli değil.
 
 ### Faz geçiş kriteri
 
 > "En az bir hostta trigger sinyali orta veya yüksek güvenilirlikle okunabiliyor
 > olmalı."
 
-**Karşılandı.** Claude Code'da model kendi seçtiğinde tetiklenme, açık bir
-`Skill` tool_use olarak **yüksek** güvenilirlikte okunuyor ve bu deneyle
-doğrulandı. Ürünün kapsamını daraltmak gerekmiyor.
+**Karşılandı** — ama yalnızca Claude Code'da, ve yalnızca model skill'i kendi
+seçtiğinde. Ürünün kapsamını daraltmak teknik olarak gerekmiyor.
 
-### Ama kapsam yine de değişmeli
+### Ama iki bulgu stratejiyi sıkıştırıyor
 
-Geçiş kriteri teknik nedenle değil, **rekabet nedeniyle** yeniden
-değerlendirilmeli. `claude plugin eval` Faz 1'in tek-host senaryosunu zaten
-karşılıyor. Assay tek host için yazılırsa, ücretsiz ve birinci taraf bir aracın
-soluk bir kopyası olur.
+**1. `claude plugin eval` Faz 1'in tek-host senaryosunu zaten karşılıyor.**
+Assay tek host için yazılırsa, ücretsiz ve birinci taraf bir aracın soluk bir
+kopyası olur.
 
-Önerilen kapsam düzeltmesi:
+**2. Çapraz-host bugün yapılamıyor.** Kaçış yolu olarak düşünülen
+vendor-bağımsızlık, Codex denemesinden sonra **bugün inşa edilemez** çıktı:
+tetiklenme yapısal olarak yayınlanmıyor ve skill seti izole edilemiyor.
+Metinden çıkarımla ölçmek mümkün ama o, Assay'in kendi değişmezlerine aykırı —
+"model 'bu skill'i kullanıyorum' dedi" bir gözlem değil, bir iddiadır.
 
-1. **Faz 1 Claude Code adaptörüyle başlar** — sinyal en temiz olan burada, ve
-   motoru gerçek veriyle doğrulamanın tek yolu bu.
-2. **Faz 1'in çıkış kriterine ikinci host eklenir.** Roadmap'te "sonraki
-   dalga"ya yazılmış olan çapraz-host uyumluluk matrisi, ürünün kenar
-   süslemesi değil, **var oluş gerekçesi** hâline geliyor. Codex adaptörü Faz
-   1'e çekilmeli ya da en azından fizibilitesi 1.1'den önce SDK kaynağı
-   okunarak kesinleştirilmeli.
-3. **Deterministik skorlama ve üç durumlu verdict öne çıkarılır.** Bunlar
-   "titiz mühendislik" değil, tek gerçek teknik farklılaşma.
+İki bulgu birlikte, ilk raporun "çapraz-host matrisi artık var oluş
+gerekçesidir" önerisini **geçersiz kılıyor**. O öneri, Codex'in ölçülebilir
+olduğu varsayımına dayanıyordu; varsayım deneyle çürüdü.
 
-Bu değişiklik roadmap'i ve product.md'yi etkiliyor; kullanıcı onaylamadan
-uygulanmayacak.
+### Ayakta kalan farklar
+
+Rekabetten korunan üç şey kaldı; üçü de teknik ve bugün inşa edilebilir:
+
+1. **Deterministik skorlama.** `claude plugin eval` skorlamayı bir LLM'e
+   yaptırıyor (`--judge-model`, varsayılan haiku). Kararsızlık ölçen bir aracın
+   kendisinin kararsız olması, ölçümü açıklanamaz kılar: "neden fail"
+   sorusunun cevabı bir modelin görüşü olur.
+2. **Üç durumlu verdict.** Bu spike'ta iki kez, iki farklı sebeple, host
+   "başarılı" dedi ve koşum hiç gerçekleşmemişti (`not logged in`, sonra
+   `401 revoked` — ikisinde de `subtype: success`). `--threshold` ile ikili bir
+   kapıdan geçen skor bunu göremez. Ölçülemeyeni ölçülmüş saymamak, bu ürünün
+   tek satılabilir özelliği.
+3. **Hafıza.** Eval koşucusu tek koşumu bilir. Regresyon, pin kayması ve zaman
+   içindeki eğilim hosted katmanın konusu ve orada rakip yok.
+
+### Öneri
+
+**Kapsamı daraltma, derinleştir.** Faz 1 Claude Code adaptörüyle devam etsin;
+çapraz-host matrisi roadmap'te "sonraki dalga"da kalsın — Codex yapısal bir
+skill olayı yayınlayana kadar oraya yatırım yapmak, ölçülemeyen bir şeye
+altyapı yazmak olur.
+
+Farkı deterministik skorlama, üç durumlu verdict ve regresyon hafızası
+taşıyacak. Bunlar "titiz mühendislik" değil, ürünün tek gerçek savunma hattı.
+
+Codex tarafı kapanmadı, ertelendi: `codex exec --json` akışı araç izi ve
+tamamlama için zaten yeterli. Yapısal bir tetiklenme olayı çıktığı gün adaptör
+bir günlük iş.
 
 ### Durdurucu olmayan ama çözülmesi gereken üç şey
 
 1. **İzolasyon zorunlu.** Her koşum kendi `CLAUDE_CONFIG_DIR`'ında yürümeli.
-   ✅ mekanizma doğrulandı.
-2. **Kimlik bilgisi gerekli.** İzole config OAuth oturumunu devralmıyor;
-   `--bare` de OAuth okumuyor. Faz 1 koşumları için **`ANTHROPIC_API_KEY`
-   ya da `claude setup-token` ile üretilmiş uzun ömürlü bir token gerekiyor.**
-   Uydurulmadı; kullanıcıdan istenecek.
+   ✅ mekanizma doğrulandı (119 → 19 skill).
+2. **Kimlik bilgisi gerekli.** İzole config OAuth oturumunu devralmıyor.
+   `claude setup-token` ile üretilen `CLAUDE_CODE_OAUTH_TOKEN` ✅ çalışıyor;
+   `tools/check-auth.mjs` bunu sırrı yazdırmadan doğruluyor.
 3. **Pin 3 türetilecek.** Sistem promptu hash'i doğrudan verilmiyor;
    `init` alanlarından bir ortam hash'i hesaplanacak ve raporda sistem promptu
    hash'i olarak değil, kendi adıyla gösterilecek.
-
----
 
 ## Kanıt
 
@@ -356,8 +435,12 @@ artefaktı, `.gitignore` kapsamında):
 | `pos2.jsonl` | Taslaklı istem — skill tetiklenmedi, model işi doğrudan yaptı (119 skill aktif) |
 | `explicit.jsonl` | `/assay-probe` — skill çalıştı, `Skill` tool_use **yok** |
 | `isolated.jsonl` | Temiz `CLAUDE_CONFIG_DIR` — 19 skill, ama "not logged in" + `subtype: success` |
+| `codex-probe/` | Codex için aynı skill, `.agents/skills/` altında |
+| `codex-pos.jsonl` | Codex, varsayılan sandbox — 1235 skill, tetiklenme yalnızca metinde |
+| `codex-pos2.jsonl` | Codex, `USERPROFILE`/`HOME` izole + `--ignore-rules` — izolasyon işe yaramadı |
 
-Toplam deney maliyeti: **0.114 USD**, dört koşum.
+Claude Code deney maliyeti: **0.114 USD**, dört koşum. Codex: iki koşum,
+koşum başına ~76k girdi / ~800 çıktı token.
 
 Gerçek transkript taraması: `~/.claude/projects/**/*.jsonl`, 245 dosya,
 12'sinde `Skill` tool_use.
