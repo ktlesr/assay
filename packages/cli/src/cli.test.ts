@@ -255,18 +255,24 @@ describe('değişmez #4 — hiçbir oran çıplak basılmaz', () => {
     ['trigger.negative.b', 0, 0, 5],
   ])
 
-  it('terminal çıktısındaki her yüzde N taşır', () => {
+  it('terminal çıktısında yüzde içeren her satır N de taşır', () => {
     const text = renderRun(run, summaryOf(run))
-    for (const match of text.matchAll(/(\d+)%/g)) {
-      const around = text.slice(Math.max(0, match.index - 4), match.index + 40)
-      expect(around, `çıplak yüzde: ${around}`).toMatch(/N=\d+|CI|–/)
+    for (const line of text.split('\n')) {
+      if (!line.includes('%')) continue
+      expect(line, `N'siz oran satırı: ${line}`).toContain('N=')
     }
   })
 
-  it('HTML raporundaki her yüzde N taşır', () => {
-    const html = renderHtmlReport(run, summaryOf(run))
-    for (const match of html.matchAll(/(\d+)% \(/g)) {
-      expect(html.slice(match.index, match.index + 40)).toContain('N=')
+  it('HTML raporunda yüzde içeren her satır N de taşır', () => {
+    // CSS'te de yüzde geçiyor (`width: 100%`); stil bloğu taranmaz.
+    const html = renderHtmlReport(run, summaryOf(run)).replace(
+      /<style>[\s\S]*?<\/style>/,
+      '',
+    )
+    for (const line of html.split('\n')) {
+      // Açıklama metinleri ("95% Wilson confidence interval") oran değil.
+      if (!/\d+%/.test(line) || line.includes('class="note"')) continue
+      expect(line, `N'siz oran satırı: ${line}`).toContain('N=')
     }
   })
 

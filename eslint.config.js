@@ -102,7 +102,7 @@ export default tseslint.config(
   },
   {
     // tools/ altındaki script'ler Node'da koşan araçlardır, kütüphane değil.
-    files: ['tools/**/*.{mjs,js}'],
+    files: ['tools/**/*.{mjs,js}', 'action/**/*.{mjs,js}'],
     languageOptions: {
       globals: { process: 'readonly', console: 'readonly', URL: 'readonly' },
     },

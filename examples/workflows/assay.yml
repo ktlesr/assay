@@ -1,0 +1,50 @@
+# Assay'i kendi reponuza kurmak için hazır workflow.
+#
+# PR açıldığında skill dosyaları değiştiyse suite koşar, karneyi PR yorumuna
+# yazar ve regresyon varsa check'i düşürür.
+
+name: Assay
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'assay.suite.yaml'
+  push:
+    branches: [main]
+
+# Karne yorumu ve baseline artefaktı için gerekli.
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  assay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Host CLI'ı kurun. Assay ölçmez, ölçtüreni çağırır.
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Build Assay
+        run: |
+          npm install -g pnpm@10
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+
+      - uses: ./action
+        env:
+          # `claude setup-token` ile üretilen uzun ömürlü token.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        with:
+          suite: assay.suite.yaml
+          skill: ./skills/my-skill
+          # CI'da 1 yazmayın: tek koşum kararsızlık hakkında hiçbir şey söylemez.
+          repeat: '10'

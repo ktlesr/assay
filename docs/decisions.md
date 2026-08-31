@@ -536,3 +536,33 @@ boğar ve alarmları görmezden gelmeyi öğretir — regresyon aracının ölü
 Bedeli: gerçek ama küçük regresyonları yakalamak için N büyütmek gerekiyor,
 ki zaten doğru cevap o.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — CI baseline'ı GitHub artefaktı
+Bağlam: 1.5 regresyon karşılaştırması için önceki koşumun nereden geleceğini
+sormuş ve kararı bana bırakmıştı.
+Seçenekler: repoya commit'lenen baseline dosyası · GitHub Actions artefaktı ·
+hosted baseline (Faz 2)
+Karar: Aynı workflow'un base branch üzerindeki en son başarılı koşumundan
+`assay-runs` artefaktı indirilir.
+Gerekçe: Commit'lenen baseline, ölçüm sonucunu repo geçmişine karıştırır ve her
+koşumda gürültülü bir diff üretir. Hosted baseline Faz 2'de gelecek ama SDK'nın
+platformsuz tam çalışması şart. Artefakt, `GITHUB_TOKEN` dışında hiçbir şey
+istemiyor.
+Bilinen sınırlar açıkça yazıldı: artefaktlar süresi dolunca kaybolur (varsayılan
+90 gün), bir branch'in ilk koşumunda baseline yoktur ve yorum bunu söyler,
+yakın zamanlı iki PR aynı baseline'a bakar. Karşılaştırma mantığı `core`'da
+olduğu için Faz 2'de yalnızca "önceki koşum nereden geliyor" değişecek.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Action yalnızca kendi ürettiği kaydı raporlar
+Bağlam: `action/run.mjs` ilk hâlinde `.assay/runs` içindeki en yeni kaydı
+okuyordu. CLI çöktüğünde bu, **önceki koşumun sonucunu** bu koşumunmuş gibi
+raporluyordu — yerel denemede görüldü.
+Seçenekler: her koşumdan önce store'u temizlemek · koşum kimliğini CLI'dan
+almak · koşum öncesi/sonrası en yeni kaydı karşılaştırmak
+Karar: Üçüncüsü. Koşumdan önceki en yeni kayıt kimliği tutuluyor; sonrasında
+değişmemişse kayıt üretilmemiş sayılıyor ve `::error::` ile `unknown` çıkıyor.
+Gerekçe: Store'u temizlemek yerel geçmişi siler. Bir aracın en tehlikeli hatası
+ölçmediğini ölçülmüş göstermek; burada üstelik *başka bir koşumun* sonucunu
+gösterecekti.
+Geri dönüş maliyeti: düşük

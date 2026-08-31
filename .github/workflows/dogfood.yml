@@ -1,0 +1,38 @@
+# Assay'i kendi örnek skill'i üzerinde koşar. Elle tetiklenir: gerçek para harcar.
+
+name: Dogfood
+
+on:
+  workflow_dispatch:
+    inputs:
+      repeat:
+        description: Runs per case
+        required: false
+        default: '10'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: npm install -g @anthropic-ai/claude-code
+      - uses: ./action
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        with:
+          suite: examples/widget-manifest.suite.yaml
+          skill: ./examples/widget-manifest
+          repeat: ${{ inputs.repeat }}

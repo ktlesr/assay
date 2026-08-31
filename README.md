@@ -68,6 +68,8 @@ Claude Code adaptörü `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token` ile
 yürüdüğü için interaktif oturumu devralmaz.
 
 CLI ayrıntıları: [packages/cli/README.md](packages/cli/README.md).
+GitHub Action: [action/README.md](action/README.md), hazır workflow
+[examples/workflows/assay.yml](examples/workflows/assay.yml).
 
 ## Durum
 
