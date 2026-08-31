@@ -612,3 +612,31 @@ idi ve cevap evet çıktı. Şimdi eklemek, ürünün asıl riskini (ölçüm d�
 üretiyor ve hiçbir yerde "engelleniyor" denmiyor. Konteyner Faz 3'e bırakıldı;
 bu rapor onu artık gerekçelendiriyor.
 Geri dönüş maliyeti: orta (sandbox arayüzü değişmeden altına konteyner konur)
+
+## 2026-08-31 — Dogfooding hedefi: birbirinin yakın komşusu üç skill
+Bağlam: 1.6 üç-beş gerçek skill istiyor ve seçimin gerekçelendirilmesini
+şart koşuyor.
+Seçenekler: rastgele popüler skill'ler · tek bir skill'i derinlemesine ·
+birbirinin yakın komşusu olan bir küme
+Karar: `docx`, `pdf`, `xlsx` (anthropics/skills). Skill'ler repoda
+vendor'lanmadı; proprietary lisanslılar, yerel kurulumdan kopyalanıyor.
+Gerekçe: Üçü de "bunu bir belgeye çevir" istemiyle çağrılabilir, yani
+birbirlerinin en zor negatifi. Yakın-komşu vakası yazmak için ideal küme ve
+değişmez #5'in ölçtüğü şey tam burada sınanıyor. Rastgele skill'lerle
+negatif vakalar kolay olurdu ve ayrım gücü ölçülmemiş olurdu.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Ölçülemeyecek katmanlar suite'e konmadı
+Bağlam: Doküman skill'leri Python betikleri çalıştırıyor; izole çalışma
+dizininde bağımlılıkları yok. Ayrıca `Bash` kullandıkları için 1.3'ten sonra
+`side_effect` zaten `unknown` üretecekti.
+Seçenekler: artefakt ve yan etki vakalarını ekleyip `fail`/`unknown` almak ·
+eklememek ve raporda nedenini yazmak
+Karar: Eklenmedi; docs/dogfooding.md "Ölçülemeyenler" başlığında neden
+eklenmediği yazıldı. Tamamlama katmanı ayrıca `examples/widget-manifest`
+suite'iyle doğrulandı.
+Gerekçe: Python kurulumu eksik olduğu için düşen bir artefakt vakası skill'i
+değil sandbox'ı ölçerdi ve raporu gürültüyle doldururdu. Sonucu baştan belli
+olan bir ölçümü koşmak, ölçüm değil tören olur. Ama sessizce atlamak da
+olmaz — raporda açıkça yazılı.
+Geri dönüş maliyeti: düşük

@@ -1,0 +1,39 @@
+# xlsx suite'inin düzeltilmiş hâli.
+#
+# İlk sürümde `trigger.positive.implicit` vakası var olmayan bir `messy.csv`
+# dosyasına atıfta bulunuyordu ve 10'da 4 tetikleniyordu. İz gösterdi ki ajan
+# dosyayı arıyor, bulamıyor ve skill'i çağırmak yerine kullanıcıya soruyor —
+# yani vaka skill'i değil, eksik dosyayı ölçüyordu.
+#
+# Bu sürüm aynı vakayı fixture ile koşuyor. Fark docs/dogfooding.md'de.
+
+version: 2
+
+target:
+  skill: xlsx
+  source: anthropics/skills@local-install
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [xlsx]
+
+runs: 10
+
+cases:
+  - id: trigger.positive.implicit
+    prompt: |
+      This CSV has the header on the third row and some junk rows above it.
+      Clean it up so I can open it properly. The file is messy.csv.
+    setup: { fixtures: ./fixtures }
+    expect: { triggered: true }
+
+  - id: trigger.negative.near_neighbor.docx
+    prompt: |
+      Turn these notes into a Word document called summary.docx:
+
+      # Q3 summary
+      - revenue up 12%
+    setup: { fixtures: ./fixtures }
+    expect: { triggered: false }

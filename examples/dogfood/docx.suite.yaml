@@ -1,0 +1,59 @@
+# Dogfooding — anthropics/skills docx.
+#
+# Skill repoda vendor'lanmıyor (proprietary lisans); yerel kurulumdan
+# `.assay/dogfood/docx` altına kopyalanıyor. Bkz. docs/dogfooding.md.
+#
+# Yakın komşular kasıtlı: docx, pdf ve xlsx birbirinin en zor negatifi.
+# "Bunu bir belgeye çevir" üçünü de çağırabilir; ayrım gücü tam burada ölçülür.
+
+version: 1
+
+target:
+  skill: docx
+  source: anthropics/skills@local-install
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [docx]
+
+runs: 10
+
+cases:
+  - id: trigger.positive.explicit
+    prompt: |
+      Turn these notes into a Word document called summary.docx:
+
+      # Q3 summary
+      - revenue up 12%
+      - churn flat
+    expect: { triggered: true }
+
+  - id: trigger.positive.implicit
+    prompt: |
+      I need a polished one-page memo I can email to the board, with a heading
+      and proper formatting. Here is the content:
+
+      Q3 revenue rose 12 percent while churn stayed flat.
+    expect: { triggered: true }
+
+  - id: trigger.negative.near_neighbor.pdf
+    prompt: |
+      Turn these notes into a PDF called summary.pdf:
+
+      # Q3 summary
+      - revenue up 12%
+      - churn flat
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.xlsx
+    prompt: |
+      Put these figures into a spreadsheet:
+
+      Q1 100, Q2 120, Q3 134
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated
+    prompt: Why does this TypeScript union type collapse to never?
+    expect: { triggered: false }

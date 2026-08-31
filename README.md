@@ -73,7 +73,15 @@ GitHub Action: [action/README.md](action/README.md), hazır workflow
 
 ## Durum
 
-**Faz 1 sürüyor.** SDK Claude Code üzerinde uçtan uca çalışıyor: örnek suite
+**Faz 1 tamamlandı.** Geçiş kriterlerinin onu da tutuyor
+([dogfooding.md](docs/dogfooding.md)).
+
+Assay üç gerçek skill üzerinde 150 koşum yaptı ve `xlsx` skill'inin kendi
+açıklamasında tarif ettiği bir vakada **10'da 4** tetiklendiğini ölçtü.
+Vaka fixture ile düzeltilince 10'da 8'e çıktı — ve Assay bu iyileşmeyi bile
+"kanıtlanmadı" saydı, çünkü N=10'da güven aralıkları kesişiyor.
+
+**Faz 1 detayı.** SDK Claude Code üzerinde uçtan uca çalışıyor: örnek suite
 4 vaka × 3 tekrarla koşuyor, tetiklenme precision/recall ölçülüyor, artefakt
 doğrulanıyor, koşumlar `.assay/runs/` altına yazılıyor ve `compare` dört pin
 kaymışsa karşılaştırmayı reddediyor.
@@ -100,6 +108,7 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/adapters.md](docs/adapters.md) — host adaptör sözleşmesi
 - [docs/adapter-validation.md](docs/adapter-validation.md) — Claude Code adaptörünün canlı doğrulaması
 - [docs/sandbox-security.md](docs/sandbox-security.md) — sandbox güvenlik incelemesi ve kabul edilen riskler
+- [docs/dogfooding.md](docs/dogfooding.md) — üç gerçek skill üzerinde 150 koşumluk ölçüm raporu
 - [docs/host-feasibility.md](docs/host-feasibility.md) — üç host için sinyal okunabilirlik matrisi (Faz 0 çıktısı)
 - [docs/workflow.md](docs/workflow.md) — çalışma sözleşmeleri
 

@@ -1,0 +1,44 @@
+# Dogfooding — anthropics/skills pdf. Bkz. docs/dogfooding.md.
+
+version: 1
+
+target:
+  skill: pdf
+  source: anthropics/skills@local-install
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [pdf]
+
+runs: 10
+
+cases:
+  - id: trigger.positive.explicit
+    prompt: |
+      Merge report-a.pdf and report-b.pdf into one file called combined.pdf.
+    expect: { triggered: true }
+
+  - id: trigger.positive.implicit
+    prompt: |
+      I have a scanned contract and I need the text out of it so I can search
+      through it. The file is contract.pdf.
+    expect: { triggered: true }
+
+  - id: trigger.negative.near_neighbor.docx
+    prompt: |
+      Turn these notes into a Word document called summary.docx:
+
+      # Q3 summary
+      - revenue up 12%
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.xlsx
+    prompt: |
+      Put these figures into a spreadsheet: Q1 100, Q2 120, Q3 134
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated
+    prompt: Why does this TypeScript union type collapse to never?
+    expect: { triggered: false }
