@@ -30,14 +30,14 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 | 2.3 Bileşen katmanı | packages/ui, Radix tabanlı, /dev/components | `c7d74ff` |
 | 2.4 Dashboard | beş ekran, karşılaştırma reddi gerçek veriyle | `8e90b58` |
 | 2.5 Kimlik doğrulama | Auth.js, rol, API token, assay push, DB'den okuma | `5332597` |
+| 2.6 Admin panel | kullanıcılar, koşumlar, denetim kaydı | `b685d50` |
+| 2.7 Tanıtım sayfası | yalnızca veritabanından okunan gerçek ölçüm | `f25fd36` |
 
 ## Sırada
 
 | Adım | Durum |
 |---|---|
-| 2.6 Admin panel | sırada |
-| 2.7 Tanıtım sayfası | bekliyor |
-| 3.1 Tam güvenlik incelemesi | bekliyor |
+| 3.1 Tam güvenlik incelemesi | sırada |
 | 3.2 Test ve CI | bekliyor |
 | 3.3 Deploy | bekliyor |
 

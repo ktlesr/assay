@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   EmptyState,
   ErrorState,
+  formatMeasurement,
   MetricValue,
   Popover,
   Table,
@@ -118,11 +119,10 @@ const COLUMNS: Column<CaseRow>[] = [
     key: 'rate',
     header: 'Pass rate',
     sortValue: (row) => row.rate.rate ?? -1,
+    // Değişmez #4: tabloda bile oran N ve güven aralığı olmadan yazılmaz.
     render: (row) => (
       <span className="font-mono text-xs text-text-muted">
-        {row.rate.rate === null || row.rate.ci === null
-          ? 'no observations (N=0)'
-          : `${Math.round(row.rate.rate * 100)}% (N=${row.rate.n})`}
+        {formatMeasurement(row.rate)}
       </span>
     ),
   },
