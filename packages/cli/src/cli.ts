@@ -12,7 +12,7 @@ import { basename, dirname, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { ClaudeCodeAdapter } from '@assay/adapters'
 import { compareRuns, parseSuite, summarizeRun, type Run, type Suite } from '@assay/core'
-import { RunStore, runSuite } from '@assay/runner'
+import { RunStore, runSuite, suiteHash } from '@assay/runner'
 import { renderHtmlReport } from './html.js'
 import {
   renderComparison,
@@ -42,6 +42,7 @@ Usage
   assay report [run-id]             print a stored run, newest by default
   assay compare <run-a> <run-b>     compare two stored runs, pins checked
   assay ci <suite.yaml>             run and exit non-zero on failure
+  assay push [run-id]               upload a stored run to a hosted instance
 
 Options
   --skill <dir>       the skill or plugin directory under test
@@ -51,6 +52,9 @@ Options
   --model <id>        override the suite's model
   --allow-unknown     do not fail CI when attempts could not be measured
   --json              print the run record as JSON instead of a summary
+  --suite <file>      the case set the run was measured with (push)
+  --url <base>        hosted instance base URL (push, or ASSAY_URL)
+  --token <token>     API token (push, or ASSAY_TOKEN — prefer the variable)
   -h, --help          show this text
 
 Exit codes
@@ -73,6 +77,9 @@ export async function main(argv: readonly string[]): Promise<number> {
         model: { type: 'string' },
         'allow-unknown': { type: 'boolean' },
         json: { type: 'boolean' },
+        suite: { type: 'string' },
+        url: { type: 'string' },
+        token: { type: 'string' },
         help: { type: 'boolean', short: 'h' },
       },
     })
@@ -101,11 +108,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     case 'compare':
       return compare(positionals[0], positionals[1], parsed.values)
     case 'push':
-      process.stderr.write(
-        `${style.yellow('not available')} assay push needs the hosted platform, which ships in phase 2.\n` +
-          'The CLI is fully usable without it: runs are stored locally under .assay/runs.\n',
-      )
-      return EXIT.usage
+      return push(positionals[0], parsed.values)
     default:
       process.stderr.write(
         `${style.red('error')} unknown command "${command}"\n\n${USAGE}`,
@@ -377,3 +380,120 @@ const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : String(cause)
 
 export { verdictLabel }
+
+// ---------------------------------------------------------------------------
+// push
+// ---------------------------------------------------------------------------
+
+/**
+ * Kayıtlı bir koşumu hosted örneğe yükler.
+ *
+ * Ölçüm burada yapılmaz ve tekrarlanmaz: yerel kayıt olduğu gibi gönderilir.
+ * Vaka seti kaynağı da gider, çünkü hosted taraf vakaların metnini kayıttan
+ * türetemez.
+ *
+ * Token argümanla verilebilir ama `ASSAY_TOKEN` tercih edilir: argüman kabuk
+ * geçmişine ve süreç listesine düşer.
+ */
+async function push(runId: string | undefined, options: Options): Promise<number> {
+  const base = (options['url'] as string | undefined) ?? process.env['ASSAY_URL']
+  const token = (options['token'] as string | undefined) ?? process.env['ASSAY_TOKEN']
+  const suitePath = options['suite'] as string | undefined
+
+  if (base === undefined || base === '') {
+    process.stderr.write(
+      `${style.red('error')} push needs --url or ASSAY_URL, the base URL of a hosted instance
+`,
+    )
+    return EXIT.usage
+  }
+  if (token === undefined || token === '') {
+    process.stderr.write(
+      `${style.red('error')} push needs ASSAY_TOKEN (or --token), created under Settings → API tokens
+`,
+    )
+    return EXIT.usage
+  }
+  if (suitePath === undefined) {
+    process.stderr.write(
+      `${style.red('error')} push needs --suite: the hosted side stores the case set alongside the run
+`,
+    )
+    return EXIT.usage
+  }
+
+  const store = new RunStore(storeOptions(options))
+  const record =
+    runId === undefined ? await store.latest() : await store.load(runId).catch(() => null)
+  if (record === null) {
+    process.stderr.write(
+      `${style.red('error')} ${runId === undefined ? `no runs found in ${store.directory}` : `no run ${runId}`}
+`,
+    )
+    return EXIT.usage
+  }
+
+  let suiteSource: string
+  try {
+    suiteSource = await readFile(resolve(suitePath), 'utf8')
+  } catch {
+    process.stderr.write(`${style.red('error')} cannot read ${suitePath}
+`)
+    return EXIT.usage
+  }
+
+  // Pin 4'ün denetçisi: gönderilen vaka seti, ölçümde kullanılandan farklıysa
+  // yükleme yapılmaz. Aksi hâlde hosted tarafta koşumla eşleşmeyen bir vaka
+  // seti dururdu ve sonraki karşılaştırmalar sessizce yanlış olurdu.
+  const localHash = suiteHash(suiteSource)
+  if (localHash !== record.pins.suiteHash) {
+    process.stderr.write(
+      `${style.red('error')} ${suitePath} is not the case set this run was measured with
+` +
+        `  run:  ${record.pins.suiteHash}
+  file: ${localHash}
+`,
+    )
+    return EXIT.usage
+  }
+
+  let response: Response
+  try {
+    response = await fetch(new URL('/api/runs', base), {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ suiteSource, run: record }),
+    })
+  } catch (cause) {
+    process.stderr.write(`${style.red('error')} cannot reach ${base}: ${message(cause)}
+`)
+    return EXIT.usage
+  }
+
+  const body = (await response.json().catch(() => ({}))) as {
+    error?: string
+    runId?: string
+  }
+
+  if (response.status === 201) {
+    process.stdout.write(
+      `${style.green('uploaded')} ${record.id}
+  ${new URL(`/runs/${record.id}`, base).href}
+`,
+    )
+    return EXIT.ok
+  }
+  if (response.status === 409) {
+    process.stdout.write(`${style.yellow('already stored')} ${record.id}
+`)
+    return EXIT.ok
+  }
+  process.stderr.write(
+    `${style.red('error')} ${response.status} ${body.error ?? 'the upload was rejected'}
+`,
+  )
+  return EXIT.usage
+}

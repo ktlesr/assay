@@ -117,10 +117,21 @@ describe('kullanım', () => {
     expect(await main(['run', '--nope'])).toBe(EXIT.usage)
   })
 
-  it('push Faz 2 diyor ama CLI"nın çalıştığını söylüyor', async () => {
+  it('push adres olmadan koşmaz', async () => {
     expect(await main(['push'])).toBe(EXIT.usage)
-    expect(err).toContain('phase 2')
-    expect(err).toContain('fully usable without it')
+    expect(err).toContain('--url or ASSAY_URL')
+  })
+
+  it('push token olmadan koşmaz', async () => {
+    expect(await main(['push', '--url', 'http://localhost:3000'])).toBe(EXIT.usage)
+    expect(err).toContain('ASSAY_TOKEN')
+  })
+
+  it('push vaka seti olmadan koşmaz', async () => {
+    expect(
+      await main(['push', '--url', 'http://localhost:3000', '--token', 'assay_x']),
+    ).toBe(EXIT.usage)
+    expect(err).toContain('--suite')
   })
 })
 

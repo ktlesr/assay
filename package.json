@@ -25,6 +25,7 @@
   "devDependencies": {
     "@assay/core": "workspace:*",
     "@assay/db": "workspace:*",
+    "@assay/runner": "workspace:*",
     "@assay/ui": "workspace:*",
     "@electric-sql/pglite": "^0.5.8",
     "@electric-sql/pglite-socket": "^0.2.11",

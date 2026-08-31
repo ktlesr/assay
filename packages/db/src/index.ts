@@ -38,3 +38,5 @@ export {
   isConfigured,
   DatabaseNotConfiguredError,
 } from './client.js'
+
+export { storeRun, listRuns, loadRun, RunAlreadyStoredError } from './store.js'

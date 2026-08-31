@@ -1,30 +1,27 @@
 /**
- * Seed koşum kayıtları.
+ * Koşum okuma.
  *
  * Ekrandaki her sayı gerçek bir koşumdan gelir (veri gerçekliği sözleşmesi).
- * `apps/web/seed/runs/` altındaki dosyalar Faz 1'de üretilmiş gerçek
- * kayıtlardır; elle yazılmış tek bir ölçüm yok.
+ * Kayıtlar buraya `assay push` ile giriyor; bu modül yalnızca okur ve hiçbir
+ * ölçümü yeniden hesaplamaz — oranlar kaydın kendisinden geliyor.
  *
- * Faz 2'nin ilerleyen adımlarında bu okuyucu veritabanıyla değişecek. Kanonik
- * tip aynı kaldığı için ekranlar değişmeyecek — hosted taraf SDK'nın kaydını
- * alır, kendi formatını dayatmaz.
+ * Veritabanı yapılandırılmamışsa liste boş döner ve ekranda EmptyState görünür.
+ * "Veri yok" ile "veritabanı yok" ayrımı `configured` ile taşınıyor.
  */
 
-import { readFile, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
-import { compareRuns, summarizeRun, type Run, type RunComparison, type RunSummary } from '@assay/core'
-
-const SEED_DIR = join(process.cwd(), 'seed', 'runs')
-
-interface StoredRun {
-  storeVersion: number
-  run: Run
-}
+import {
+  compareRuns,
+  summarizeRun,
+  type Run,
+  type RunComparison,
+  type RunSummary,
+} from '@assay/core'
+import { isConfigured, listRuns as dbListRuns, loadRun, prisma } from '@assay/db'
 
 export interface RunWithSummary {
   run: Run
   summary: RunSummary
-  /** Dosya adı. Veritabanı gelince koşum kimliği olacak. */
+  /** Koşum kimliği — CLI'ın ürettiği kimlik, hosted taraf kendi kimliğini dayatmaz. */
   slug: string
 }
 
@@ -35,42 +32,30 @@ export interface SuiteView {
   latest: RunWithSummary
 }
 
-let cache: RunWithSummary[] | null = null
-
-async function loadAll(): Promise<RunWithSummary[]> {
-  if (cache !== null) return cache
-  const files = await readdir(SEED_DIR).catch(() => [] as string[])
-  const loaded: RunWithSummary[] = []
-  for (const file of files.filter((f) => f.endsWith('.json'))) {
-    try {
-      const parsed = JSON.parse(await readFile(join(SEED_DIR, file), 'utf8')) as StoredRun
-      if (parsed.run === undefined) continue
-      loaded.push({
-        run: parsed.run,
-        summary: summarizeRun(parsed.run),
-        slug: file.slice(0, -5),
-      })
-    } catch {
-      // Okunamayan kayıt sessizce atlanır ama sayılır: ekranda EmptyState
-      // görünür, uydurma veri değil.
-    }
-  }
-  loaded.sort((a, b) => (a.run.startedAt < b.run.startedAt ? 1 : -1))
-  cache = loaded
-  return loaded
+export function configured(): boolean {
+  return isConfigured()
 }
 
+const withSummary = (run: Run): RunWithSummary => ({
+  run,
+  summary: summarizeRun(run),
+  slug: run.id,
+})
+
 export async function listRuns(): Promise<RunWithSummary[]> {
-  return loadAll()
+  if (!isConfigured()) return []
+  return (await dbListRuns(prisma())).map(withSummary)
 }
 
 export async function getRun(slug: string): Promise<RunWithSummary | null> {
-  return (await loadAll()).find((r) => r.slug === slug) ?? null
+  if (!isConfigured()) return null
+  const run = await loadRun(prisma(), decodeURIComponent(slug))
+  return run === null ? null : withSummary(run)
 }
 
 /** Skill'e göre gruplanmış görünüm — bir suite'in geçmişi. */
 export async function listSuites(): Promise<SuiteView[]> {
-  const runs = await loadAll()
+  const runs = await listRuns()
   const grouped = new Map<string, RunWithSummary[]>()
   for (const item of runs) {
     const list = grouped.get(item.run.skill) ?? []
@@ -95,7 +80,11 @@ export async function getSuite(skill: string): Promise<SuiteView | null> {
 export async function compare(
   beforeSlug: string,
   afterSlug: string,
-): Promise<{ before: RunWithSummary; after: RunWithSummary; comparison: RunComparison } | null> {
+): Promise<{
+  before: RunWithSummary
+  after: RunWithSummary
+  comparison: RunComparison
+} | null> {
   const before = await getRun(beforeSlug)
   const after = await getRun(afterSlug)
   if (before === null || after === null) return null

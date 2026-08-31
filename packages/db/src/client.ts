@@ -42,7 +42,15 @@ export function prisma(): PrismaClient {
   const existing = globalForPrisma.assayPrisma
   if (existing !== undefined) return existing
   // Prisma 7 sürücü adaptörü istiyor; bağlantı havuzu `pg` tarafında.
-  const client = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
+  // Geliştirmedeki PGlite soketi tek bağlantı konuşuyor; DATABASE_POOL_MAX=1
+  // orada havuzu sabitliyor. Üretimde değişken boş kalır ve varsayılan geçerli.
+  const max = Number(process.env['DATABASE_POOL_MAX'] ?? '')
+  const client = new PrismaClient({
+    adapter: new PrismaPg({
+      connectionString: url,
+      ...(Number.isInteger(max) && max > 0 ? { max } : {}),
+    }),
+  })
   globalForPrisma.assayPrisma = client
   return client
 }

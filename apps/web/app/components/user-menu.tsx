@@ -28,6 +28,12 @@ export async function UserMenu() {
 
   return (
     <span className="flex items-baseline gap-3">
+      <Link
+        href="/settings/tokens"
+        className="text-xs uppercase tracking-[0.09em] text-text-faint no-underline hover:text-text"
+      >
+        Tokens
+      </Link>
       <span className="text-xs text-text-faint" title={session.user.email ?? ''}>
         {session.user.email}
         {session.user.role === 'ADMIN' ? (
