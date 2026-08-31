@@ -1,0 +1,4 @@
+#!/bin/sh
+# Sır taraması. `git config core.hooksPath .githooks` ile etkinleşir;
+# kök package.json'daki prepare script'i bunu pnpm install sırasında yapar.
+exec node tools/scan-staged.mjs

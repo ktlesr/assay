@@ -8,15 +8,7 @@ import { describe, expect, it } from 'vitest'
  * denetler, iyi niyete bırakmaz.
  */
 
-/** Bilinen sır önekleri. Değerin kendisi asla mesaja yazılmaz. */
-const SECRET_PATTERNS: ReadonlyArray<[string, RegExp]> = [
-  ['Anthropic API key', /sk-ant-api\w{2}-[\w-]{20,}/],
-  ['Anthropic OAuth token', /sk-ant-oat\w{2}-[\w-]{20,}/],
-  ['OpenAI key', /\bsk-proj-[\w-]{20,}/],
-  ['GitHub token', /\bgh[pousr]_[A-Za-z0-9]{30,}/],
-  ['AWS access key', /\bAKIA[0-9A-Z]{16}\b/],
-  ['private key block', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
-]
+import { SCAN_EXEMPT, SECRET_PATTERNS } from './secret-patterns.mjs'
 
 const tracked = execSync('git ls-files', { encoding: 'utf8' })
   .split(/\r?\n/)
@@ -50,9 +42,8 @@ describe('sır taraması', () => {
       } catch {
         continue // ikili dosya
       }
+      if (SCAN_EXEMPT.includes(file)) continue
       for (const [label, pattern] of SECRET_PATTERNS) {
-        // Kendi desen tanımlarımız eşleşmesin.
-        if (file === 'tools/secrets.test.ts') continue
         if (pattern.test(source)) hits.push(`${file}: ${label}`)
       }
     }
