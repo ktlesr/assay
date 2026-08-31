@@ -89,3 +89,24 @@ export async function deleteRun(runId: string): Promise<void> {
   revalidatePath('/admin/runs')
   revalidatePath('/')
 }
+
+/**
+ * Vaka setinin görünürlüğü.
+ *
+ * Herkese açık yapmak, o vaka setinin bütün koşumlarını — istem metinleri,
+ * araç argümanları, dosya yolları — oturumsuz ziyaretçiye açar. Bu yüzden
+ * yönetici işlemi ve denetim kaydına yazılıyor.
+ */
+export async function setSuitePublic(suiteId: string, isPublic: boolean): Promise<void> {
+  const session = await requireAdmin('/admin/suites')
+  const suite = await prisma().suite.findUnique({ where: { id: suiteId } })
+  if (suite === null) throw new AdminRuleError('no such case set')
+
+  await prisma().suite.update({ where: { id: suiteId }, data: { public: isPublic } })
+  await audit(session.user.id, isPublic ? 'suite.publish' : 'suite.unpublish', suiteId, {
+    skill: suite.skill,
+    version: suite.version,
+  })
+  revalidatePath('/admin/suites')
+  revalidatePath('/')
+}

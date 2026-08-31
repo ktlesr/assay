@@ -164,13 +164,40 @@ export async function storeRun(
 // ---------------------------------------------------------------------------
 
 /**
+ * Kimin neyi görebildiği.
+ *
+ * Bir koşum kaydı istem metinlerini, araç argümanlarını ve dosya yollarını
+ * taşıyor; varsayılan gizli. Görünürlük sorgunun içinde, çağıranın elinde
+ * değil: filtrelemeyi çağırana bırakmak, bir ekranda unutulunca sessiz bir
+ * sızıntı olur.
+ */
+export type RunScope =
+  /** Yalnızca herkese açık işaretlenmiş vaka setleri. Oturumsuz ziyaretçi. */
+  | { kind: 'public' }
+  /** Kendi koşumları ve herkese açık olanlar. */
+  | { kind: 'viewer'; userId: string }
+  /** Her şey. Yalnızca yönetici. */
+  | { kind: 'all' }
+
+function scopeWhere(scope: RunScope) {
+  if (scope.kind === 'all') return {}
+  if (scope.kind === 'public') return { suite: { public: true } }
+  return { OR: [{ ownerId: scope.userId }, { suite: { public: true } }] }
+}
+
+/**
  * Koşum listesi — iz ve kanıt olmadan.
  *
  * Skorlama attempt'lerin verdict'i, tetiklenmesi ve maliyetiyle yapılıyor;
  * liste ekranı için izleri taşımak boşuna trafik.
  */
-export async function listRuns(db: PrismaClient, limit = 200): Promise<Run[]> {
+export async function listRuns(
+  db: PrismaClient,
+  scope: RunScope,
+  limit = 200,
+): Promise<Run[]> {
   const rows = await db.run.findMany({
+    where: scopeWhere(scope),
     orderBy: { startedAt: 'desc' },
     take: limit,
     include: { cases: { include: { attempts: true, case: true } } },
@@ -181,9 +208,13 @@ export async function listRuns(db: PrismaClient, limit = 200): Promise<Run[]> {
 }
 
 /** Tek koşum — izler, assertion sonuçları ve ortam farkıyla birlikte. */
-export async function loadRun(db: PrismaClient, id: string): Promise<Run | null> {
-  const row = await db.run.findUnique({
-    where: { id },
+export async function loadRun(
+  db: PrismaClient,
+  id: string,
+  scope: RunScope,
+): Promise<Run | null> {
+  const row = await db.run.findFirst({
+    where: { id, ...scopeWhere(scope) },
     include: {
       cases: {
         include: {

@@ -66,6 +66,10 @@ model Suite {
   systemPromptHash String
   activeSkills     String[] @default([])
 
+  /// Herkese açık mı. Varsayılan gizli: koşum kaydı istem metinlerini, araç
+  /// argümanlarını ve dosya yollarını taşıyor.
+  public Boolean @default(false)
+
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
@@ -78,6 +82,7 @@ model Suite {
   /// Aynı içerik iki kez kaydedilmez; sürüm artmadan içerik değişirse ayrı satır.
   @@unique([skill, version, hash])
   @@index([ownerId, updatedAt])
+  @@index([public])
 }
 
 /// Suite içindeki tek bir vaka.

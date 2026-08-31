@@ -1,5 +1,11 @@
 import { parseSuite, type Run } from '@assay/core'
-import { RunAlreadyStoredError, isConfigured, prisma, storeRun } from '@assay/db'
+import {
+  RunAlreadyStoredError,
+  SuiteNotStorableError,
+  isConfigured,
+  prisma,
+  storeRun,
+} from '@assay/db'
 import { rateLimit } from '../../../lib/rate-limit'
 import { identify } from '../../../lib/tokens'
 
@@ -13,6 +19,16 @@ import { identify } from '../../../lib/tokens'
  */
 
 export const runtime = 'nodejs'
+
+/**
+ * Gövde üst sınırı.
+ *
+ * 10 tekrarlı, izleri ve ortam farkıyla birlikte kaydedilen bir koşum bir kaç
+ * yüz kilobayt. 8 MB, bilinen en büyük gerçek kaydın kırk katından fazlası ve
+ * belleği doldurmaya yetmiyor. Sınırsız bir gövde, kimliği doğrulanmış tek bir
+ * istemcinin süreci düşürmesine yeterdi.
+ */
+const MAX_BODY_BYTES = 8 * 1024 * 1024
 
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
@@ -33,9 +49,19 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: 'too many uploads, try again in a minute' }, 429)
   }
 
+  const declared = Number(request.headers.get('content-length') ?? '')
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    return json({ error: 'the run record is too large to store' }, 413)
+  }
+
   let body: { suite?: unknown; suiteSource?: unknown; run?: unknown }
   try {
-    body = (await request.json()) as typeof body
+    const raw = await request.text()
+    // Beyan edilen uzunluğa güvenilmez; asıl kontrol okunan gövdede.
+    if (raw.length > MAX_BODY_BYTES) {
+      return json({ error: 'the run record is too large to store' }, 413)
+    }
+    body = JSON.parse(raw) as typeof body
   } catch {
     return json({ error: 'the request body is not valid JSON' }, 400)
   }
@@ -66,6 +92,21 @@ export async function POST(request: Request): Promise<Response> {
     if (cause instanceof RunAlreadyStoredError) {
       return json({ error: cause.message, runId: run.id }, 409)
     }
-    return json({ error: cause instanceof Error ? cause.message : 'the run could not be stored' }, 400)
+    // Prisma'nın hata metni tablo ve sütun adlarını taşıyor; dışarıya yalnızca
+    // bizim yazdığımız kural mesajları çıkar.
+    const known =
+      cause instanceof SuiteNotStorableError || (cause instanceof Error && expected(cause))
+    if (!known) console.error('run ingest failed', cause)
+    return json(
+      {
+        error: known && cause instanceof Error ? cause.message : 'the run could not be stored',
+      },
+      400,
+    )
   }
+}
+
+/** Kullanıcıya gösterilmesi güvenli olan, bizim yazdığımız kural mesajları. */
+function expected(error: Error): boolean {
+  return error.message.includes('do not belong together')
 }

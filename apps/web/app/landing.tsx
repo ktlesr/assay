@@ -13,7 +13,9 @@ import { compare, listSuites, type RunWithSummary } from '../lib/runs'
  * yalandan iyidir.
  */
 export async function Landing() {
-  const suites = await listSuites()
+  // Tanıtım sayfası oturumsuz ziyaretçiye görünüyor: yalnızca herkese açık
+  // işaretlenmiş vaka setleri.
+  const suites = await listSuites({ kind: 'public' })
   const failing = suites.find((s) => s.latest.run.verdict === 'fail') ?? suites[0]
   const worst = failing === undefined ? undefined : worstCase(failing.latest)
   const previous =

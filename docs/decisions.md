@@ -858,3 +858,32 @@ Karar: `@prisma/adapter-pg`, bağlantı adresi `DATABASE_URL`'den.
 Gerekçe: Accelerate harici bir servis ve para harcar. `pg` adaptörü hem
 geliştirmedeki PGlite soketine hem üretimdeki Postgres'e aynı şekilde bağlanıyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Koşum görünürlüğü varsayılan gizli, vaka seti seviyesinde
+Bağlam: 3.1 güvenlik incelemesi, yüklenen her koşumun kimliği bilen herkese
+açık olduğunu buldu. Kayıt istem metinlerini, araç argümanlarını ve dosya
+yollarını taşıyor.
+Seçenekler: her şeyi oturum arkasına almak · koşum başına görünürlük bayrağı ·
+vaka seti başına görünürlük bayrağı
+Karar: `Suite.public`, varsayılan `false`. Erişim `RunScope` ile sorgu
+katmanında; `listRuns`/`loadRun` kapsam almadan çağrılamıyor.
+Gerekçe: Her şeyi oturum arkasına almak, tanıtım sayfasının gerçek bir ölçüm
+gösterme yolunu kapatırdı ve ürünün iddiası tam da bu. Koşum başına bayrak,
+aynı vaka setinin bazı koşumları açık bazıları gizli olduğunda karşılaştırmayı
+yarım gösterir. Vaka seti doğal birim: yayımlanan şey bir ölçüm serisi.
+Kapsamı çağırana bırakmak, bir ekranda unutulduğunda sessiz sızıntı demekti;
+bu yüzden parametre zorunlu.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Geliştirme veritabanı migration'ları dev-postgres.mjs uyguluyor
+Bağlam: İkinci migration geldiğinde `prisma migrate` gölge veritabanı istedi;
+PGlite onu vermiyor.
+Seçenekler: her migration'ı elle uygulamak · geliştirmede gerçek Postgres şartı
+· sunucunun kendi izleme tablosu
+Karar: `tools/dev-postgres.mjs` bir `_assay_migrations` tablosu tutuyor ve
+açılışta yalnızca eksik migration'ları uyguluyor. Testler de bütün
+migration'ları sırayla uyguluyor.
+Gerekçe: Elle uygulama, bir migration'ı atlamış bir geliştirme veritabanıyla
+saatlerce koşmak demek. Üretimde `prisma migrate deploy` kullanılacak; bu
+yalnızca geliştirme kolaylığı ve on beş satır.
+Geri dönüş maliyeti: düşük

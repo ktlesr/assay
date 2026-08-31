@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
@@ -6,7 +7,16 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { proportion, type Attempt, type Run, type Suite } from '@assay/core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '../generated/client/client.js'
-import { RunAlreadyStoredError, listRuns, loadRun, storeRun } from './store.js'
+import {
+  RunAlreadyStoredError,
+  listRuns,
+  loadRun,
+  storeRun,
+  type RunScope,
+} from './store.js'
+
+/** Görünürlük kapsamı ayrı testte sınanıyor; buradaki konu gidiş-dönüş. */
+const ALL: RunScope = { kind: 'all' }
 
 /**
  * Gidip gelen kayıt aynı kayıt mı?
@@ -19,12 +29,13 @@ import { RunAlreadyStoredError, listRuns, loadRun, storeRun } from './store.js'
  * bir porta açıyor. Test hiçbir dış servise ihtiyaç duymuyor.
  */
 
-const migration = readFileSync(
-  fileURLToPath(
-    new URL('../prisma/migrations/20260831000000_init/migration.sql', import.meta.url),
-  ),
-  'utf8',
-)
+/** Bütün migration'lar sırayla — yeni bir migration eklendiğinde test onu da uygular. */
+const migrationsDir = fileURLToPath(new URL('../prisma/migrations', import.meta.url))
+const migration = readdirSync(migrationsDir)
+  .filter((name) => !name.startsWith('.'))
+  .sort()
+  .map((name) => readFileSync(join(migrationsDir, name, 'migration.sql'), 'utf8'))
+  .join('\n')
 
 const PORT = 5480 + Math.floor(Math.random() * 60)
 
@@ -157,7 +168,7 @@ describe('storeRun', () => {
     const run = makeRun('run-roundtrip-1')
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
 
-    const loaded = await loadRun(db, run.id)
+    const loaded = await loadRun(db, run.id, ALL)
     expect(loaded).not.toBeNull()
     expect(loaded).toEqual(run)
   })
@@ -166,7 +177,7 @@ describe('storeRun', () => {
     const run = makeRun('run-roundtrip-2', 'fail')
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
 
-    const loaded = await loadRun(db, run.id)
+    const loaded = await loadRun(db, run.id, ALL)
     const first = loaded?.cases[0]?.attempts[0]
     expect(first?.trace?.map((e) => e.kind)).toEqual([
       'skill_trigger',
@@ -216,9 +227,64 @@ describe('storeRun', () => {
   })
 
   it('listRuns koşumları yeniden eskiye verir ve izleri taşımaz', async () => {
-    const runs = await listRuns(db)
+    const runs = await listRuns(db, ALL)
     expect(runs.length).toBeGreaterThanOrEqual(2)
     expect(runs[0]?.cases[0]?.attempts[0]?.trace).toBeUndefined()
     expect(runs[0]?.cases[0]?.passRate.n).toBe(2)
+  })
+})
+
+/**
+ * Görünürlük.
+ *
+ * Kayıt istem metinlerini ve dosya yollarını taşıyor; varsayılan gizli olmalı
+ * ve "gizli" iddiası ancak sorgunun gerçekten filtrelediği gösterilirse
+ * doğrudur.
+ */
+describe('RunScope', () => {
+  let ownerId: string
+  let otherId: string
+
+  beforeAll(async () => {
+    const owner = await db.user.create({ data: { email: 'owner@example.test' } })
+    const other = await db.user.create({ data: { email: 'other@example.test' } })
+    ownerId = owner.id
+    otherId = other.id
+    await storeRun(db, {
+      suite: SUITE,
+      suiteHash: 'sha256:bbb',
+      run: makeRun('run-private'),
+      ownerId,
+    })
+  })
+
+  it('sahibi kendi koşumunu görür', async () => {
+    const run = await loadRun(db, 'run-private', { kind: 'viewer', userId: ownerId })
+    expect(run?.id).toBe('run-private')
+  })
+
+  it('başkası gizli koşumu göremez', async () => {
+    const run = await loadRun(db, 'run-private', { kind: 'viewer', userId: otherId })
+    expect(run).toBeNull()
+  })
+
+  it('oturumsuz ziyaretçi gizli koşumu göremez', async () => {
+    expect(await loadRun(db, 'run-private', { kind: 'public' })).toBeNull()
+    expect(await listRuns(db, { kind: 'public' })).toEqual([])
+  })
+
+  it('vaka seti herkese açık işaretlenince görünür olur', async () => {
+    await db.suite.updateMany({
+      where: { hash: 'sha256:bbb' },
+      data: { public: true },
+    })
+    const run = await loadRun(db, 'run-private', { kind: 'public' })
+    expect(run?.id).toBe('run-private')
+    await db.suite.updateMany({ where: { hash: 'sha256:bbb' }, data: { public: false } })
+  })
+
+  it('yönetici her şeyi görür', async () => {
+    const run = await loadRun(db, 'run-private', { kind: 'all' })
+    expect(run?.id).toBe('run-private')
   })
 })

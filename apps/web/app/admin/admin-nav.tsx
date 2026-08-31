@@ -7,6 +7,9 @@ export function AdminNav() {
       <Link href="/admin" className="text-text-faint no-underline hover:text-text">
         Users
       </Link>
+      <Link href="/admin/suites" className="text-text-faint no-underline hover:text-text">
+        Case sets
+      </Link>
       <Link href="/admin/runs" className="text-text-faint no-underline hover:text-text">
         Runs
       </Link>

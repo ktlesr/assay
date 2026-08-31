@@ -15,26 +15,51 @@
  * Veri `.assay/pgdata` altında kalıcı; `.gitignore` kapsamında.
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 
 const PORT = Number(process.env.ASSAY_DEV_PG_PORT ?? 5433)
 const DATA_DIR = fileURLToPath(new URL('../.assay/pgdata', import.meta.url))
-const MIGRATION = fileURLToPath(
-  new URL('../packages/db/prisma/migrations/20260831000000_init/migration.sql', import.meta.url),
+const MIGRATIONS = fileURLToPath(
+  new URL('../packages/db/prisma/migrations', import.meta.url),
 )
 
 const db = await PGlite.create({ dataDir: DATA_DIR })
 
-// Migration'ı her açılışta uygulamak yerine bir kez: tablolar duruyorsa geç.
-const { rows } = await db.query(
+// Uygulanan migration'lar kendi tablosunda tutuluyor; sunucu her açılışta
+// yalnızca eksikleri uyguluyor. Prisma'nın migrate komutu gölge veritabanı
+// istiyor, PGlite onu vermiyor — geliştirme için bu kadarı yeterli.
+await db.exec(
+  `create table if not exists "_assay_migrations" (name text primary key, applied_at timestamptz not null default now())`,
+)
+
+const names = readdirSync(MIGRATIONS)
+  .filter((name) => !name.startsWith('.'))
+  .sort()
+
+// Tablo yokken kurulmuş bir veritabanında ilk migration zaten uygulanmıştır;
+// yeniden koşturmak hata verirdi.
+const existing = await db.query(
   `select 1 from information_schema.tables where table_name = 'Run' limit 1`,
 )
-if (rows.length === 0) {
-  await db.exec(readFileSync(MIGRATION, 'utf8'))
-  process.stdout.write('schema applied\n')
+if (existing.rows.length > 0) {
+  await db.query(
+    `insert into "_assay_migrations" (name) values ($1) on conflict do nothing`,
+    [names[0]],
+  )
+}
+
+const applied = new Set(
+  (await db.query(`select name from "_assay_migrations"`)).rows.map((row) => row.name),
+)
+for (const name of names) {
+  if (applied.has(name)) continue
+  await db.exec(readFileSync(join(MIGRATIONS, name, 'migration.sql'), 'utf8'))
+  await db.query(`insert into "_assay_migrations" (name) values ($1)`, [name])
+  process.stdout.write(`applied ${name}\n`)
 }
 
 const server = new PGLiteSocketServer({ db, port: PORT, host: '127.0.0.1' })

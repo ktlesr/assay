@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -15,12 +16,13 @@ import { beforeAll, describe, expect, it } from 'vitest'
  * kısıtın hem var olduğunu hem fazla sıkı olmadığını gösteriyor.
  */
 
-const migration = readFileSync(
-  fileURLToPath(
-    new URL('../prisma/migrations/20260831000000_init/migration.sql', import.meta.url),
-  ),
-  'utf8',
-)
+/** Bütün migration'lar sırayla — yeni bir migration eklendiğinde test onu da uygular. */
+const migrationsDir = fileURLToPath(new URL('../prisma/migrations', import.meta.url))
+const migration = readdirSync(migrationsDir)
+  .filter((name) => !name.startsWith('.'))
+  .sort()
+  .map((name) => readFileSync(join(migrationsDir, name, 'migration.sql'), 'utf8'))
+  .join('\n')
 
 let db: PGlite
 

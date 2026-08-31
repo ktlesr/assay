@@ -16,7 +16,14 @@ import {
   type RunComparison,
   type RunSummary,
 } from '@assay/core'
-import { isConfigured, listRuns as dbListRuns, loadRun, prisma } from '@assay/db'
+import {
+  isConfigured,
+  listRuns as dbListRuns,
+  loadRun,
+  prisma,
+  type RunScope,
+} from '@assay/db'
+import { auth } from './auth'
 
 export interface RunWithSummary {
   run: Run
@@ -42,20 +49,41 @@ const withSummary = (run: Run): RunWithSummary => ({
   slug: run.id,
 })
 
-export async function listRuns(): Promise<RunWithSummary[]> {
-  if (!isConfigured()) return []
-  return (await dbListRuns(prisma())).map(withSummary)
+/**
+ * Görüntüleyenin kapsamı.
+ *
+ * Oturum yoksa yalnızca herkese açık vaka setleri; kullanıcı kendi
+ * koşumlarını ve herkese açık olanları; yönetici hepsini görür. Kapsam her
+ * okumada yeniden hesaplanıyor ki bir ekranda geçilmesi mümkün olmasın.
+ */
+export async function viewerScope(): Promise<RunScope> {
+  const session = await auth()
+  if (session === null) return { kind: 'public' }
+  if (session.user.role === 'ADMIN') return { kind: 'all' }
+  return { kind: 'viewer', userId: session.user.id }
 }
 
-export async function getRun(slug: string): Promise<RunWithSummary | null> {
+export async function listRuns(scope?: RunScope): Promise<RunWithSummary[]> {
+  if (!isConfigured()) return []
+  return (await dbListRuns(prisma(), scope ?? (await viewerScope()))).map(withSummary)
+}
+
+export async function getRun(
+  slug: string,
+  scope?: RunScope,
+): Promise<RunWithSummary | null> {
   if (!isConfigured()) return null
-  const run = await loadRun(prisma(), decodeURIComponent(slug))
+  const run = await loadRun(
+    prisma(),
+    decodeURIComponent(slug),
+    scope ?? (await viewerScope()),
+  )
   return run === null ? null : withSummary(run)
 }
 
 /** Skill'e göre gruplanmış görünüm — bir suite'in geçmişi. */
-export async function listSuites(): Promise<SuiteView[]> {
-  const runs = await listRuns()
+export async function listSuites(scope?: RunScope): Promise<SuiteView[]> {
+  const runs = await listRuns(scope)
   const grouped = new Map<string, RunWithSummary[]>()
   for (const item of runs) {
     const list = grouped.get(item.run.skill) ?? []
@@ -67,8 +95,13 @@ export async function listSuites(): Promise<SuiteView[]> {
     .sort((a, b) => (a.latest.run.startedAt < b.latest.run.startedAt ? 1 : -1))
 }
 
-export async function getSuite(skill: string): Promise<SuiteView | null> {
-  return (await listSuites()).find((s) => s.skill === decodeURIComponent(skill)) ?? null
+export async function getSuite(
+  skill: string,
+  scope?: RunScope,
+): Promise<SuiteView | null> {
+  return (
+    (await listSuites(scope)).find((s) => s.skill === decodeURIComponent(skill)) ?? null
+  )
 }
 
 /**
