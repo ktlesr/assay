@@ -16,6 +16,7 @@ Geri dönüş maliyeti: düşük / orta / yüksek
 ---
 
 ## 2026-08-31 — Node 22 LTS, `.nvmrc` ile pinli
+
 Bağlam: Runtime sürümü seçilmeli. Adaptörler alt süreç ve dosya sistemi
 işi yapacak; sürüm sapması sandbox davranışını değiştirebilir.
 Seçenekler: Node 20 LTS · Node 22 LTS · Node 24 (current) · Bun
@@ -27,6 +28,7 @@ sürpriz istemiyoruz.
 Geri dönüş maliyeti: düşük
 
 ## 2026-08-31 — pnpm workspace, paket yöneticisi olarak pnpm
+
 Bağlam: Monorepo'da bağımlılık sınırlarını zorlamak gerekiyor;
 `packages/core` hiçbir şeye bağımlı olmamalı.
 Seçenekler: npm workspaces · yarn · pnpm workspace
@@ -37,6 +39,7 @@ de zorlanmış olur. Yığın kararı zaten pnpm yönündeydi.
 Geri dönüş maliyeti: düşük
 
 ## 2026-08-31 — ESLint 9 flat config + Prettier
+
 Bağlam: Lint ve format aracı seçilmeli. Lint'in asıl işi stil değil,
 paketler arası bağımlılık sınırını makine seviyesinde zorlamak.
 Seçenekler: ESLint + Prettier · Biome · yalnızca tsc
@@ -48,6 +51,7 @@ edebilmek bu seçimin tek sebebi; stil ikincil.
 Geri dönüş maliyeti: düşük
 
 ## 2026-08-31 — Test koşucusu Vitest
+
 Bağlam: Assertion motoru ve şema doğrulayıcı için test gerekiyor.
 Seçenekler: Vitest · node:test · Jest
 Karar: Vitest.
@@ -57,6 +61,7 @@ ikinci bir koşucu eklemek gerekirdi.
 Geri dönüş maliyeti: düşük
 
 ## 2026-08-31 — Conventional Commits
+
 Bağlam: Commit konvansiyonu seçilmeli.
 Seçenekler: serbest · Conventional Commits · gitmoji
 Karar: Conventional Commits. Gövdede ne yapıldığı ve verilen kararlar.
@@ -66,6 +71,7 @@ sürümleme otomasyonunu bedavaya getirir.
 Geri dönüş maliyeti: düşük
 
 ## 2026-08-31 — Lisans Apache-2.0, NOTICE dosyasıyla
+
 Bağlam: SDK açık kaynak olacak; lisans seçilmeli.
 Seçenekler: MIT · Apache-2.0 · çift lisans
 Karar: Apache-2.0, `NOTICE` dosyası ile birlikte. Copyright sahibi
@@ -76,6 +82,7 @@ hedef kullanıcının bir kısmı kurumsal ekip.
 Geri dönüş maliyeti: yüksek (lisans değişimi katkıcı onayı ister)
 
 ## 2026-08-31 — Faz 1 kalıcılığı dosya tabanlı, SQLite değil
+
 Bağlam: Faz 1'de koşum kayıtları bir yere yazılmalı; yığın "SQLite veya
 dosya tabanlı store" diyerek seçimi açık bırakmış.
 Seçenekler: SQLite (better-sqlite3) · JSON dosya store · hiç kalıcılık yok
@@ -89,6 +96,7 @@ istasyonu iki kez migration demek.
 Geri dönüş maliyeti: düşük
 
 ## 2026-08-31 — Git kökü: d:\assay içinde ayrı repo
+
 Bağlam: `D:\` sürücüsünün tamamı halihazırda bir git reposu. `d:\assay`
 içinde çalışırken `git status` binlerce alakasız dosya gösteriyor.
 Seçenekler: D:\ reposunun alt dizini olarak çalışmak · d:\assay içinde
@@ -98,4 +106,54 @@ Karar: `d:\assay` içinde ayrı repo (`git init -b main`), remote
 Gerekçe: Assay bağımsız yayımlanacak açık kaynak bir SDK. Sürücü genelindeki
 repoya karışması hem sır sızıntısı riski hem de anlamsız bir geçmiş demek.
 İç içe repo, dış repo tarafından yok sayılır.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Bağımlılık sınırı: ESLint `no-restricted-imports`, dependency-cruiser değil
+
+Bağlam: `core → hiçbir şey` ve `web ↛ runner` kuralları makine seviyesinde
+zorlanmalı. 0.2 iki araç arasında seçim bırakmıştı.
+Seçenekler: dependency-cruiser (ayrı araç, ayrı config, grafik doğrulama) ·
+ESLint `no-restricted-imports` bölgeleri · yalnızca kod incelemesi
+Karar: `eslint.config.js` içinde paket başına bir `no-restricted-imports`
+bölgesi. Kuralın gerçekten ihlal yakaladığı `tools/dependency-boundaries.test.ts`
+ile kanıtlanır (9 yasak + 6 serbest vaka + core'un dependencies'inin boş olduğu).
+Gerekçe: ESLint zaten yığında. İkinci bir araç, ikinci bir config ve ikinci bir
+CI adımı demek. Kuralın kendisi bir testle korunduğu için dependency-cruiser'ın
+sunduğu ek güvence marjinal. Grafik seviyesinde döngü tespiti gerekirse sonradan
+eklenir.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `apps/web` Faz 2'ye kadar düz CSS
+
+Bağlam: Yığın Tailwind + shadcn/ui diyor ama tema sistemi 2.2 adımının konusu.
+0.2'de web yalnızca iskelet.
+Seçenekler: Tailwind'i şimdi kur · 2.2'ye kadar düz CSS
+Karar: `apps/web/app/globals.css` içinde CSS değişkenleriyle düz CSS; koyu/açık
+tema `prefers-color-scheme` ile.
+Gerekçe: Tema token sistemi 2.2'nin çıktısı. Şimdi Tailwind kurmak, 2.2'de
+yeniden tasarlanacak bir yapılandırmayı iki kez yazmak olur. İskelet sayfanın
+ihtiyacı 60 satır CSS.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `apps/web/postcss.config.mjs` boş dosya olarak var
+
+Bağlam: `D:\postcss.config.mjs` (başka bir projeye ait) Next'in yukarı doğru
+config aramasına takılıyordu; dev sunucusu `@tailwindcss/postcss` bulunamadı
+diye 500 veriyordu.
+Seçenekler: Next config'te postcss yolunu sabitlemek · yerel boş postcss config
+Karar: `apps/web/postcss.config.mjs` → `export default { plugins: {} }`.
+Gerekçe: Aramayı proje sınırında durduran en küçük çözüm. Tailwind 2.2'de zaten
+buraya eklenecek. Bu, geliştirme makinesine özgü bir kaza değil: monorepo'yu
+başka bir kökün altına klonlayan herkes aynı sızıntıyı yaşar.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Tek kök Vitest yapılandırması
+
+Bağlam: Monorepo'da test koşumu paket başına mı, kökten mi?
+Seçenekler: paket başına vitest config + workspace/projects · tek kök config
+Karar: Kökte tek `vitest.config.ts`, `packages/*/src/**/*.test.ts` ve
+`tools/**/*.test.ts` glob'ları.
+Gerekçe: Paketler aynı ortamı (node) paylaşıyor. Yedi ayrı config, tek satırlık
+bir glob'un yaptığı işi yapardı. Faz 2'de `apps/web` jsdom ortamı isterse
+`projects` alanına o zaman geçilir.
 Geri dönüş maliyeti: düşük

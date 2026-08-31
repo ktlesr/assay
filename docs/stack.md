@@ -10,7 +10,7 @@ Her seçim bir gerekçeyle. Yığın kararlarının tam kaydı
 | Dil | TypeScript, `strict` | Kanonik koşum kaydı ürünün çekirdek veri yapısı; tip sistemi olmadan şema kayması sessizce yayılır |
 | Runtime | Node.js 22 LTS | `.nvmrc` ile pinli. Adaptörler alt süreç ve dosya sistemi işi yapıyor; LTS istikrarı gerekiyor |
 | Paket yöneticisi | pnpm 10, workspace | Monorepo'da katı `node_modules` izolasyonu; `core`'un bir şeye bağımlı olmadığını disk seviyesinde de garanti eder |
-| Lint | ESLint 9 flat config | Bağımlılık sınırlarını makine seviyesinde zorlamak için (`no-restricted-imports` / dependency-cruiser) |
+| Lint | ESLint 9 flat config | Bağımlılık sınırlarını `no-restricted-imports` bölgeleriyle makine seviyesinde zorlar |
 | Format | Prettier | Tartışmayı bitirir |
 | Test | Vitest | TS/ESM ile sürtünmesiz; monorepo workspace desteği |
 | Commit | Conventional Commits | Değişiklik günlüğü ve sürümleme otomatikleşebilir |
@@ -42,6 +42,10 @@ web      → core, db, ui        ✗ runner'a ASLA
 `core` saf TypeScript'tir: I/O yok, ağ yok, dosya sistemi yok. Assertion
 motorunun tarayıcıda, Node'da ve testte aynı davranması buna bağlı.
 
+Bu grafik `eslint.config.js` içinde paket başına bir `no-restricted-imports`
+bölgesi olarak kodlanmıştır. `tools/dependency-boundaries.test.ts` kuralın
+gerçekten ihlal yakaladığını kanıtlar: kural gevşetilirse test kırmızıya döner.
+
 `web` runner'a bağlanmaz. Hosted platform ölçmez, hatırlar
 ([product.md](product.md)). Bu bağımlılığı eklemek mimariyi sessizce
 çökertecek tek hamledir; bu yüzden lint kuralıyla engellenir ve kuralın
@@ -69,7 +73,7 @@ dosya store dört pini ve N tekrarı taşımak için yeterli.
 | Uygulama | Next.js App Router | Server component'ler ile koşum geçmişini sunucuda okumak, istemciye ham kayıt taşımadan |
 | Veritabanı | PostgreSQL | Koşum kayıtları JSONB; zaman serisi sorguları ve karşılaştırma için ilişkisel taban |
 | ORM | Prisma | Şema tek kaynak; migration disiplini |
-| UI | Tailwind + shadcn/ui | Sahiplenilen bileşenler, sürüm kilidi olmadan |
+| UI | Tailwind + shadcn/ui | Sahiplenilen bileşenler, sürüm kilidi olmadan. 2.2'ye kadar `apps/web` düz CSS kullanır |
 | Auth | Auth.js | Kendi kimlik doğrulamamızı yazmama kararı |
 | Deploy | Dokploy, VPS | Kendi altyapımız; sandbox koşumu ileride sunucu tarafına taşınırsa serverless kısıtlarına takılmayız |
 

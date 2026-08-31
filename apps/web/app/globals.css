@@ -1,0 +1,67 @@
+/* ponytail: düz CSS. Tailwind + tokenlar 2.2'de (tema sistemi adımı) gelecek. */
+:root {
+  color-scheme: light dark;
+  --bg: #fbfbfa;
+  --fg: #1b1b19;
+  --muted: #6b6b66;
+  --line: #e3e2de;
+  --accent: #8a6a2f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131311;
+    --fg: #ecebe7;
+    --muted: #96958e;
+    --line: #2b2b28;
+    --accent: #d9b56a;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    15px/1.6 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    sans-serif;
+}
+main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 5rem 1.5rem;
+}
+h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+p {
+  color: var(--muted);
+}
+.badge {
+  display: inline-block;
+  margin-bottom: 1.25rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.empty {
+  margin-top: 3rem;
+  padding: 2.5rem 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  text-align: center;
+}
+.empty p {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+}

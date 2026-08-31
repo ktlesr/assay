@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/runner" },
+    { "path": "packages/adapters" },
+    { "path": "packages/cli" },
+    { "path": "packages/db" },
+    { "path": "packages/ui" }
+  ]
+}
