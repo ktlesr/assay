@@ -275,3 +275,51 @@ kasıtlı çaba gerekiyor. Wilson, Wald yerine seçildi: 10/10 başarıda Wald
 [%100, %100] der ve belirsizliği tamamen gizler, Wilson [%72, %100] der.
 `null` seçeneği "N=0 iken oran yoktur"u tüketiciye zorla hatırlatıyor.
 Geri dönüş maliyeti: orta
+
+## 2026-08-31 — TriggerObservation'a `complete` alanı
+Bağlam: `expect.not_triggered` ile "pdf tetiklenmemeli" denebiliyor. Ama bir host
+yalnızca hedef skill'i raporluyorsa, gözlenen `skills` listesi eksiktir ve
+"pdf listede yok" ifadesi "pdf tetiklenmedi" anlamına gelmez.
+Seçenekler: eksik listeyi tam varsaymak · coexistence'ı v0'dan çıkarmak ·
+gözleme `complete` bayrağı eklemek
+Karar: `complete: boolean`. `false` iken coexistence iddiası `unknown` üretir.
+Gerekçe: Eksik listeyi tam varsaymak, tam da değişmez #1'in yasakladığı sessiz
+`pass` olurdu — üstelik en sinsi biçimde, çünkü her coexistence vakası geçerdi.
+Bayrak adaptöre "bunu biliyor musun" diye soruyor ve bilmiyorsa ölçüm
+yapılmıyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Tetiklenmede kesin fail, ölçülemeyen parçadan önce gelir
+Bağlam: Bir vaka hem `triggered: true` hem `not_triggered: [pdf]` diyorsa ve host
+tam liste vermiyorsa: hedef skill tetiklenmemişken sonuç ne olmalı?
+Seçenekler: ölçülemeyen parça varsa hep `unknown` · kesin başarısızlık önce gelir
+Karar: `fail` > `unknown` > `pass`. Hedef skill iddiası kesin biçimde
+başarısızsa vaka `fail`; yalnızca ölçülemeyen parça kaldıysa `unknown`.
+Gerekçe: `combineVerdicts` ile aynı öncelik. Gerçek bir başarısızlığı `unknown`
+arkasına saklamak, ölçmediğini `pass` demek kadar zararlı — kullanıcı kırık bir
+skill'i "ölçülemedi" diye geçiştirir.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — MockAdapter `@assay/runner/testing` alt yolunda
+Bağlam: Veri gerçekliği sözleşmesi MockAdapter'ın arayüze veya seed'e veri
+beslemesini yasaklıyor. Bu bir niyet beyanı olarak kalırsa aşınır.
+Seçenekler: ana giriş noktasından dışa verip yorumla uyarmak · ayrı alt yol ·
+ayrı paket
+Karar: `packages/runner/src/testing/mock-adapter.ts`, package.json'da `./testing`
+alt yolu. `tools/dependency-boundaries.test.ts` iki şeyi denetliyor: ana giriş
+noktası bu yolu dışa vermiyor ve test olmayan hiçbir kaynak onu içe aktarmıyor.
+Testin gerçekten yakaladığı, index'e kasıtlı bir export eklenerek doğrulandı.
+Gerekçe: Ayrı paket fazla; yorumla uyarmak az. Alt yol, kazayla kullanmayı
+imkânsız kılıyor: ayrı bir import yazmak gerekiyor ve o import testte kırmızıya
+dönüyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Adaptör metotları async, senkron fırlatma yok
+Bağlam: MockAdapter senkron fırlattığında `rejects.toThrow` çalışmıyordu.
+Seçenekler: çağıranın hem try/catch hem .catch yazması · metotları async yapmak
+Karar: Tüm adaptör metotları `async`. Senkron fırlatmalar da reddedilen promise'e
+dönüşür.
+Gerekçe: Runner'ın hata yakalamayı tek yerde yapabilmesi için sözleşmenin "her
+çağrı promise döner" garantisi vermesi gerekiyor. Aksi hâlde her adaptör
+çağrısında iki farklı hata yolu olurdu ve biri er geç unutulurdu.
+Geri dönüş maliyeti: düşük

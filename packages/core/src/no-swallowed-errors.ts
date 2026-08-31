@@ -172,7 +172,8 @@ export function evaluateNoSwallowedErrors(
   if (sessionEnd.outcome === undefined) {
     return {
       verdict: 'unknown',
-      reason: 'session_end carries no outcome, so a claimed success cannot be distinguished',
+      reason:
+        'session_end carries no outcome, so a claimed success cannot be distinguished',
       detail: { errorCount: errors.length },
     }
   }

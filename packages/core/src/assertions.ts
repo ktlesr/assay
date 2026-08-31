@@ -66,7 +66,9 @@ const pass = (reason: string, detail?: Record<string, unknown>): VerdictDetail =
 const fail = (reason: string, detail?: Record<string, unknown>): VerdictDetail =>
   detail === undefined ? { verdict: 'fail', reason } : { verdict: 'fail', reason, detail }
 const unknown = (reason: string, detail?: Record<string, unknown>): VerdictDetail =>
-  detail === undefined ? { verdict: 'unknown', reason } : { verdict: 'unknown', reason, detail }
+  detail === undefined
+    ? { verdict: 'unknown', reason }
+    : { verdict: 'unknown', reason, detail }
 
 const decoder = new TextDecoder('utf-8', { fatal: false })
 const text = (file: CapturedFile): string => decoder.decode(file.bytes)
@@ -137,7 +139,8 @@ function checkFormat(file: CapturedFile, format: string): VerdictDetail {
     case 'pdf': {
       const head = text({ path: file.path, bytes: file.bytes.slice(0, 8) })
       if (!head.startsWith('%PDF-')) return fail(`${file.path} has no %PDF- header`)
-      if (!bytesInclude(file.bytes, '%%EOF')) return fail(`${file.path} has no %%EOF trailer`)
+      if (!bytesInclude(file.bytes, '%%EOF'))
+        return fail(`${file.path} has no %%EOF trailer`)
       return pass(`${file.path} has a PDF header and trailer`)
     }
     case 'docx':
@@ -178,7 +181,8 @@ function evaluateFiles(
   }
 
   if (assertion.type === 'file_valid') {
-    const globs = assertion.path === undefined ? context.fileExistsGlobs : [assertion.path]
+    const globs =
+      assertion.path === undefined ? context.fileExistsGlobs : [assertion.path]
     const targets = globs.flatMap((glob) => matching(files, glob))
     if (targets.length === 0) {
       return fail(`no file matches ${globs.join(', ')}, so nothing could be validated`, {
@@ -206,7 +210,9 @@ function evaluateFiles(
     if (targets.length === 0) return fail(`no file matches ${assertion.path}`)
     const validate = compile(assertion.schema)
     if (validate instanceof Error) {
-      return unknown(`the assertion's JSON Schema could not be compiled: ${validate.message}`)
+      return unknown(
+        `the assertion's JSON Schema could not be compiled: ${validate.message}`,
+      )
     }
     const failures: string[] = []
     for (const file of targets) {
@@ -219,7 +225,9 @@ function evaluateFiles(
       }
       if (!validate(parsed)) {
         const errors = (validate.errors ?? [])
-          .map((e) => `${e.instancePath === '' ? '/' : e.instancePath} ${e.message ?? ''}`.trim())
+          .map((e) =>
+            `${e.instancePath === '' ? '/' : e.instancePath} ${e.message ?? ''}`.trim(),
+          )
           .join('; ')
         failures.push(`${file.path} does not match the schema: ${errors}`)
       }
@@ -293,7 +301,9 @@ function evaluateTrace(
       if (relevant.length === 0) return fail(`${wanted} was never called`)
       const validate = compile(schema)
       if (validate instanceof Error) {
-        return unknown(`the assertion's JSON Schema could not be compiled: ${validate.message}`)
+        return unknown(
+          `the assertion's JSON Schema could not be compiled: ${validate.message}`,
+        )
       }
       const failures = relevant
         .filter((call) => !validate(call.args ?? {}))
@@ -313,7 +323,9 @@ function evaluateSideEffect(
   const problems: string[] = []
 
   if (assertion.writes_within !== undefined) {
-    const strays = env.writes.filter((path) => !isWithin(assertion.writes_within ?? [], path))
+    const strays = env.writes.filter(
+      (path) => !isWithin(assertion.writes_within ?? [], path),
+    )
     if (strays.length > 0) {
       problems.push(
         `wrote outside ${assertion.writes_within.join(', ')}: ${strays.join(', ')}`,
@@ -324,7 +336,9 @@ function evaluateSideEffect(
   if (assertion.network === 'deny') {
     const allowed = env.network.filter((request) => !request.blocked)
     if (allowed.length > 0) {
-      problems.push(`network was denied but reached ${allowed.map((r) => r.host).join(', ')}`)
+      problems.push(
+        `network was denied but reached ${allowed.map((r) => r.host).join(', ')}`,
+      )
     }
   }
 
@@ -368,17 +382,19 @@ export function evaluateAssertion(
       }
     }
     case 'trace':
-      return { assertion, ...evaluateTrace(assertion, { trace: evidence.trace as TraceEvent[] }) }
+      return {
+        assertion,
+        ...evaluateTrace(assertion, { trace: evidence.trace as TraceEvent[] }),
+      }
     case 'side_effect':
-      return { assertion, ...evaluateSideEffect(assertion, { env: evidence.env as EnvDiff }) }
+      return {
+        assertion,
+        ...evaluateSideEffect(assertion, { env: evidence.env as EnvDiff }),
+      }
     default:
       return {
         assertion,
-        ...evaluateFiles(
-          assertion,
-          { files: evidence.files as CapturedFile[] },
-          context,
-        ),
+        ...evaluateFiles(assertion, { files: evidence.files as CapturedFile[] }, context),
       }
   }
 }

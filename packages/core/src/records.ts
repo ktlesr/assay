@@ -76,11 +76,7 @@ export function comparePins(a: Pins, b: Pins): PinComparison {
 // ---------------------------------------------------------------------------
 
 export type TraceEventKind =
-  | 'tool_call'
-  | 'tool_result'
-  | 'assistant_message'
-  | 'skill_trigger'
-  | 'session_end'
+  'tool_call' | 'tool_result' | 'assistant_message' | 'skill_trigger' | 'session_end'
 
 export type SessionOutcome = 'completed' | 'aborted' | 'error'
 
@@ -126,9 +122,16 @@ export interface TraceEvent {
 export type TriggerObservation =
   | {
       available: true
+      /** Hedef skill tetiklendi mi. */
       triggered: boolean
       /** Bu koşumda tetiklendiği gözlenen skill'ler. */
       skills: readonly string[]
+      /**
+       * `skills` tetiklenen skill'lerin *tamamı* mı, yoksa yalnızca hedef mi?
+       * `false` ise "şu skill tetiklenmedi" iddiası doğrulanamaz ve `unknown`
+       * üretilir — coexistence ölçümü ancak tam liste ile anlamlıdır.
+       */
+      complete: boolean
       /** Sinyalin hangi mekanizmadan okunduğu. Raporda gösterilir. */
       via: string
     }
@@ -276,7 +279,8 @@ export function proportion(successes: number, n: number): Proportion {
 
   // ponytail: 12 basamağa yuvarlama, p=1 iken üst sınırın 0.9999999999999999
   // çıkmasını engelliyor. Rapor hassasiyeti hiçbir zaman bunun yakınına gelmez.
-  const clamp = (value: number) => Math.min(1, Math.max(0, Math.round(value * 1e12) / 1e12))
+  const clamp = (value: number) =>
+    Math.min(1, Math.max(0, Math.round(value * 1e12) / 1e12))
 
   return {
     successes,

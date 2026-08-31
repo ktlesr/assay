@@ -4,7 +4,10 @@ import type { CapturedFile, Evidence, TraceEvent } from './records.js'
 import type { Assertion } from './suite.js'
 
 const bytes = (s: string) => new TextEncoder().encode(s)
-const file = (path: string, content: string): CapturedFile => ({ path, bytes: bytes(content) })
+const file = (path: string, content: string): CapturedFile => ({
+  path,
+  bytes: bytes(content),
+})
 
 /** Gerçek bir docx/xlsx'in ilk baytları: zip yerel başlığı + girdi adı. */
 const zip = (entry: string): CapturedFile => {
@@ -13,13 +16,19 @@ const zip = (entry: string): CapturedFile => {
   const merged = new Uint8Array(head.length + name.length)
   merged.set(head)
   merged.set(name, head.length)
-  return { path: entry.endsWith('workbook.xml') ? 'out/book.xlsx' : 'out/report.docx', bytes: merged }
+  return {
+    path: entry.endsWith('workbook.xml') ? 'out/book.xlsx' : 'out/report.docx',
+    bytes: merged,
+  }
 }
 
 describe('kanıt eksikse unknown — değişmez #1', () => {
   const cases: ReadonlyArray<[Assertion, string]> = [
     [{ type: 'file_exists', path: 'out/*.docx' }, 'no files were captured'],
-    [{ type: 'file_valid', format: 'docx', path: 'out/a.docx' }, 'no files were captured'],
+    [
+      { type: 'file_valid', format: 'docx', path: 'out/a.docx' },
+      'no files were captured',
+    ],
     [{ type: 'exit_code', equals: 0 }, 'did not report an exit code'],
     [{ type: 'trace', rule: 'tool_called', tool: 'Write' }, 'no trace was captured'],
     [{ type: 'side_effect', network: 'deny' }, 'no environment diff'],
@@ -38,7 +47,10 @@ describe('kanıt eksikse unknown — değişmez #1', () => {
   })
 
   it('boş dosya listesi "kanıt yok" ile aynı şey değildir', () => {
-    const result = evaluateAssertion({ type: 'file_exists', path: 'out/*.docx' }, { files: [] })
+    const result = evaluateAssertion(
+      { type: 'file_exists', path: 'out/*.docx' },
+      { files: [] },
+    )
     expect(result.verdict).toBe('fail')
   })
 })
@@ -54,7 +66,9 @@ describe('file_exists', () => {
     ['dist/*.docx', 'fail'],
     ['*.docx', 'fail'],
   ])('%s → %s', (path, verdict) => {
-    expect(evaluateAssertion({ type: 'file_exists', path }, { files }).verdict).toBe(verdict)
+    expect(evaluateAssertion({ type: 'file_exists', path }, { files }).verdict).toBe(
+      verdict,
+    )
   })
 
   it('eşleşen dosyaları raporlar', () => {
@@ -83,9 +97,13 @@ describe('file_valid', () => {
   it('docx zip sihirli baytları ve word/document.xml ister', () => {
     const good = zip('word/document.xml')
     expect(
-      evaluateAssertion({ type: 'file_valid', format: 'docx' }, { files: [good] }, {
-        fileExistsGlobs: ['out/*.docx'],
-      }).verdict,
+      evaluateAssertion(
+        { type: 'file_valid', format: 'docx' },
+        { files: [good] },
+        {
+          fileExistsGlobs: ['out/*.docx'],
+        },
+      ).verdict,
     ).toBe('pass')
 
     const notZip = file('out/report.docx', 'plain text pretending to be docx')
@@ -105,7 +123,7 @@ describe('file_valid', () => {
     ).toBe('fail')
   })
 
-  it('yol verilmezse aynı vakanın file_exists glob\'larına düşer', () => {
+  it("yol verilmezse aynı vakanın file_exists glob'larına düşer", () => {
     const results = evaluateAssertions(
       [
         { type: 'file_exists', path: 'out/*.json' },
@@ -117,9 +135,13 @@ describe('file_valid', () => {
   })
 
   it('yol verilmediğinde eşleşen dosya yoksa fail', () => {
-    const result = evaluateAssertion({ type: 'file_valid', format: 'json' }, { files: [] }, {
-      fileExistsGlobs: ['out/*.json'],
-    })
+    const result = evaluateAssertion(
+      { type: 'file_valid', format: 'json' },
+      { files: [] },
+      {
+        fileExistsGlobs: ['out/*.json'],
+      },
+    )
     expect(result.verdict).toBe('fail')
   })
 })
@@ -167,26 +189,30 @@ describe('json_schema', () => {
 
 describe('exit_code ve file_content_matches', () => {
   it('exit_code eşleşmesi', () => {
-    expect(evaluateAssertion({ type: 'exit_code', equals: 0 }, { exitCode: 0 }).verdict).toBe(
-      'pass',
-    )
-    expect(evaluateAssertion({ type: 'exit_code', equals: 0 }, { exitCode: 1 }).verdict).toBe(
-      'fail',
-    )
+    expect(
+      evaluateAssertion({ type: 'exit_code', equals: 0 }, { exitCode: 0 }).verdict,
+    ).toBe('pass')
+    expect(
+      evaluateAssertion({ type: 'exit_code', equals: 0 }, { exitCode: 1 }).verdict,
+    ).toBe('fail')
   })
 
   it('exit_code 0 varlığı "kanıt yok" ile karışmaz', () => {
-    expect(evaluateAssertion({ type: 'exit_code', equals: 0 }, { exitCode: 0 }).verdict).toBe(
-      'pass',
+    expect(
+      evaluateAssertion({ type: 'exit_code', equals: 0 }, { exitCode: 0 }).verdict,
+    ).toBe('pass')
+    expect(evaluateAssertion({ type: 'exit_code', equals: 0 }, {}).verdict).toBe(
+      'unknown',
     )
-    expect(evaluateAssertion({ type: 'exit_code', equals: 0 }, {}).verdict).toBe('unknown')
   })
 
   it('regex eşleşmesi ve bayraklar', () => {
     const files = [file('out/a.md', '# Title\nbody')]
     expect(
-      evaluateAssertion({ type: 'file_content_matches', path: 'out/a.md', matches: '^# ' }, { files })
-        .verdict,
+      evaluateAssertion(
+        { type: 'file_content_matches', path: 'out/a.md', matches: '^# ' },
+        { files },
+      ).verdict,
     ).toBe('pass')
     expect(
       evaluateAssertion(
@@ -203,7 +229,7 @@ describe('exit_code ve file_content_matches', () => {
   })
 })
 
-describe('trace assertion\'ları', () => {
+describe("trace assertion'ları", () => {
   const trace: TraceEvent[] = [
     { seq: 1, kind: 'tool_call', tool: 'Read', args: { path: 'draft.md' } },
     { seq: 2, kind: 'tool_result', tool: 'Read' },
@@ -214,7 +240,8 @@ describe('trace assertion\'ları', () => {
 
   it('tool_called sayıyı ve eşiği kontrol eder', () => {
     expect(
-      evaluateAssertion({ type: 'trace', rule: 'tool_called', tool: 'Write' }, { trace }).verdict,
+      evaluateAssertion({ type: 'trace', rule: 'tool_called', tool: 'Write' }, { trace })
+        .verdict,
     ).toBe('pass')
     expect(
       evaluateAssertion(
@@ -223,7 +250,8 @@ describe('trace assertion\'ları', () => {
       ).verdict,
     ).toBe('fail')
     expect(
-      evaluateAssertion({ type: 'trace', rule: 'tool_called', tool: 'Bash' }, { trace }).verdict,
+      evaluateAssertion({ type: 'trace', rule: 'tool_called', tool: 'Bash' }, { trace })
+        .verdict,
     ).toBe('fail')
   })
 
@@ -243,7 +271,11 @@ describe('trace assertion\'ları', () => {
   })
 
   it('tool_args_valid argümanları şemaya sokar', () => {
-    const schema = { type: 'object', required: ['path'], properties: { path: { type: 'string' } } }
+    const schema = {
+      type: 'object',
+      required: ['path'],
+      properties: { path: { type: 'string' } },
+    }
     expect(
       evaluateAssertion(
         { type: 'trace', rule: 'tool_args_valid', tool: 'Write', schema },
@@ -280,7 +312,12 @@ describe('trace assertion\'ları', () => {
 
   it('tool_args_valid derlenemeyen şemayla unknown', () => {
     const result = evaluateAssertion(
-      { type: 'trace', rule: 'tool_args_valid', tool: 'Write', schema: { type: 'nonsense' } },
+      {
+        type: 'trace',
+        rule: 'tool_args_valid',
+        tool: 'Write',
+        schema: { type: 'nonsense' },
+      },
       { trace },
     )
     expect(result.verdict).toBe('unknown')
@@ -288,7 +325,8 @@ describe('trace assertion\'ları', () => {
 
   it('no_swallowed_errors modüle devrediyor', () => {
     expect(
-      evaluateAssertion({ type: 'trace', rule: 'no_swallowed_errors' }, { trace }).verdict,
+      evaluateAssertion({ type: 'trace', rule: 'no_swallowed_errors' }, { trace })
+        .verdict,
     ).toBe('pass')
   })
 })
@@ -302,7 +340,8 @@ describe('side_effect', () => {
 
   it('sınır içinde yazım pass', () => {
     expect(
-      evaluateAssertion({ type: 'side_effect', writes_within: ['out/'] }, { env }).verdict,
+      evaluateAssertion({ type: 'side_effect', writes_within: ['out/'] }, { env })
+        .verdict,
     ).toBe('pass')
   })
 
@@ -317,14 +356,17 @@ describe('side_effect', () => {
   })
 
   it('engellenmiş ağ isteği network: deny ile uyumlu', () => {
-    expect(evaluateAssertion({ type: 'side_effect', network: 'deny' }, { env }).verdict).toBe(
-      'pass',
-    )
+    expect(
+      evaluateAssertion({ type: 'side_effect', network: 'deny' }, { env }).verdict,
+    ).toBe('pass')
   })
 
   it('geçen ağ isteği network: deny ile fail', () => {
     const leaky = { ...env, network: [{ host: 'evil.example.com', blocked: false }] }
-    const result = evaluateAssertion({ type: 'side_effect', network: 'deny' }, { env: leaky })
+    const result = evaluateAssertion(
+      { type: 'side_effect', network: 'deny' },
+      { env: leaky },
+    )
     expect(result.verdict).toBe('fail')
     expect(result.reason).toContain('evil.example.com')
   })
@@ -362,7 +404,7 @@ describe('combineVerdicts', () => {
 })
 
 describe('evaluateAssertions', () => {
-  it('her assertion için bir sonuç döner ve assertion\'ı taşır', () => {
+  it("her assertion için bir sonuç döner ve assertion'ı taşır", () => {
     const assertions: Assertion[] = [
       { type: 'file_exists', path: 'out/*.json' },
       { type: 'exit_code', equals: 0 },

@@ -265,7 +265,9 @@ describe('parseSuite — assertion şekilleri', () => {
   })
 
   it('geçersiz regex taşıyan file_content_matches reddedilir', () => {
-    const result = parse(withAssertion('{ type: file_content_matches, path: "a", matches: "([" }'))
+    const result = parse(
+      withAssertion('{ type: file_content_matches, path: "a", matches: "([" }'),
+    )
     expect(result.ok).toBe(false)
     expect(messagesOf(result.issues)).toContain('invalid regex')
   })

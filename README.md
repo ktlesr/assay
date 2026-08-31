@@ -68,6 +68,7 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/roadmap.md](docs/roadmap.md) — fazlar ve geçiş kriterleri
 - [docs/decisions.md](docs/decisions.md) — karar günlüğü
 - [docs/suite-format.md](docs/suite-format.md) — vaka seti YAML biçimi ve doğrulama kuralları
+- [docs/adapters.md](docs/adapters.md) — host adaptör sözleşmesi
 - [docs/workflow.md](docs/workflow.md) — çalışma sözleşmeleri
 
 ## Lisans

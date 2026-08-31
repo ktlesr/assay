@@ -17,7 +17,7 @@ describe('proportion — değişmez #4', () => {
     expect(formatProportion(p)).toBe('80% (N=10, 95% CI 49%–94%)')
   })
 
-  it('10/10 mükemmel geçişte bile aralık 1\'e sıkışmaz', () => {
+  it("10/10 mükemmel geçişte bile aralık 1'e sıkışmaz", () => {
     const p = proportion(10, 10)
     expect(p.rate).toBe(1)
     expect(p.ci?.low).toBeCloseTo(0.7225, 3)
@@ -33,7 +33,7 @@ describe('proportion — değişmez #4', () => {
     expect(width(1000)).toBeLessThan(width(100))
   })
 
-  it('0/10 alt sınırı 0\'ın altına inmez', () => {
+  it("0/10 alt sınırı 0'ın altına inmez", () => {
     const p = proportion(0, 10)
     expect(p.rate).toBe(0)
     expect(p.ci?.low).toBe(0)
@@ -72,7 +72,9 @@ describe('comparePins — değişmez #2', () => {
   })
 
   it('suite sürümü artınca da karşılaştırılamaz', () => {
-    expect(comparePins(base, { ...base, suiteVersion: 4 }).drifted).toEqual(['suiteVersion'])
+    expect(comparePins(base, { ...base, suiteVersion: 4 }).drifted).toEqual([
+      'suiteVersion',
+    ])
   })
 
   it('birden çok kayma hepsini listeler', () => {

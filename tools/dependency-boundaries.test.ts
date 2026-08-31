@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { globSync, readFileSync } from 'node:fs'
 import { ESLint } from 'eslint'
 import { describe, expect, it } from 'vitest'
+import { normalizePath } from '../packages/core/src/glob.js'
 
 /**
  * docs/stack.md'deki bağımlılık grafiği yalnızca dokümanda kalmasın diye:
@@ -86,5 +87,37 @@ describe('paket bağımlılık sınırları', () => {
       d.startsWith('@assay/'),
     )
     expect(assayDeps).toEqual([])
+  })
+})
+
+/**
+ * Veri gerçekliği sözleşmesi: MockAdapter bir test aracıdır ve üretim koduna
+ * sızamaz. Alt yol dışa aktarımı bunu zorlaştırır; bu test kapıyı kilitler.
+ */
+describe('MockAdapter yalnızca test aracı', () => {
+  const slash = normalizePath
+  const sources = [
+    ...globSync('packages/*/src/**/*.ts'),
+    ...globSync('apps/web/app/**/*.tsx'),
+  ].map(slash)
+
+  /** Yorumları değil, gerçek import/export ifadelerini arar. */
+  const importsTesting = (source: string) =>
+    /from\s+['"][^'"]*(?:@assay\/runner\/testing|testing\/mock-adapter)[^'"]*['"]/.test(
+      source,
+    )
+
+  it('@assay/runner ana giriş noktası testing alt yolunu dışa vermez', () => {
+    expect(importsTesting(readFileSync('packages/runner/src/index.ts', 'utf8'))).toBe(
+      false,
+    )
+  })
+
+  it('test olmayan hiçbir kaynak testing alt yolunu içe aktarmaz', () => {
+    expect(sources.length).toBeGreaterThan(5)
+    const offenders = sources
+      .filter((file) => !file.endsWith('.test.ts'))
+      .filter((file) => importsTesting(readFileSync(file, 'utf8')))
+    expect(offenders).toEqual([])
   })
 })
