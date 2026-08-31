@@ -27,6 +27,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Prisma istemcisi repoda tutulmuyor; typecheck ona bağlı.
+      - run: pnpm --filter @assay/db exec prisma generate
       - run: pnpm typecheck
       - run: npm install -g @anthropic-ai/claude-code
       - uses: ./action

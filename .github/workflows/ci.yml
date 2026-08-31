@@ -8,6 +8,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -21,6 +24,25 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      # Prisma istemcisi repoda tutulmuyor (üretilen kod); typecheck ona bağlı.
+      - run: pnpm --filter @assay/db exec prisma generate
+
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm test
+
+      # Kapsam eşikleri vitest.config.ts içinde; düşerse bu adım kırmızıya döner.
+      # Sır taraması da test paketinin içinde (tools/secrets.test.ts): takip
+      # edilen her dosya her koşumda taranıyor.
+      - run: pnpm coverage
+
+      # Derleme kırılırsa bunu PR'da görmek, deploy sırasında görmekten iyi.
+      - run: pnpm build
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+          if-no-files-found: ignore
