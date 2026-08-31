@@ -11,6 +11,7 @@
  */
 @source "../app";
 @source "../lib";
+@source "../../../packages/ui/src";
 
 /*
  * Tailwind v4 tema köprüsü.

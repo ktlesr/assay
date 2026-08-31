@@ -1,8 +1,9 @@
 /**
- * @assay/ui — tema ve paylaşılan bileşenler.
+ * @assay/ui — tema, tokenlar ve paylaşılan bileşenler.
  *
- * Tokenlar `src/tokens.css` içinde; tüketici CSS olarak içe aktarır.
- * Bu paket başka bir Assay paketine bağlanmaz.
+ * Tokenlar `@assay/ui/tokens.css`. Bu paket hiçbir Assay paketine bağlanmaz;
+ * `Measurement` tipi `@assay/core`'daki `Proportion` ile yapısal olarak
+ * uyumludur ve uyum `tools/ui-contract.test.ts` ile denetlenir.
  */
 
 export {
@@ -12,4 +13,33 @@ export {
   themeScript,
   THEME_KEY,
   type Theme,
-} from './theme.js'
+} from './theme'
+
+export {
+  Badge,
+  Callout,
+  EmptyState,
+  ErrorState,
+  IntervalRule,
+  MetricValue,
+  formatMeasurement,
+  type CalloutTone,
+  type Measurement,
+  type VerdictKind,
+} from './measurement'
+
+export {
+  Button,
+  ConfirmDialog,
+  Dialog,
+  DropdownMenu,
+  Popover,
+  Toast,
+  ToastProvider,
+  ToastViewport,
+  Tooltip,
+  TooltipProvider,
+  type MenuItem,
+} from './overlays'
+
+export { Table, TraceViewer, type Column, type TraceStep } from './data'

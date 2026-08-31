@@ -26,14 +26,14 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 | 1.3 Sandbox güvenliği | 4 yüksek + 2 orta bulgu kapatıldı | `fce6643` |
 | 1.6 Dogfooding | 3 skill, 150 koşum, gerçek kusur bulundu | `bf37645` |
 | 2.1 Veri modeli | Prisma şeması, DB seviyesinde değişmezler, gidiş-dönüş | `d62b30a` |
-| 2.2 Tema sistemi | tahlil sertifikası dili, iki tema, Tailwind v4 | — |
+| 2.2 Tema sistemi | tahlil sertifikası dili, iki tema, Tailwind v4 | `13b2352` |
+| 2.3 Bileşen katmanı | packages/ui, Radix tabanlı, /dev/components | — |
 
 ## Sırada
 
 | Adım | Durum |
 |---|---|
-| 2.3 Bileşen katmanı | sürüyor |
-| 2.4 Dashboard | bekliyor |
+| 2.4 Dashboard | sürüyor |
 | 2.5 Kimlik doğrulama | bekliyor |
 | 2.6 Admin panel | bekliyor |
 | 2.7 Tanıtım sayfası | bekliyor |

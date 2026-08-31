@@ -35,10 +35,17 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Açık tema — kâğıt
+ * Temalar
+ *
+ * Sıra önemli: temel açık, sistem tercihi, açık öznitelik, koyu öznitelik.
+ * Öznitelik seçicileri `:root`'a bağlı DEĞİL — bileşen kataloğu iki temayı
+ * aynı sayfada yan yana gösterebilsin diye herhangi bir elemana konabiliyor.
+ * Bunu `:root[data-theme]` ile yazmak, koyu paneli sessizce açık render
+ * ediyordu; ekran görüntüsü yakaladı.
  * ------------------------------------------------------------------------- */
-:root,
-:root[data-theme='light'] {
+
+/* 1) Temel: açık tema. */
+:root {
   color-scheme: light;
 
   --surface: var(--brand-paper);
@@ -68,42 +75,7 @@
   --focus: var(--brand-assay-gold);
 }
 
-/* ---------------------------------------------------------------------------
- * Koyu tema — mürekkep
- *
- * Sonradan eklenmiş bir "dark mode" değil; aynı belgenin gece baskısı.
- * Kontrast oranları açık temayla eşdeğer tutuldu.
- * ------------------------------------------------------------------------- */
-:root[data-theme='dark'] {
-  color-scheme: dark;
-
-  --surface: var(--brand-crucible);
-  --surface-raised: #1c1a16;
-  --surface-sunken: #0d0c0a;
-
-  --text: #ece7dc;
-  --text-muted: #9a938670;
-  --text-muted: #a29a8c;
-  --text-faint: #6f6759;
-
-  --rule: #2e2b25;
-  --rule-strong: #4a463d;
-
-  --accent: #d3a94a;
-  --accent-quiet: #a8832f;
-
-  --pass: #7fbf9d;
-  --fail: #e08878;
-  --unknown: #93a5c6;
-
-  --pass-rule: #37543f;
-  --fail-rule: #653c33;
-  --unknown-rule: #3c485f;
-
-  --focus: #d3a94a;
-}
-
-/* Sistem tercihi — kullanıcı açıkça seçmediyse. */
+/* 2) Sistem tercihi — kullanıcı açıkça bir şey seçmediyse. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
@@ -132,6 +104,66 @@
 
     --focus: #d3a94a;
   }
+}
+
+/* 3) Açıkça koyu — kök ya da herhangi bir kap. */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface: var(--brand-crucible);
+  --surface-raised: #1c1a16;
+  --surface-sunken: #0d0c0a;
+
+  --text: #ece7dc;
+  --text-muted: #a29a8c;
+  --text-faint: #6f6759;
+
+  --rule: #2e2b25;
+  --rule-strong: #4a463d;
+
+  --accent: #d3a94a;
+  --accent-quiet: #a8832f;
+
+  --pass: #7fbf9d;
+  --fail: #e08878;
+  --unknown: #93a5c6;
+
+  --pass-rule: #37543f;
+  --fail-rule: #653c33;
+  --unknown-rule: #3c485f;
+
+  --focus: #d3a94a;
+}
+
+/* 4) Açıkça aydınlık — koyu bir sayfa içindeki açık ada da çalışsın diye en son. */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --surface: var(--brand-paper);
+  --surface-raised: #fbf9f5;
+  --surface-sunken: #ebe7dd;
+
+  --text: #1a1814;
+  --text-muted: #5f5b54;
+  --text-faint: #8b857a;
+
+  /* Hairline: 1px'te bile ezilmeyen ama bağırmayan çizgi. */
+  --rule: #d8d2c5;
+  --rule-strong: #b3ab9b;
+
+  --accent: var(--brand-assay-gold);
+  --accent-quiet: #8a6a2f;
+
+  --pass: #2b6a50;
+  --fail: #9c3627;
+  --unknown: #4d5d7c;
+
+  /* Verdict'in zemini yok; yalnızca kendi mürekkebi ve bir hairline. */
+  --pass-rule: #a8c3b4;
+  --fail-rule: #d9b0a8;
+  --unknown-rule: #b3bcce;
+
+  --focus: var(--brand-assay-gold);
 }
 
 /* ---------------------------------------------------------------------------

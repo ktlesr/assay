@@ -748,3 +748,52 @@ yerel bir skill'de anlamsız. Suite dosyasını okumak, kaydın kendi kendine
 yetmesi ilkesini bozar — hosted taraf suite dosyasını görmüyor.
 `expectedTrigger` ile aynı gerekçe.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `@assay/ui` bağımsız kalıyor, `Measurement` yapısal olarak uyuyor
+Bağlam: `MetricValue` bileşeni core'daki `Proportion` tipine ihtiyaç duyuyor
+ama bağımlılık grafiği `ui → (bağımsız)` diyor.
+Seçenekler: `ui → core` izni · ui'da yapısal olarak uyumlu kendi tipi
+Karar: İkincisi. `Measurement { successes, n, rate, ci }` — core'un
+`Proportion`'ı buna atanabiliyor. Uyum `tools/ui-contract.test.ts` ile hem
+tip hem davranış seviyesinde denetleniyor (iki biçimlendiricinin aynı metni
+ürettiği de sınanıyor).
+Gerekçe: `db → core` iznini vermiştim çünkü orada alternatif eşlemeyi ikiye
+bölmekti. Burada öyle değil: tasarım sistemi kendi başına kullanılabilir
+kalıyor ve kural yalnızca "oran N ve aralık olmadan render edilemez" — bunu
+yapısal bir tip de zorluyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Tema tokenları `:root`'a değil, herhangi bir kaba bağlanıyor
+Bağlam: Bileşen kataloğu iki temayı aynı sayfada yan yana göstermeli.
+Tokenlar `:root[data-theme='dark']` ile yazılmıştı; koyu panel sessizce açık
+render ediliyordu.
+Karar: `[data-theme='dark']` ve `[data-theme='light']` — kök şartı kalktı.
+Sıra: temel açık → sistem tercihi → koyu öznitelik → açık öznitelik.
+Gerekçe: Kök şartı, temayı iç içe kullanmayı imkânsız kılıyordu. Ekran
+görüntüsü yakaladı; kod incelemesi yakalamazdı çünkü CSS geçerliydi.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `apps/web` `@assay/ui`'yi kaynaktan derliyor
+Bağlam: İz görüntüleyicinin ızgarası sessizce çöktü. Sebep: Tailwind `src`'yi
+tarıyordu ama çalışma zamanı derlenmiş `dist`i kullanıyordu; sınıf adı ile
+CSS kuralı ayrıştı.
+Seçenekler: dev sırasında `tsc -b --watch` · Next `transpilePackages`
+Karar: `transpilePackages: ['@assay/ui']`, ui'nın `exports` alanı `src`i
+gösteriyor. İç importlardaki `.js` uzantıları kaldırıldı (ui zaten Bundler
+çözümlemesi kullanıyor).
+Gerekçe: İki yerden derlenen tek bir paket her zaman ayrışır. Watch süreci
+eklemek sorunu ertelerdi. Tek kaynak = tek gerçek.
+Geri dönüş maliyeti: düşük (ui yayımlanacaksa `dist` tekrar açılır)
+
+## 2026-08-31 — Katman bileşenleri Radix üzerine
+Bağlam: 2.3 modal, alert dialog, tooltip, popover, dropdown ve toast istiyor;
+odak tuzağı ve erişilebilirlik şart.
+Seçenekler: elle yazmak · shadcn/ui'yi olduğu gibi almak · Radix primitifleri
+üzerine kendi görünümümüzü koymak
+Karar: Üçüncüsü. Radix'in davranışı, Assay'in görünümü.
+Gerekçe: Odak tuzağı, kaçış tuşu, dışarı tıklama ve `aria-*` ilişkilerini elle
+doğru yazmak zor ve erişilebilirlik "sadeleştirilmeyecekler" listesinde
+(ponytail). shadcn'in varsayılan görünümü ise tam da kaçınılan jenerik dil —
+dolgulu rozet, yumuşak gölge, yuvarlak köşe. Davranışı alıp görünümü
+tokenlarla yeniden çizmek ikisini birden veriyor.
+Geri dönüş maliyeti: düşük
