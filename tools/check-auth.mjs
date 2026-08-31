@@ -45,11 +45,15 @@ if (claudeCred === undefined) {
 const configDir = mkdtempSync(join(tmpdir(), 'assay-auth-'))
 console.log(`\nİzole koşum sınanıyor (CLAUDE_CONFIG_DIR=${configDir})...`)
 
+// Windows'ta Node 22 .cmd/.bat dosyalarını shell olmadan spawn etmeyi reddediyor
+// (CVE-2024-27980). Kabuk üzerinden geçmek gerekiyor; argümanlar bu yüzden
+// tırnaklanıyor.
+const isWindows = process.platform === 'win32'
 const child = spawnSync(
-  process.platform === 'win32' ? 'claude.cmd' : 'claude',
+  'claude',
   [
     '-p',
-    'Reply with exactly: AUTH_OK',
+    isWindows ? '"Reply with exactly: AUTH_OK"' : 'Reply with exactly: AUTH_OK',
     '--output-format',
     'json',
     '--model',
@@ -57,12 +61,14 @@ const child = spawnSync(
     '--permission-mode',
     'dontAsk',
     '--disallowed-tools',
-    'Bash Write Edit Artifact',
+    isWindows ? '"Bash Write Edit Artifact"' : 'Bash Write Edit Artifact',
   ],
   {
     env: { ...process.env, ...env, CLAUDE_CONFIG_DIR: configDir },
     encoding: 'utf8',
     timeout: 300_000,
+    shell: isWindows,
+    windowsVerbatimArguments: false,
   },
 )
 
