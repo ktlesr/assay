@@ -67,6 +67,7 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/stack.md](docs/stack.md) — teknoloji yığını
 - [docs/roadmap.md](docs/roadmap.md) — fazlar ve geçiş kriterleri
 - [docs/decisions.md](docs/decisions.md) — karar günlüğü
+- [docs/suite-format.md](docs/suite-format.md) — vaka seti YAML biçimi ve doğrulama kuralları
 - [docs/workflow.md](docs/workflow.md) — çalışma sözleşmeleri
 
 ## Lisans

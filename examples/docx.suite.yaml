@@ -1,0 +1,67 @@
+# Örnek vaka seti — biçim referansı.
+#
+# Bu dosya bir şablondur, ölçüm sonucu değil. target.source ve
+# environment.system_prompt_hash gerçek bir koşumdan önce doldurulmalıdır;
+# aşağıdaki değerler yer tutucudur.
+
+version: 1
+
+target:
+  skill: docx
+  # Pin 1 — skill sürümü. Yer tutucu: gerçek commit SHA ile değiştirin.
+  source: anthropics/skills@REPLACE_WITH_COMMIT_SHA
+
+environment:
+  host: claude-code
+  # Pin 2 — tam model kimliği, "latest" değil.
+  model: claude-opus-5-20260514
+  # Pin 3 — host'un verdiği sistem promptunun hash'i. Yer tutucu.
+  system_prompt_hash: sha256:REPLACE_WITH_SYSTEM_PROMPT_HASH
+  # Coexistence için: bu koşumda kurulu olan skill'ler. v0'da opsiyonel.
+  active_skills: [docx, pdf, xlsx]
+
+# Değişmez #3: tekrar sayısı asla 1 değil.
+runs: 10
+
+cases:
+  # --- tetiklenme: pozitif ---
+  - id: trigger.positive.explicit
+    prompt: 'Bu taslağı bir Word belgesine çevir.'
+    expect: { triggered: true }
+
+  - id: trigger.positive.implicit
+    prompt: 'Ekibe göndereceğim resmî bir rapor hazırla, .docx olarak istiyorlar.'
+    expect: { triggered: true }
+
+  # --- tetiklenme: negatif ---
+  - id: trigger.negative.unrelated
+    prompt: 'Bu fonksiyonun neden null döndürdüğünü açıkla.'
+    expect: { triggered: false }
+
+  # Değişmez #5: asıl sinyal burada — benzeyen ama kapsam dışı istekler.
+  - id: trigger.negative.near_neighbor.pdf
+    prompt: 'Bu taslağı PDF olarak dışa aktar.'
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.markdown
+    prompt: 'Bu notları düzgün başlıklarla markdown belgesine çevir.'
+    expect: { triggered: false }
+
+  # --- coexistence: v0'da opsiyonel, şema bugün destekliyor ---
+  - id: coexistence.collision.pdf_steals
+    prompt: 'Bu taslaktan paylaşılabilir bir belge üret.'
+    expect:
+      triggered: true
+      not_triggered: [pdf]
+
+  # --- görev tamamlama ---
+  - id: complete.creates_valid_document
+    prompt: 'Bu taslaktan başlıklı bir rapor üret ve out/ altına yaz.'
+    setup: { fixtures: ./fixtures/draft.md }
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: 'out/*.docx' }
+        - { type: file_valid, format: docx }
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: ['out/'], network: deny }

@@ -36,6 +36,20 @@ const allowed: ReadonlyArray<[string, string]> = [
   ['apps/web/app/x.tsx', '@assay/db'],
 ]
 
+/** core saf hesaplamadır: I/O yasağı da lint seviyesinde. */
+const coreIoBans = [
+  'node:fs',
+  'node:crypto',
+  'node:child_process',
+  'fs',
+  'path',
+  'child_process',
+  'https',
+]
+
+/** Saf hesaplama kütüphaneleri core'da serbesttir. */
+const corePureDeps = ['zod', 'yaml']
+
 describe('paket bağımlılık sınırları', () => {
   it.each(forbidden)('%s -> %s yasak', async (filePath, specifier) => {
     const found = await violations(filePath, `import '${specifier}'\n`)
@@ -49,10 +63,28 @@ describe('paket bağımlılık sınırları', () => {
     expect(await violations(filePath, `import '${specifier}'\n`)).toEqual([])
   })
 
-  it('core hiçbir çalışma zamanı bağımlılığı bildirmez', () => {
+  it.each(coreIoBans)('core içinde %s importu yasak', async (specifier) => {
+    const found = await violations('packages/core/src/x.ts', `import '${specifier}'\n`)
+    expect(found.length, `${specifier} importu yakalanmadı`).toBeGreaterThan(0)
+  })
+
+  it.each(corePureDeps)('core içinde %s importu serbest', async (specifier) => {
+    expect(await violations('packages/core/src/x.ts', `import '${specifier}'\n`)).toEqual(
+      [],
+    )
+  })
+
+  it('runner Node yerleşiklerini kullanabilir', async () => {
+    expect(await violations('packages/runner/src/x.ts', `import 'node:fs'\n`)).toEqual([])
+  })
+
+  it('core hiçbir Assay paketine bağımlı değil', () => {
     const pkg = JSON.parse(readFileSync('packages/core/package.json', 'utf8')) as {
       dependencies?: Record<string, string>
     }
-    expect(pkg.dependencies ?? {}).toEqual({})
+    const assayDeps = Object.keys(pkg.dependencies ?? {}).filter((d) =>
+      d.startsWith('@assay/'),
+    )
+    expect(assayDeps).toEqual([])
   })
 })

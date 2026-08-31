@@ -40,7 +40,9 @@ web      → core, db, ui        ✗ runner'a ASLA
 ```
 
 `core` saf TypeScript'tir: I/O yok, ağ yok, dosya sistemi yok. Assertion
-motorunun tarayıcıda, Node'da ve testte aynı davranması buna bağlı.
+motorunun tarayıcıda, Node'da ve testte aynı davranması buna bağlı. Zod ve yaml
+gibi saf hesaplama kütüphaneleri serbesttir; Node yerleşikleri (`node:*`, `fs`,
+`path`, `child_process`, `crypto`, ...) lint kuralıyla yasaklıdır.
 
 Bu grafik `eslint.config.js` içinde paket başına bir `no-restricted-imports`
 bölgesi olarak kodlanmıştır. `tools/dependency-boundaries.test.ts` kuralın

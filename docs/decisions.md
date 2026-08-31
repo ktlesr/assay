@@ -157,3 +157,54 @@ Gerekçe: Paketler aynı ortamı (node) paylaşıyor. Yedi ayrı config, tek sat
 bir glob'un yaptığı işi yapardı. Faz 2'de `apps/web` jsdom ortamı isterse
 `projects` alanına o zaman geçilir.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Kullanıcıya görünen metinler İngilizce, kod yorumları ve docs Türkçe
+Bağlam: Doğrulayıcı hata mesajları yazılırken dil seçilmeli. Proje Türkçe
+yürüyor ama SDK Apache-2.0 ve uluslararası skill yazarlarını hedefliyor.
+Seçenekler: her şey Türkçe · her şey İngilizce · ayrım
+Karar: Kullanıcıya görünen her string (doğrulama hataları, ileride CLI çıktısı
+ve rapor) İngilizce. Kod yorumları, docs/ ve commit mesajları Türkçe.
+Gerekçe: "Jest for Agent Skills" konumlandırmasıyla Türkçe hata mesajı veren bir
+CLI tutarsız olur. Mesajlar koda dağılınca sonradan çevirmek ucuz değil; bugün
+seçmek bedava. Türkçe docs projeyi yürüten için okuma maliyetini düşürüyor ve
+dışarıya sızmıyor.
+Geri dönüş maliyeti: orta
+
+## 2026-08-31 — core'un I/O yasağı lint kuralı, `dependencies: {}` kuralı değil
+Bağlam: 0.2'de "core hiçbir şeye bağımlı değil" testi `dependencies` nesnesinin
+boş olmasını şart koşuyordu. 0.3'te core'a zod ve yaml gerekti.
+Seçenekler: zod/yaml'ı runner'a taşıyıp core'u bağımsız tutmak · testi
+"@assay/* bağımlılığı yok" olarak daraltıp I/O yasağını ayrıca zorlamak
+Karar: İkincisi. `dependencies` içinde `@assay/*` olmaması + `packages/core`
+içinde Node yerleşiklerinin (`node:*`, `fs`, `path`, `child_process`, `net`,
+`crypto`, ...) `no-restricted-imports` ile yasaklanması. Yedi yasak ve iki
+serbest vaka testte.
+Gerekçe: Asıl kural "core saf hesaplamadır, tarayıcıda da aynı davranır" idi;
+`dependencies: {}` bunun kaba bir vekiliydi. Zod ve yaml saf hesaplama, I/O
+yapmıyor. Node yerleşiklerini yasaklamak niyeti doğrudan ifade ediyor ve daha
+sıkı: core'a `node:fs` sızarsa lint yakalar, oysa eski kural yakalamazdı.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Yakın-komşu vakası id konvansiyonuyla işaretlenir
+Bağlam: Değişmez #5 yakın-komşu negatifi ister; doğrulayıcının bunu tanıması
+gerekiyor.
+Seçenekler: vakaya ayrı `kind: near_neighbor` alanı · id içinde `near_neighbor`
+segmenti
+Karar: id segmenti. `trigger.negative.near_neighbor.pdf`.
+Gerekçe: id'ler zaten hiyerarşik ve zorunlu. İkinci bir alan, aynı bilgiyi iki
+yerde tutmak ve ikisinin çelişme ihtimalini yaratmak olurdu. Plan dosyasındaki
+örnek de bu konvansiyonu kullanıyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `version` vaka seti sürümü, ayrıca şema sürümü alanı yok
+Bağlam: Dördüncü pin "vaka seti sürümü". Plan örneğinde tek bir `version: 1`
+alanı var ve bunun şema sürümü mü vaka seti sürümü mü olduğu belirsiz.
+Seçenekler: iki ayrı alan (`version` + `suite_version`) · tek alan, vaka seti
+sürümü · içerik hash'ini core'da hesaplamak
+Karar: Tek alan; `version` vaka seti sürümüdür ve vakalar değiştiğinde artırılır.
+İçerik hash'i core'da hesaplanmaz, runner koşum kaydına yazar.
+Gerekçe: İki sürüm alanı, biri hep unutulacak iki alan demek. Hash core'da
+hesaplanamaz çünkü `node:crypto` I/O yasağının kapsamında ve tarayıcıda yok;
+üstelik hash'in doğal yeri kaynağı okuyan taraf. Beyan edilen sürüm insan
+niyetini, runner'ın yazdığı hash gerçeği taşır — biri unutulursa diğeri yakalar.
+Geri dönüş maliyeti: orta (suite dosyalarına alan eklemek geriye dönük kırar)
