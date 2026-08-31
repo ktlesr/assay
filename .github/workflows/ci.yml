@@ -37,7 +37,14 @@ jobs:
       - run: pnpm coverage
 
       # Derleme kırılırsa bunu PR'da görmek, deploy sırasında görmekten iyi.
+      # Konteynerin taşıdığı çıktı standalone; onu da burada derliyoruz çünkü
+      # geliştirme makinesi Windows ve orada sembolik bağ yetkisi yok.
       - run: pnpm build
+        env:
+          NEXT_STANDALONE: '1'
+
+      - name: standalone çıktısı üretildi mi
+        run: test -f apps/web/.next/standalone/apps/web/server.js
 
       - uses: actions/upload-artifact@v4
         if: always()

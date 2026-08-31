@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import type { NextConfig } from 'next'
 
 /**
@@ -44,6 +45,24 @@ const nextConfig: NextConfig = {
    * görüntüleyicinin ızgarası sessizce çöktü. Tek kaynak = tek gerçek.
    */
   transpilePackages: ['@assay/ui'],
+
+  /*
+   * Üretim çıktısı bağımsız (standalone): `node server.js` ile koşan, yalnızca
+   * gerçekten kullanılan node_modules'ü taşıyan bir dizin. Konteynerde bütün
+   * pnpm ağacını taşımanın alternatifi bu.
+   *
+   * Yalnızca `NEXT_STANDALONE=1` iken açık. Sebep bir platform kısıtı: standalone
+   * çıktısı sembolik bağ kuruyor ve Windows'ta bu yükseltilmiş yetki istiyor
+   * (EPERM). Bayrak olmadan geliştirme makinesinde `pnpm build` kırılırdı.
+   * Konteyner ve CI bayrağı veriyor (docs/deploy.md).
+   */
+  ...(process.env['NEXT_STANDALONE'] === '1'
+    ? {
+        output: 'standalone' as const,
+        // Monorepo kökü: izleme buradan başlar, yoksa bağımlılıklar eksik kopyalanır.
+        outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
+      }
+    : {}),
 
   // Sunucu sürümünü dışarıya söylememenin bedeli yok.
   poweredByHeader: false,
