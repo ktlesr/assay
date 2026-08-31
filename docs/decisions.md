@@ -350,8 +350,12 @@ Geri dönüş maliyeti: düşük
 
 ## 2026-08-31 — `subtype: success` tek başına tamamlama kanıtı sayılmaz
 Bağlam: İzole config deneyinde koşum "Not logged in" ile bitti ama akış
-`subtype: "success"`, `is_error: false`, `cost: 0` raporladı. Hiç gerçekleşmemiş
-bir koşum başarılı göründü.
+`subtype: "success"` raporladı.
+DÜZELTME (aynı gün, fixture incelenince): Bu kaydın ilk hâli `is_error: false`
+diyordu, yanlıştı. Ham veri `is_error: true`, `terminal_reason: "api_error"`,
+`total_cost_usd: 0`, `output_tokens: 0`. Yani host yalnızca `subtype` alanında
+yanıltıcı; diğer alanlar doğruyu söylüyor. Karar değişmiyor, gerekçesi
+daralıyor: tek alana güvenilmez.
 Seçenekler: host'un başarı bildirimine güvenmek · çapraz kontrol
 Karar: Adaptör `finalize` içinde çapraz kontrol yapar. `total_cost_usd === 0`
 ve `usage.output_tokens === 0`, ya da `num_turns === 0`, ya da
@@ -409,3 +413,43 @@ skorlamayı LLM'e yaptırıyor; kararsızlık ölçen aracın kendisinin karars�
 olması ölçümü açıklanamaz kılıyor. Bu iki fark teknik, bugün inşa edilebilir
 ve rakip tarafından kopyalanması ürün kararı gerektirir.
 Geri dönüş maliyeti: düşük (konumlandırma, kod değil)
+
+## 2026-08-31 — Adaptör sözleşmesi `core`'a taşındı
+Bağlam: `HostAdapter` ve yardımcı tipleri `packages/runner`'daydı ama
+`packages/adapters` yalnızca `core`'a bağlanabiliyor (docs/stack.md). Adaptör
+sözleşmesini uygulamak için runner'a bağlanması gerekirdi.
+Seçenekler: bağımlılık kuralını gevşetmek · sözleşmeyi core'a taşımak ·
+adapters'ı runner'a bağımlı yapmak
+Karar: `packages/core/src/adapter.ts` — yalnızca tipler, çalışma zamanı kodu
+yok. `runner` aynı adla yeniden dışa veriyor, çağrı yerleri değişmedi.
+Gerekçe: Tipler saf; core'un "I/O yok" kuralını ihlal etmiyorlar. Bağımlılık
+kuralını gevşetmek `web → runner` yasağını da tartışmaya açardı; kural
+gevşetilmedi, tip doğru yere kondu.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Claude Code süreci doğrudan `.exe` olarak spawn ediliyor
+Bağlam: İlk canlı koşumda üç vakadan ikisi `unknown` döndü; akış hiç gelmedi.
+Sebep: Windows'ta Node 22 `.cmd` dosyalarını kabuk olmadan spawn etmiyor
+(CVE-2024-27980) ve kabuğa düşünce çok satırlı istem argümanı bozuluyor.
+Seçenekler: istemi tek satıra sıkıştırmak · geçici dosyaya yazıp yolunu
+geçmek · PATH üzerinde `.exe` arayıp doğrudan spawn + istemi stdin'den vermek
+Karar: Üçüncüsü. `resolveBinary` PATH'te `claude.exe` arar; bulunca kabuk
+kullanılmaz. İstem her durumda stdin'den gider.
+Gerekçe: İstemi sıkıştırmak vaka setini bozar — çok satırlı istem gerçek bir
+kullanım. Geçici dosya, sandbox yüzeyine gereksiz bir dosya ekler. `.exe`
+doğrudan spawn hem kabuk ayrıştırmasını hem ARG_MAX sınırını ortadan
+kaldırıyor. Kabuk yolu yedek olarak duruyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `complete: true`, Claude Code için
+Bağlam: `TriggerObservation.complete`, gözlenen skill listesinin tam olup
+olmadığını söylüyor. Claude Code adaptörü ne bildirmeli?
+Seçenekler: temkinli davranıp `false` · `true`
+Karar: `true`, ama yalnızca çapraz kontrolden geçmiş oturumlarda.
+Gerekçe: `system/init` aktif skill setinin tamamını veriyor ve model tarafından
+seçilen her skill çağrısı `Skill` aracından geçiyor (12 gerçek transkriptte
+doğrulandı, canlı koşumda da öyle davrandı). `false` demek her coexistence
+vakasını kalıcı olarak `unknown` yapardı — ölçülebilir bir şeyi ölçmemek olurdu.
+Kalan risk: `Skill` aracı olmadan içerik enjekte eden üçüncü bir yol varsa
+gözden kaçar; yokluğu kanıtlanamadı (docs/host-feasibility.md).
+Geri dönüş maliyeti: düşük (tek alan)

@@ -72,6 +72,7 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/decisions.md](docs/decisions.md) — karar günlüğü
 - [docs/suite-format.md](docs/suite-format.md) — vaka seti YAML biçimi ve doğrulama kuralları
 - [docs/adapters.md](docs/adapters.md) — host adaptör sözleşmesi
+- [docs/adapter-validation.md](docs/adapter-validation.md) — Claude Code adaptörünün canlı doğrulaması
 - [docs/host-feasibility.md](docs/host-feasibility.md) — üç host için sinyal okunabilirlik matrisi (Faz 0 çıktısı)
 - [docs/workflow.md](docs/workflow.md) — çalışma sözleşmeleri
 

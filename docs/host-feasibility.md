@@ -13,7 +13,7 @@ işaretlenmiştir. Doğrulanamayan her iddia **DOĞRULANMADI** etiketi taşır.
 
 | Host | Skill discovery | Trigger observable | Tool trace | Completion | Genel |
 |---|---|---|---|---|---|
-| **Claude Code** | Evet — **yüksek** ✅ deneyle | Kısmen — **yüksek** (model seçtiğinde) ✅ deneyle | Evet — **yüksek** ✅ deneyle | Evet — **orta** ✅ deneyle | **Ölçülebilir** |
+| **Claude Code** | Evet — **yüksek** ✅ deneyle | Kısmen — **yüksek** (model seçtiğinde) ✅ deneyle | Evet — **yüksek** ✅ deneyle | Evet — **yüksek**, çapraz kontrolle ✅ deneyle | **Ölçülebilir** |
 | **OpenAI Codex** | Evet ama **izole edilemiyor** — düşük ✅ deneyle | **Yalnızca metinden çıkarım** — düşük ✅ deneyle | Evet — **orta** ✅ deneyle | Evet — **orta** ✅ deneyle | **Tetiklenme ölçülemez** |
 | **GitHub Copilot** | Evet — **orta** 📄 belge | Kısmen — **düşük** 📄 belge | Kısmen — **düşük** 📄 belge | Kısmen — **düşük** 📄 belge | **Belirsiz, doğrulanmadı** |
 
@@ -101,7 +101,7 @@ hata olayı, hatadan sonraki asistan mesajları, ve oturum sonu.
 Metin parse etmek gerekmiyor. Bu, Assay'in `TraceEvent` tipine doğrudan
 eşleniyor.
 
-### D. Completion signal — Evet, güvenilirlik **orta** ⚠️ ✅
+### D. Completion signal — Evet, güvenilirlik **yüksek** (çapraz kontrolle) ✅
 
 Akışın son olayı `result`:
 
@@ -117,27 +117,38 @@ Akışın son olayı `result`:
 Maliyet ve gecikme katmanı bedavaya geliyor: `total_cost_usd`, `duration_ms`,
 `usage`.
 
-**Ama güvenilirlik neden "yüksek" değil — kritik bulgu ⚠️**
+**Ama tek bir alana güvenilemez — kritik bulgu ⚠️**
 
-`CLAUDE_CONFIG_DIR` deneyinde koşum kimlik doğrulaması olmadan başladı ve
-`"Not logged in · Please run /login"` metniyle bitti. Buna rağmen:
+`CLAUDE_CONFIG_DIR` deneyinde koşum kimlik doğrulaması olmadan başladı.
+Ham `result` olayı (fixture: `packages/adapters/src/__fixtures__/not-logged-in.jsonl`):
 
+```json
+{ "subtype": "success", "is_error": true, "num_turns": 1,
+  "terminal_reason": "api_error", "total_cost_usd": 0,
+  "usage": { "output_tokens": 0 },
+  "result": "Not logged in · Please run /login" }
 ```
-RESULT success turns=1 cost=0
-```
 
-`subtype: "success"`, `is_error: false`. **Hiç gerçekleşmemiş bir koşum
-"başarılı" olarak raporlandı.**
+**`subtype` "success" diyor ama koşum hiç gerçekleşmedi.** Alan adı, taşıdığı
+anlamı taşımıyor: burada "istek başarıyla sonuçlandı" değil, "akış normal
+kapandı" demek.
 
-Bu, Assay'in üç durumlu verdict tasarımının neden zorunlu olduğunun canlı
-kanıtı. Adaptör `subtype: success`'e tek başına güvenemez; çapraz kontrol
-şart:
+**Düzeltme:** Bu raporun ilk sürümü `is_error: false` yazıyordu. Yanlıştı —
+ham veri `is_error: true` ve `terminal_reason: "api_error"` diyor. İlk sürüm
+özet bir çıktıya bakıp `is_error`'ı doğrulamadan iddia etmişti. Host göründüğü
+kadar iyimser değil: `subtype` yanıltıcı, `is_error` ve `terminal_reason`
+doğru.
 
-- `total_cost_usd === 0` ve `usage.output_tokens === 0` → koşum olmadı → `unknown`
-- `num_turns === 0` → `unknown`
-- `terminal_reason !== 'completed'` → `unknown` veya `fail`
+Bunun sonucu değişmiyor: adaptör tek alana güvenemez, çapraz kontrol şart:
 
-Bu kontroller `HostAdapter.finalize` içinde 1.1'de uygulanacak.
+- `is_error === true` → koşum başarısız
+- `num_turns === 0` → hiçbir şey koşmadı
+- `usage.output_tokens === 0` → ajan hiç üretmedi
+- `terminal_reason !== 'completed'` → oturum normal bitmedi
+
+Dördü `ClaudeCodeAdapter.sessionProblem` içinde uygulandı (1.1). Biri tutarsa
+tetiklenme sinyali `available: false` döner — "tetiklenmedi" ile
+karıştırılmaz.
 
 ### Ek bulgular
 
@@ -390,11 +401,12 @@ Rekabetten korunan üç şey kaldı; üçü de teknik ve bugün inşa edilebilir
    yaptırıyor (`--judge-model`, varsayılan haiku). Kararsızlık ölçen bir aracın
    kendisinin kararsız olması, ölçümü açıklanamaz kılar: "neden fail"
    sorusunun cevabı bir modelin görüşü olur.
-2. **Üç durumlu verdict.** Bu spike'ta iki kez, iki farklı sebeple, host
-   "başarılı" dedi ve koşum hiç gerçekleşmemişti (`not logged in`, sonra
-   `401 revoked` — ikisinde de `subtype: success`). `--threshold` ile ikili bir
-   kapıdan geçen skor bunu göremez. Ölçülemeyeni ölçülmüş saymamak, bu ürünün
-   tek satılabilir özelliği.
+2. **Üç durumlu verdict.** Bu spike'ta iki kez, iki farklı sebeple, `subtype`
+   alanı "success" dedi ve koşum hiç gerçekleşmemişti (`not logged in`, sonra
+   `401 revoked`). Doğru cevap `is_error` ve `terminal_reason` alanlarındaydı;
+   yani sinyal vardı ama tek alana bakan bir araç onu kaçırır. `--threshold`
+   ile ikili bir kapıdan geçen skor bunu göremez. Ölçülemeyeni ölçülmüş
+   saymamak, bu ürünün tek satılabilir özelliği.
 3. **Hafıza.** Eval koşucusu tek koşumu bilir. Regresyon, pin kayması ve zaman
    içindeki eğilim hosted katmanın konusu ve orada rakip yok.
 

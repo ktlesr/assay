@@ -1,2 +1,18 @@
 /** @assay/adapters — host ortamı başına bir adaptör. */
-export type { Verdict } from '@assay/core'
+
+export {
+  ClaudeCodeAdapter,
+  environmentHash,
+  skillMatches,
+  type ClaudeCodeSession,
+  type ClaudeCodeAdapterOptions,
+} from './claude-code/adapter.js'
+
+export {
+  parseSession,
+  parseStreamJson,
+  outcomeOf,
+  type ParsedStream,
+  type InitEvent,
+  type ResultEvent,
+} from './claude-code/stream.js'

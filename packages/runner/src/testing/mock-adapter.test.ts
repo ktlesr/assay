@@ -14,7 +14,7 @@ const config = (attempt = 0): RunConfig => ({
   caseId: 'trigger.positive.explicit',
   attempt,
   prompt: 'Turn this draft into a Word document.',
-  skill: { name: 'docx', source: 'anthropics/skills@abc123' },
+  skill: { name: 'docx', source: 'anthropics/skills@abc123', path: './skills/docx' },
   model: 'claude-opus-5-20260514',
   activeSkills: ['docx', 'pdf'],
   workdir: '/sandbox/run-1',
