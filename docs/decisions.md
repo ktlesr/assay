@@ -323,3 +323,54 @@ Gerekçe: Runner'ın hata yakalamayı tek yerde yapabilmesi için sözleşmenin 
 çağrı promise döner" garantisi vermesi gerekiyor. Aksi hâlde her adaptör
 çağrısında iki farklı hata yolu olurdu ve biri er geç unutulurdu.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Faz 1 adaptörü Claude Code
+Bağlam: 0.6 fizibilite spike'ı üç hostu karşılaştırdı.
+Seçenekler: Claude Code · Codex · Copilot
+Karar: Faz 1 adaptörü Claude Code.
+Gerekçe: Dört sinyalin dördü de gözlenebiliyor, üçü yüksek güvenilirlikte ve
+metin parse etmeye gerek yok. `system/init` aktif skill setini veriyor,
+`Skill` tool_use tetiklenmeyi açıkça bildiriyor, `tool_result.is_error` iz
+sinyalini taşıyor, `result` mesajı maliyet ve gecikmeyi bedavaya getiriyor.
+Codex'in tetiklenme sinyali belgelenmemiş, Copilot'unki log parse gerektiriyor.
+Motoru gerçek veriyle doğrulamanın tek temiz yolu bu.
+Geri dönüş maliyeti: düşük (adaptör arayüzü host-bağımsız)
+
+## 2026-08-31 — Koşum izolasyonu CLAUDE_CONFIG_DIR ile
+Bağlam: İzole edilmemiş bir probe koşumunda 119 skill aktifti; hedef skill
+doğal dille tetiklenmedi ve model komşu bir skill'in aracına uzandı.
+Seçenekler: kullanıcının kurulumunu olduğu gibi kullanmak · `--bare` ·
+temiz `CLAUDE_CONFIG_DIR` + `--plugin-dir`
+Karar: Her koşum kendi geçici `CLAUDE_CONFIG_DIR`'ında, skill `--plugin-dir`
+ile yalnızca o oturuma yüklenir. Deneyle doğrulandı: skill sayısı 119 → 19.
+Gerekçe: İzolasyonsuz ölçülen şey skill değil, kullanıcının kurulumudur.
+`--bare` daha temiz olurdu ama OAuth okumuyor, yalnızca ANTHROPIC_API_KEY
+kabul ediyor; `CLAUDE_CONFIG_DIR` aynı izolasyonu verip kaldıraç bırakıyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `subtype: success` tek başına tamamlama kanıtı sayılmaz
+Bağlam: İzole config deneyinde koşum "Not logged in" ile bitti ama akış
+`subtype: "success"`, `is_error: false`, `cost: 0` raporladı. Hiç gerçekleşmemiş
+bir koşum başarılı göründü.
+Seçenekler: host'un başarı bildirimine güvenmek · çapraz kontrol
+Karar: Adaptör `finalize` içinde çapraz kontrol yapar. `total_cost_usd === 0`
+ve `usage.output_tokens === 0`, ya da `num_turns === 0`, ya da
+`terminal_reason !== 'completed'` ise oturum `unknown` işaretlenir.
+Gerekçe: Değişmez #1'in canlı kanıtı. Host'un iyimser başarı bildirimine
+güvenmek, tam da sessiz `pass` üretme yolu.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Pin 3 sistem promptu hash'i değil, ortam hash'i olarak adlandırılacak
+Bağlam: Claude Code sistem promptunu veya hash'ini vermiyor. `system/init`
+model, sürüm, araç listesi, skill listesi, agent listesi, plugin listesi ve
+output_style veriyor.
+Seçenekler: alanı boş bırakıp pin eksik demek · init alanlarından türetilmiş
+hash'i sistem promptu hash'i diye yazmak · türetilmiş hash'i kendi adıyla yazmak
+Karar: `init` alanlarından deterministik bir *ortam hash'i* hesaplanır ve
+raporda o adla gösterilir; sistem promptu hash'i alanı host vermediği sürece
+boş kalır.
+Gerekçe: Türetilmiş bir hash'i sistem promptu hash'i diye etiketlemek,
+kullanıcıya sahip olmadığı bir garantiyi satmaktır. İki farklı sistem promptu
+aynı init alanlarını üretebilir. Ortam hash'i yine de gerçek bir kayma
+detektörü — sadece daha az şey iddia ediyor.
+Geri dönüş maliyeti: düşük

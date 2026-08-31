@@ -54,9 +54,12 @@ Assay'in ölçüm iddiasını ayakta tutan altı kural
 
 ## Durum
 
-Faz 0 — fizibilite. Henüz koşulabilir bir CLI yok. Bu fazın çıktısı
-Assay'in gerçekte hangi sinyalleri ölçebildiği ve projenin devam edip
-etmeyeceğidir.
+Faz 0 — fizibilite tamamlandı. Henüz koşulabilir bir CLI yok.
+
+Fizibilite sonucu: Claude Code'da dört sinyalin dördü de okunabiliyor, üçü
+yüksek güvenilirlikte; tetiklenme, modelin seçtiği durumda açık bir `Skill`
+araç çağrısı olarak görünüyor. Ayrıntılar ve iki diğer host'un durumu:
+[docs/host-feasibility.md](docs/host-feasibility.md).
 
 Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 
@@ -69,6 +72,7 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/decisions.md](docs/decisions.md) — karar günlüğü
 - [docs/suite-format.md](docs/suite-format.md) — vaka seti YAML biçimi ve doğrulama kuralları
 - [docs/adapters.md](docs/adapters.md) — host adaptör sözleşmesi
+- [docs/host-feasibility.md](docs/host-feasibility.md) — üç host için sinyal okunabilirlik matrisi (Faz 0 çıktısı)
 - [docs/workflow.md](docs/workflow.md) — çalışma sözleşmeleri
 
 ## Lisans
