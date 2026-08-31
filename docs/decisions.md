@@ -797,3 +797,64 @@ doğru yazmak zor ve erişilebilirlik "sadeleştirilmeyecekler" listesinde
 dolgulu rozet, yumuşak gölge, yuvarlak köşe. Davranışı alıp görünümü
 tokenlarla yeniden çizmek ikisini birden veriyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Kimlik doğrulama Auth.js v5 (beta), oturum stratejisi JWT
+Bağlam: 2.5'te giriş gerekiyor. Yığın "Auth.js" diyor; v5 Next 15 App Router
+için uygun sürüm ama hâlâ beta (5.0.0-beta.32). Ayrıca Auth.js'te credentials
+sağlayıcısı veritabanı oturumuyla çalışmıyor.
+Seçenekler: next-auth v4 (kararlı ama App Router'da sürtünmeli) · v5 beta ·
+kendi oturum katmanımız
+Karar: `next-auth@beta` (v5), `session.strategy = 'jwt'`. Prisma adaptörü yine
+kurulu: kullanıcı, hesap ve doğrulama kayıtları veritabanında.
+Gerekçe: Kendi oturum yönetimimizi yazmama kararı zaten verilmişti. v4'ün App
+Router yolu yamalı; iki kez yazmaktansa beta'yı sabitlemek daha ucuz. JWT
+seçimi bir tercih değil, credentials sağlayıcısının şartı. Bedeli: oturum
+sunucudan tek tıkla iptal edilemez — bu yüzden `jwt` geri çağrısı her istekte
+kullanıcının rolünü ve askı durumunu veritabanından tazeliyor ve askıya alınan
+kullanıcının token'ı bir sonraki istekte ölüyor.
+Geri dönüş maliyeti: orta
+
+## 2026-08-31 — RBAC middleware'de değil, layout/guard katmanında
+Bağlam: Plan "RBAC middleware" diyor. Next middleware kenar (edge) çalışma
+zamanında koşuyor; Prisma ve Argon2 orada çalışmıyor.
+Seçenekler: Auth.js'in bölünmüş config'i ile kenar-güvenli middleware · korunan
+her layout'ta sunucu tarafı guard
+Karar: `apps/web/lib/guard.ts` — `requireUser` / `requireAdmin`, korunan
+bölümün layout'unda çağrılır.
+Gerekçe: Bölünmüş config, rolü token'dan okuyan ikinci bir doğruluk kaynağı
+yaratırdı. Layout'ta denetim, o bölümün bütün alt yollarını kapsıyor;
+middleware eşleştiricisine yeni bir yol eklemeyi unutma riski yok. Kaybedilen:
+korumalı sayfa isteği sunucuya kadar geliyor — ölçülebilir bir maliyeti yok.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Geliştirme veritabanı: PGlite'ın soket sunucusu
+Bağlam: Hosted katman Postgres istiyor; geliştirme makinesinde Postgres kurulu
+değil ve `DATABASE_URL` bir sır. Sır beklemek 2.5'i durdururdu.
+Seçenekler: Docker Postgres · kurulu Postgres şartı · PGlite'ı soket sunucusu
+olarak açmak
+Karar: `tools/dev-postgres.mjs` — PGlite'ı `@electric-sql/pglite-socket` ile
+127.0.0.1:5433'te Postgres tel protokolüyle açar. `pnpm db:dev`.
+Gerekçe: Kısıt testleri zaten PGlite üzerinde koşuyor; aynı motoru bir porta
+açmak Prisma için gerçek bir Postgres demek ve sürücü farkı bırakmıyor.
+Docker'a bağımlılık, aracın kendi kurulumunu kırılganlaştırırdı. Üretimde
+`DATABASE_URL` gerçek bir Postgres'i gösterir; kod tarafında fark yok.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Kayıt ekranı yok; ilk yönetici komut satırından
+Bağlam: İlk yöneticinin nasıl doğduğu belirsiz.
+Seçenekler: açık kayıt + "ilk kayıt olan yönetici olur" · davet · kurulum
+komutu
+Karar: `pnpm db:user <email> <parola> ADMIN`. Web'de kayıt ekranı yok.
+Gerekçe: "İlk kayıt olan yönetici olur" kestirmesi, kurulumla ilk ziyaret
+arasındaki pencerede yarış açar. Hosted taraf zaten davetle açılacak; kurulum
+komutu bunun en küçük hâli.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Prisma 7 sürücü adaptörü `@prisma/adapter-pg`
+Bağlam: Prisma 7 `datasourceUrl` ile doğrudan bağlanmayı kaldırdı; istemci bir
+sürücü adaptörü istiyor.
+Seçenekler: Accelerate · `@prisma/adapter-pg`
+Karar: `@prisma/adapter-pg`, bağlantı adresi `DATABASE_URL`'den.
+Gerekçe: Accelerate harici bir servis ve para harcar. `pg` adaptörü hem
+geliştirmedeki PGlite soketine hem üretimdeki Postgres'e aynı şekilde bağlanıyor.
+Geri dönüş maliyeti: düşük

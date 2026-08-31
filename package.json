@@ -18,19 +18,25 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "coverage": "vitest run --coverage",
     "prepare": "git config core.hooksPath .githooks || exit 0",
-    "assay": "node packages/cli/dist/bin.js"
+    "assay": "node packages/cli/dist/bin.js",
+    "db:dev": "node tools/dev-postgres.mjs",
+    "db:user": "node tools/create-user.mjs"
   },
   "devDependencies": {
+    "@assay/core": "workspace:*",
+    "@assay/db": "workspace:*",
+    "@assay/ui": "workspace:*",
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
     "@eslint/js": "^9.39.1",
+    "@node-rs/argon2": "^2.2.0",
     "@types/node": "^22.20.0",
     "@vitest/coverage-v8": "^3.2.7",
     "eslint": "^9.39.1",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2",
-    "vitest": "^3.2.4",
-    "@assay/ui": "workspace:*",
-    "@assay/core": "workspace:*"
+    "vitest": "^3.2.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

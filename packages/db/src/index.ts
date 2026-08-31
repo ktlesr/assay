@@ -30,3 +30,11 @@ export {
   type TraceEventRow,
   type EnvDiffRow,
 } from './mapping.js'
+
+export {
+  prisma,
+  PrismaClient,
+  databaseUrl,
+  isConfigured,
+  DatabaseNotConfiguredError,
+} from './client.js'

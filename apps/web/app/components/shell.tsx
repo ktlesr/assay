@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ThemeToggle } from './theme-toggle'
+import { UserMenu } from './user-menu'
 
 /**
  * Sayfa kabuğu.
@@ -40,7 +41,10 @@ export function Shell({
               ))}
             </nav>
           </div>
-          <ThemeToggle />
+          <div className="flex items-baseline gap-5">
+            <UserMenu />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-[var(--page)] px-6 py-12">{children}</main>

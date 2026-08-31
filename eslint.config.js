@@ -94,6 +94,9 @@ export default tseslint.config(
       '**/.next/**',
       '**/node_modules/**',
       'tools/fixtures/**',
+      // Prisma'nın ürettiği istemci: bizim yazmadığımız kod, bizim kurallarımıza tabi değil.
+      'packages/db/generated/**',
+      '**/.assay/**',
       '**/next-env.d.ts',
     ],
   },
