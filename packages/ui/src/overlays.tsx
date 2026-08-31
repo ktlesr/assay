@@ -85,12 +85,15 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   onConfirm,
+  tone = 'danger',
 }: {
   trigger: ReactNode
   title: string
   description: string
   confirmLabel: string
   onConfirm?: (() => void) | undefined
+  /** Geri alınamayan eylem `danger`; yalnızca onay isteyen eylem `default`. */
+  tone?: 'danger' | 'default'
 }) {
   return (
     <RadixAlertDialog.Root>
@@ -98,7 +101,9 @@ export function ConfirmDialog({
       <RadixAlertDialog.Portal>
         <RadixAlertDialog.Overlay className={OVERLAY} />
         <RadixAlertDialog.Content className={PANEL}>
-          <RadixAlertDialog.Title className="font-display text-xl text-fail">
+          <RadixAlertDialog.Title
+            className={`font-display text-xl ${tone === 'danger' ? 'text-fail' : 'text-text'}`}
+          >
             {title}
           </RadixAlertDialog.Title>
           <RadixAlertDialog.Description className="mt-2 max-w-[52ch] text-sm text-text-muted">
@@ -109,7 +114,7 @@ export function ConfirmDialog({
               <Button>Cancel</Button>
             </RadixAlertDialog.Cancel>
             <RadixAlertDialog.Action asChild>
-              <Button tone="danger" onClick={onConfirm}>
+              <Button tone={tone === 'danger' ? 'danger' : 'default'} onClick={onConfirm}>
                 {confirmLabel}
               </Button>
             </RadixAlertDialog.Action>

@@ -27,15 +27,15 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 | 1.6 Dogfooding | 3 skill, 150 koşum, gerçek kusur bulundu | `bf37645` |
 | 2.1 Veri modeli | Prisma şeması, DB seviyesinde değişmezler, gidiş-dönüş | `d62b30a` |
 | 2.2 Tema sistemi | tahlil sertifikası dili, iki tema, Tailwind v4 | `13b2352` |
-| 2.3 Bileşen katmanı | packages/ui, Radix tabanlı, /dev/components | — |
+| 2.3 Bileşen katmanı | packages/ui, Radix tabanlı, /dev/components | `c7d74ff` |
+| 2.4 Dashboard | beş ekran, karşılaştırma reddi gerçek veriyle | `8e90b58` |
+| 2.5 Kimlik doğrulama | Auth.js, rol, API token, assay push, DB'den okuma | `5332597` |
 
 ## Sırada
 
 | Adım | Durum |
 |---|---|
-| 2.4 Dashboard | sürüyor |
-| 2.5 Kimlik doğrulama | bekliyor |
-| 2.6 Admin panel | bekliyor |
+| 2.6 Admin panel | sırada |
 | 2.7 Tanıtım sayfası | bekliyor |
 | 3.1 Tam güvenlik incelemesi | bekliyor |
 | 3.2 Test ve CI | bekliyor |
@@ -58,5 +58,11 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
   Doğrulamak için `node tools/check-auth.mjs`.
 - Gerçek host koşumu para harcar: attempt başına ~$0.03–0.06.
 - `pnpm dev` → http://localhost:3000
+- Hosted taraf veritabanı ister. Geliştirmede: `pnpm db:dev` (PGlite,
+  127.0.0.1:5433). `apps/web/.env.local` içinde `DATABASE_URL`, `AUTH_SECRET`
+  ve `DATABASE_POOL_MAX=1`.
+- İlk yönetici: `DATABASE_URL=... pnpm db:user <email> <parola> ADMIN`.
+- Veritabanını gerçek koşumlarla doldurmak: arayüzden token üret, sonra
+  `ASSAY_URL=... ASSAY_TOKEN=... node tools/seed-hosted.mjs`.
 - Testler: `pnpm check` (typecheck + lint + test). Gerçek host koşumları
   test suite'inde değil, `tools/` altında elle çalıştırılır.
