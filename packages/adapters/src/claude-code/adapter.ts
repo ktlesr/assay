@@ -57,6 +57,11 @@ export interface ClaudeCodeAdapterOptions {
    */
   permissionMode?: 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
   /**
+   * `bypassPermissions` ölçülen skill'e makinenin tamamını açar ve sandbox
+   * iddiasını tamamen boşaltır. Bilerek istenmediği sürece reddedilir.
+   */
+  allowBypassPermissions?: boolean
+  /**
    * Reddedilecek araçlar. Varsayılan olarak ağ araçları kapalı; `side_effect`
    * assertion'ının `network: deny` iddiası ancak böyle dürüst olur.
    */
@@ -65,6 +70,46 @@ export interface ClaudeCodeAdapterOptions {
   timeoutMs?: number
   /** Geçici config dizinleri koşumdan sonra silinsin mi. Hata ayıklarken false. */
   cleanup?: boolean
+}
+
+/**
+ * Ajan sürecine geçirilen ortam değişkenleri.
+ *
+ * Süreç yönetimi için gerekenler ve host'un kendi ayarları. Kimlik bilgisi
+ * ayrıca ekleniyor. Bunun dışındaki hiçbir değişken geçmez.
+ */
+const ENV_PASSTHROUGH = [
+  'PATH',
+  'Path',
+  'HOME',
+  'USERPROFILE',
+  'HOMEDRIVE',
+  'HOMEPATH',
+  'TMPDIR',
+  'TEMP',
+  'TMP',
+  'SystemRoot',
+  'SystemDrive',
+  'windir',
+  'COMSPEC',
+  'PATHEXT',
+  'LANG',
+  'LC_ALL',
+  'TZ',
+  'NODE_OPTIONS',
+  'ANTHROPIC_BASE_URL',
+  'HTTPS_PROXY',
+  'HTTP_PROXY',
+  'NO_PROXY',
+] as const
+
+export function passthroughEnv(): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {}
+  for (const key of ENV_PASSTHROUGH) {
+    const value = process.env[key]
+    if (value !== undefined) out[key] = value
+  }
+  return out
 }
 
 /**
@@ -116,6 +161,15 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
     this.#credentials = options.credentials
     this.#timeoutMs = options.timeoutMs ?? 600_000
     this.#cleanup = options.cleanup ?? true
+    if (
+      options.permissionMode === 'bypassPermissions' &&
+      options.allowBypassPermissions !== true
+    ) {
+      throw new Error(
+        'permissionMode "bypassPermissions" removes every boundary the sandbox observes; ' +
+          'pass allowBypassPermissions: true to state that you meant it',
+      )
+    }
     this.#permissionMode = options.permissionMode ?? 'acceptEdits'
     this.#deniedTools = options.deniedTools ?? DEFAULT_DENIED_TOOLS
   }
@@ -148,8 +202,11 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
         : ['--disallowed-tools', this.#deniedTools.join(' ')]),
     ]
 
+    // Ajan süreci tüm ortamı DEVRALMAZ. Devralsaydı ölçülen skill,
+    // GITHUB_TOKEN'dan veritabanı şifresine kadar her şeyi okuyabilirdi ve
+    // izine yazabilirdi. Yalnızca çalışması için gereken değişkenler geçer.
     const env: NodeJS.ProcessEnv = {
-      ...process.env,
+      ...passthroughEnv(),
       // İzolasyon: kullanıcının skill'leri, plugin'leri ve CLAUDE.md'si devrede olmasın.
       CLAUDE_CONFIG_DIR: configDir,
     }

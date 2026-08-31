@@ -9,13 +9,17 @@
  * yeniden değerlendirilebilir.
  */
 
-import { randomUUID } from 'node:crypto'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { cp, mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   combineVerdicts,
   evaluateAssertions,
   evaluateTrigger,
   proportion,
+  redact,
+  redactDeep,
   type AgentSession,
   type Attempt,
   type AssertionResult,
@@ -32,7 +36,7 @@ import {
   type VerdictDetail,
 } from '@assay/core'
 import {
-  captureFiles,
+  capture,
   createWorkspace,
   destroyWorkspace,
   directoryHash,
@@ -85,12 +89,24 @@ export async function runSuite<S extends AgentSession>(
   const startedAt = now().toISOString()
   // Pin 1'in denetçisi: beyan edilen sürüm unutulsa da içerik kayması görülür.
   const skillHash = (await directoryHash(options.skillPath)) ?? ''
+
+  // Ajana kullanıcının canlı skill dizini değil, bir kopyası verilir. Aksi
+  // hâlde ölçülen skill kendini değiştirip sonraki attempt'leri kirletebilir
+  // ve ölçüm, ölçtüğü şey tarafından bozulurdu.
+  const skillCopy = await copySkill(options.skillPath)
   const cases: CaseResult[] = []
 
   for (const testCase of suite.cases) {
     const attempts: Attempt[] = []
     for (let index = 0; index < repeat; index += 1) {
-      const attempt = await runAttempt(suite, testCase, index, adapter, options, now)
+      const attempt = await runAttempt(
+        suite,
+        testCase,
+        index,
+        adapter,
+        { ...options, skillPath: skillCopy },
+        now,
+      )
       attempts.push(attempt)
       options.onProgress?.({
         caseId: testCase.id,
@@ -102,6 +118,8 @@ export async function runSuite<S extends AgentSession>(
     }
     cases.push(summarizeCase(testCase.id, attempts, testCase.expect.triggered))
   }
+
+  await rm(skillCopy, { recursive: true, force: true }).catch(() => undefined)
 
   const allVerdicts = cases.flatMap((c) => c.attempts.map((a) => a.verdict))
 
@@ -195,6 +213,7 @@ async function runAttempt<S extends AgentSession>(
   let latencyMs: number | undefined
   let cost: Attempt['cost']
   let adapterFailure: string | null = null
+  let skippedFiles: readonly string[] = []
 
   try {
     session = await adapter.start({
@@ -231,8 +250,12 @@ async function runAttempt<S extends AgentSession>(
     cost = result.cost
 
     const after = await snapshot(workspace.dir)
+    const captured = result.files === undefined ? await capture(workspace.dir) : null
+    if (captured !== null && captured.skipped.length > 0) {
+      skippedFiles = captured.skipped
+    }
     evidence = {
-      files: result.files ?? (await captureFiles(workspace.dir)),
+      files: result.files ?? captured?.files ?? [],
       ...(trace === undefined ? {} : { trace }),
       ...(result.exitCode === undefined ? {} : { exitCode: result.exitCode }),
       env:
@@ -281,6 +304,11 @@ async function runAttempt<S extends AgentSession>(
   ]
   const combined = combineVerdicts(parts)
 
+  const reason =
+    skippedFiles.length === 0
+      ? combined.reason
+      : `${combined.reason} | ${skippedFiles.length} file(s) exceeded the capture limit and were not inspected: ${skippedFiles.join(', ')}`
+
   return {
     index,
     caseId: testCase.id,
@@ -289,11 +317,12 @@ async function runAttempt<S extends AgentSession>(
     trigger,
     assertions,
     verdict: combined.verdict,
-    reason: combined.reason,
+    reason: redact(reason),
     latencyMs: latencyMs ?? Date.now() - began,
     ...(cost === undefined ? {} : { cost }),
-    ...(trace === undefined ? {} : { trace }),
-    ...(evidence.env === undefined ? {} : { env: evidence.env }),
+    // Kayıt CI artefaktı olarak yükleniyor; iz maskelenmeden saklanmaz.
+    ...(trace === undefined ? {} : { trace: redactDeep(trace) }),
+    ...(evidence.env === undefined ? {} : { env: redactDeep(evidence.env) }),
   }
 }
 
@@ -327,6 +356,13 @@ function resolveFixtures(testCase: SuiteCase, suitePath?: string): string | unde
   if (suitePath === undefined) return fixtures
   const dir = suitePath.replace(/[\\/][^\\/]*$/, '')
   return `${dir}/${fixtures.replace(/^\.\//, '')}`
+}
+
+/** Skill dizinini geçici bir kopyaya alır. Ölçülen şey kaynağa dokunamaz. */
+async function copySkill(source: string): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), 'assay-skill-'))
+  await cp(source, dir, { recursive: true })
+  return dir
 }
 
 async function safely<T>(

@@ -3,6 +3,8 @@
 export {
   ClaudeCodeAdapter,
   environmentHash,
+  passthroughEnv,
+  resolveBinary,
   skillMatches,
   type ClaudeCodeSession,
   type ClaudeCodeAdapterOptions,

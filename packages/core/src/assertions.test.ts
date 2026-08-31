@@ -361,6 +361,25 @@ describe('side_effect', () => {
     ).toBe('pass')
   })
 
+  it('kabuk çağrısı varsa yan etki iddiası unknown — liste eksik olabilir', () => {
+    // 1.3 güvenlik incelemesi: kabuk komutunun ne yazdığını göremiyoruz.
+    const opaque = { ...env, unobserved: ['Bash'] }
+    const result = evaluateAssertion(
+      { type: 'side_effect', writes_within: ['out/'], network: 'deny' },
+      { env: opaque },
+    )
+    expect(result.verdict).toBe('unknown')
+    expect(result.reason).toContain('cannot observe')
+  })
+
+  it('gözlenemeyen çağrı yoksa iddia ölçülebilir kalır', () => {
+    const result = evaluateAssertion(
+      { type: 'side_effect', writes_within: ['out/'] },
+      { env: { ...env, unobserved: [] } },
+    )
+    expect(result.verdict).toBe('pass')
+  })
+
   it('geçen ağ isteği network: deny ile fail', () => {
     const leaky = { ...env, network: [{ host: 'evil.example.com', blocked: false }] }
     const result = evaluateAssertion(

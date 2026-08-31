@@ -80,4 +80,6 @@ export {
   type RunComparison,
 } from './compare.js'
 
+export { redact, redactDeep, containsSecret } from './redact.js'
+
 export { matchGlob, globToRegExp, normalizePath, isWithin } from './glob.js'

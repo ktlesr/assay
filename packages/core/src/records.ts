@@ -167,6 +167,14 @@ export interface EnvDiff {
   writes: readonly string[]
   deletes: readonly string[]
   network: readonly NetworkRequest[]
+  /**
+   * Yan etkisi gözlenemeyen araç çağrıları (kabuk komutları gibi).
+   *
+   * Boş değilse `writes` ve `network` listeleri **eksik olabilir** ve yan etki
+   * iddiaları ölçülemez sayılır. Boş bir liste "yan etki yok" demek değil,
+   * "göremediğimiz bir yol kullanılmadı" demektir.
+   */
+  unobserved?: readonly string[]
 }
 
 // ---------------------------------------------------------------------------

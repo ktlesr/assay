@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { ClaudeCodeAdapter, environmentHash, skillMatches } from './adapter.js'
+import {
+  ClaudeCodeAdapter,
+  environmentHash,
+  passthroughEnv,
+  skillMatches,
+} from './adapter.js'
 import type { ClaudeCodeSession } from './adapter.js'
 import type { ParsedStream } from './stream.js'
 
@@ -248,5 +253,50 @@ describe('izin politikası', () => {
 
   it('çağıran listeyi değiştirebilir', () => {
     expect(new ClaudeCodeAdapter({ deniedTools: [] }).deniedTools).toEqual([])
+  })
+})
+
+describe('güvenlik sınırları', () => {
+  it('bypassPermissions bilerek istenmedikçe reddedilir', () => {
+    expect(() => new ClaudeCodeAdapter({ permissionMode: 'bypassPermissions' })).toThrow(
+      'removes every boundary',
+    )
+  })
+
+  it('açıkça istenirse kabul edilir', () => {
+    expect(
+      () =>
+        new ClaudeCodeAdapter({
+          permissionMode: 'bypassPermissions',
+          allowBypassPermissions: true,
+        }),
+    ).not.toThrow()
+  })
+})
+
+describe('ortam allowlist"i — H1', () => {
+  it('listede olmayan hiçbir değişken ajana geçmez', () => {
+    process.env['ASSAY_TEST_SECRET'] = 'super-secret-value'
+    process.env['GITHUB_TOKEN'] = 'ghp_should_not_leak'
+    try {
+      const passed = passthroughEnv()
+      expect(passed['ASSAY_TEST_SECRET']).toBeUndefined()
+      expect(passed['GITHUB_TOKEN']).toBeUndefined()
+      expect(Object.values(passed)).not.toContain('super-secret-value')
+    } finally {
+      delete process.env['ASSAY_TEST_SECRET']
+      delete process.env['GITHUB_TOKEN']
+    }
+  })
+
+  it('sürecin çalışması için gerekenler geçer', () => {
+    const passed = passthroughEnv()
+    // PATH her platformda var; host onsuz çalışamaz.
+    expect(passed['PATH'] ?? passed['Path']).toBeDefined()
+  })
+
+  it('tanımlı olmayan değişkenler boş string olarak sızmaz', () => {
+    delete process.env['NODE_OPTIONS']
+    expect('NODE_OPTIONS' in passthroughEnv()).toBe(false)
   })
 })

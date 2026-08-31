@@ -69,7 +69,9 @@ describe('runSuite — temel akış', () => {
     await run(adapter)
     expect(adapter.started).toHaveLength(6)
     expect(adapter.started[0]?.prompt).toContain('widget')
-    expect(adapter.started[0]?.skill.path).toBe(skillPath)
+    // Ajana canlı skill dizini değil, kopyası verilir (1.3 güvenlik incelemesi).
+    expect(adapter.started[0]?.skill.path).not.toBe(skillPath)
+    expect(adapter.started[0]?.skill.path).toContain('assay-skill-')
     expect(adapter.started[0]?.model).toBe('test-model-1')
     expect(adapter.started[0]?.activeSkills).toEqual(['widget', 'pdf'])
   })
@@ -183,6 +185,16 @@ describe('runSuite — adaptör çökerse', () => {
     const verdicts = result.cases.flatMap((c) => c.attempts.map((a) => a.verdict))
     expect(verdicts).toContain('unknown')
     expect(verdicts).toContain('pass')
+  })
+})
+
+describe('runSuite — skill dizini korunur', () => {
+  it('tüm attempt"ler aynı kopyayı kullanır, kaynağa dokunulmaz', async () => {
+    const adapter = new MockAdapter({ scenarios: [triggered()] })
+    await run(adapter)
+    const paths = new Set(adapter.started.map((c) => c.skill.path))
+    expect(paths.size).toBe(1)
+    expect([...paths][0]).not.toBe(skillPath)
   })
 })
 

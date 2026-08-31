@@ -566,3 +566,49 @@ Gerekçe: Store'u temizlemek yerel geçmişi siler. Bir aracın en tehlikeli hat
 ölçmediğini ölçülmüş göstermek; burada üstelik *başka bir koşumun* sonucunu
 gösterecekti.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Ajan süreci ortamı devralmaz, allowlist geçer
+Bağlam: 1.3 güvenlik incelemesi. Adaptör alt sürece `{ ...process.env }`
+geçiriyordu.
+Seçenekler: tüm ortamı geçirmek · bilinen sırları çıkarmak (denylist) ·
+allowlist
+Karar: Allowlist. `PATH`, `HOME`/`USERPROFILE`, `TEMP`, `SystemRoot`,
+`PATHEXT`, dil/saat dilimi, proxy ve `ANTHROPIC_BASE_URL`. Kimlik bilgisi
+ayrıca ekleniyor.
+Gerekçe: Denylist her yeni sır adında güncellenmesi gereken bir liste demek ve
+biri mutlaka unutulur. Allowlist'te unutulan şey en kötü ihtimalle host'un
+çalışmamasına yol açar — sessiz sızıntıya değil. CI'da bu fark
+`GITHUB_TOKEN`'ın ölçülen skill'e açık olup olmaması demek.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Kabuk komutu kullanan koşumda yan etki iddiası `unknown`
+Bağlam: `EnvDiff.writes` anlık görüntü farkından ve `Write`/`Edit` araç
+çağrılarından türetiliyor. Bir kabuk komutu ikisinde de görünmüyor;
+`side_effect` assertion'ı bu durumda `pass` dönüyordu.
+Seçenekler: kabuk argümanını ayrıştırıp ne yaptığını tahmin etmek · kabuk
+araçlarını tamamen yasaklamak · gözlenemeyen çağrıyı kaydedip iddiayı
+`unknown` yapmak
+Karar: Üçüncüsü. `EnvDiff.unobserved` alanı; boş değilse `side_effect`
+`unknown` üretiyor.
+Gerekçe: Kabuk komutunun ne yaptığını argümanından okumak (`echo`, `>`, `curl`,
+boru hatları, değişken genişletme) güvenilir değil ve tam da sessizce yanlış
+geçiren yer olurdu. Kabuğu yasaklamak, kabuk kullanan skill'leri ölçülemez
+yapardı. Bedeli açık: kabuk kullanan her skill'in yan etki katmanı `unknown`
+olur — doğru bedel bu, alternatifi ölçmediğini ölçtüm demek (değişmez #1).
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Sandbox sınırları kapatılmadı, ölçüldü ve yazıldı
+Bağlam: 1.3, dosya sistemi ve ağ sınırının gerçekten zorlanıp zorlanmadığını
+soruyor.
+Seçenekler: Docker/konteyner sandbox'ı şimdi eklemek · sınırı host'a bırakıp
+belgelemek
+Karar: İkincisi. `docs/sandbox-security.md` içinde A1 ve A2 kabul edilen risk
+olarak yazıldı: dosya sistemi ve ağ sınırı Claude Code'un izin katmanına
+dayanıyor, disk ve CPU kotası yok.
+Gerekçe: Konteyner gerçek çözüm ama Faz 1'in sorusu "ölçebiliyor muyuz"
+idi ve cevap evet çıktı. Şimdi eklemek, ürünün asıl riskini (ölçüm dürüstlüğü)
+çözmeden altyapı yazmak olurdu. Asıl tehlike izolasyonun eksikliği değil,
+**eksik izolasyonu tam sanmak** — o yüzden M1'de gözlenemeyen yüzey `unknown`
+üretiyor ve hiçbir yerde "engelleniyor" denmiyor. Konteyner Faz 3'e bırakıldı;
+bu rapor onu artık gerekçelendiriyor.
+Geri dönüş maliyeti: orta (sandbox arayüzü değişmeden altına konteyner konur)

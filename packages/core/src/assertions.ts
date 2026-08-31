@@ -322,6 +322,16 @@ function evaluateSideEffect(
   const env: EnvDiff = evidence.env
   const problems: string[] = []
 
+  // Kabuk komutu çalıştıysa yazımların ve ağ çağrılarının listesi eksik
+  // olabilir; "sınır aşılmadı" demek o durumda ölçüm değil, tahmin olurdu.
+  const opaque = env.unobserved ?? []
+  if (opaque.length > 0) {
+    return unknown(
+      `the run used ${opaque.join(', ')}, whose side effects Assay cannot observe, so the recorded writes and network calls may be incomplete`,
+      { unobserved: opaque },
+    )
+  }
+
   if (assertion.writes_within !== undefined) {
     const strays = env.writes.filter(
       (path) => !isWithin(assertion.writes_within ?? [], path),

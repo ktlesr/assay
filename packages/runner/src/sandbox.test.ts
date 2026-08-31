@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import type { TraceEvent } from '@assay/core'
 import { describe, expect, it } from 'vitest'
 import {
+  capture,
   captureFiles,
   createWorkspace,
   destroyWorkspace,
@@ -311,5 +312,79 @@ describe('envDiff — ağ', () => {
   it('iz yoksa ağ listesi boş — "ağa çıkılmadı" iddiası değil', () => {
     const diff = envDiff({ workdir: '/w', before: empty, after: empty, trace: undefined })
     expect(diff.network).toEqual([])
+  })
+})
+
+describe('capture — kaynak tüketimi sınırı', () => {
+  it('sınırı aşan dosya atlanır ve adı kaydedilir, sessizce yok sayılmaz', async () => {
+    const dir = await scratch()
+    await writeFile(join(dir, 'big.bin'), 'x'.repeat(2048), 'utf8')
+    await writeFile(join(dir, 'small.txt'), 'ok', 'utf8')
+
+    const result = await capture(dir, { perFileBytes: 100, totalBytes: 1_000_000 })
+    expect(result.files.map((f) => f.path)).toEqual(['small.txt'])
+    expect(result.skipped).toEqual(['big.bin'])
+  })
+
+  it('toplam sınır aşılınca kalan dosyalar atlanır', async () => {
+    const dir = await scratch()
+    await writeFile(join(dir, 'a.txt'), 'x'.repeat(600), 'utf8')
+    await writeFile(join(dir, 'b.txt'), 'y'.repeat(600), 'utf8')
+
+    const result = await capture(dir, { perFileBytes: 10_000, totalBytes: 1000 })
+    expect(result.files).toHaveLength(1)
+    expect(result.skipped).toHaveLength(1)
+  })
+
+  it('sınır içinde her şey yakalanır', async () => {
+    const dir = await scratch()
+    await writeFile(join(dir, 'a.txt'), 'ok', 'utf8')
+    const result = await capture(dir)
+    expect(result.skipped).toEqual([])
+    expect(result.files).toHaveLength(1)
+  })
+})
+
+describe('envDiff — gözlenemeyen yan etki yüzeyi', () => {
+  const empty = new Map<string, string>()
+
+  it('kabuk çağrısı unobserved listesine girer', () => {
+    const diff = envDiff({
+      workdir: '/w',
+      before: empty,
+      after: empty,
+      trace: [{ seq: 1, kind: 'tool_call', tool: 'Bash', args: { command: 'curl x' } }],
+    })
+    expect(diff.unobserved).toEqual(['Bash'])
+  })
+
+  it('reddedilen kabuk çağrısı gözlenemeyen sayılmaz — çalışmadı', () => {
+    const diff = envDiff({
+      workdir: '/w',
+      before: empty,
+      after: empty,
+      trace: [
+        { seq: 1, kind: 'tool_call', tool: 'Bash', id: 'b1', args: { command: 'x' } },
+        {
+          seq: 2,
+          kind: 'tool_result',
+          tool: 'Bash',
+          callId: 'b1',
+          isError: true,
+          error: 'denied',
+        },
+      ],
+    })
+    expect(diff.unobserved).toEqual([])
+  })
+
+  it('kabuk çağrısı yoksa liste boş', () => {
+    const diff = envDiff({
+      workdir: '/w',
+      before: empty,
+      after: empty,
+      trace: [{ seq: 1, kind: 'tool_call', tool: 'Write', args: { file_path: 'a' } }],
+    })
+    expect(diff.unobserved).toEqual([])
   })
 })

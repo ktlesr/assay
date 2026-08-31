@@ -82,15 +82,53 @@ async function walk(root: string, dir: string, out: Map<string, string>): Promis
 
 const toPosix = (path: string) => path.split(sep).join('/')
 
-/** Çalışma dizininden yakalanan dosyalar — assertion motorunun kanıtı. */
-export async function captureFiles(dir: string): Promise<CapturedFile[]> {
+/** Tek dosya ve toplam yakalama sınırı. */
+export const CAPTURE_LIMITS = {
+  /** Bundan büyük dosya yakalanmaz; içeriği değil, aşımı kaydedilir. */
+  perFileBytes: 8 * 1024 * 1024,
+  /** Tüm dosyaların toplamı. */
+  totalBytes: 64 * 1024 * 1024,
+} as const
+
+export interface Capture {
+  files: CapturedFile[]
+  /** Sınır aşıldığı için içeriği alınmayan dosyalar. */
+  skipped: string[]
+}
+
+/**
+ * Çalışma dizininden kanıt dosyalarını yakalar.
+ *
+ * Sınırlı: koşulan şey ölçülen skill'dir ve bir döngüde gigabaytlarca dosya
+ * üretebilir. Sınırsız okuma, ölçüm aracının kendisini bellek tüketimiyle
+ * düşürürdü. Atlanan dosyalar sessizce yok sayılmaz; adları kayda geçer, o
+ * dosyalara dayanan assertion'lar da böylece `fail` yerine görünür kalır.
+ */
+export async function capture(dir: string, limits = CAPTURE_LIMITS): Promise<Capture> {
   const paths = [...(await snapshot(dir)).keys()]
   const files: CapturedFile[] = []
+  const skipped: string[] = []
+  let total = 0
+
   for (const path of paths) {
-    const bytes = await readFile(join(dir, path)).catch(() => null)
-    if (bytes !== null) files.push({ path, bytes: new Uint8Array(bytes) })
+    const full = join(dir, path)
+    const info = await stat(full).catch(() => null)
+    if (info === null) continue
+    if (info.size > limits.perFileBytes || total + info.size > limits.totalBytes) {
+      skipped.push(path)
+      continue
+    }
+    const bytes = await readFile(full).catch(() => null)
+    if (bytes === null) continue
+    total += bytes.byteLength
+    files.push({ path, bytes: new Uint8Array(bytes) })
   }
-  return files
+  return { files, skipped }
+}
+
+/** Geriye dönük kolaylık: yalnızca dosyalar. */
+export async function captureFiles(dir: string): Promise<CapturedFile[]> {
+  return (await capture(dir)).files
 }
 
 /**
@@ -118,6 +156,15 @@ export async function directoryHash(dir: string): Promise<string | null> {
 const WRITING_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'MultiEdit'])
 /** Ağa çıkan araçlar. */
 const NETWORK_TOOLS = new Set(['WebFetch', 'WebSearch'])
+/**
+ * Yan etkisi gözlenemeyen araçlar.
+ *
+ * Bir kabuk komutu dosya da yazabilir, ağa da çıkabilir; ne yaptığını
+ * argümanından güvenilir biçimde okumak mümkün değil. Bu araçlar
+ * çağrıldığında yan etki iddiaları ölçülemez hâle gelir — `unobserved`
+ * alanı bunu taşır ve `side_effect` assertion'ı `unknown` üretir.
+ */
+const OPAQUE_TOOLS = new Set(['Bash', 'PowerShell', 'Shell', 'Terminal', 'Execute'])
 
 /**
  * Ortam farkını üretir.
@@ -151,6 +198,7 @@ export function envDiff(options: {
 
   const denied = new Set(options.deniedTools ?? [])
   const network: NetworkRequest[] = []
+  const unobserved = new Set<string>()
   const failedCalls = failedCallIds(options.trace)
 
   for (const event of options.trace ?? []) {
@@ -163,6 +211,8 @@ export function envDiff(options: {
       if (path !== undefined) writes.add(outsideAware(options.workdir, path))
     }
 
+    if (OPAQUE_TOOLS.has(event.tool) && !rejected) unobserved.add(event.tool)
+
     if (NETWORK_TOOLS.has(event.tool)) {
       const host = hostArgument(event.args)
       network.push({
@@ -172,7 +222,12 @@ export function envDiff(options: {
     }
   }
 
-  return { writes: [...writes].sort(), deletes: [...deletes].sort(), network }
+  return {
+    writes: [...writes].sort(),
+    deletes: [...deletes].sort(),
+    network,
+    unobserved: [...unobserved].sort(),
+  }
 }
 
 /** Hata veya izin reddiyle sonuçlanan çağrıların kimlikleri. */
