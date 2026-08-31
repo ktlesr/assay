@@ -62,6 +62,7 @@ export {
   flakiness,
   totals,
   summarize,
+  summarizeRun,
   type VerdictCounts,
   type TriggerObservationPoint,
   type TriggerAccuracy,

@@ -100,7 +100,7 @@ export async function runSuite<S extends AgentSession>(
         reason: attempt.reason,
       })
     }
-    cases.push(summarizeCase(testCase.id, attempts))
+    cases.push(summarizeCase(testCase.id, attempts, testCase.expect.triggered))
   }
 
   const allVerdicts = cases.flatMap((c) => c.attempts.map((a) => a.verdict))
@@ -132,12 +132,17 @@ export function pinsOf(suite: Suite, source: string, skillHash = ''): Pins {
   }
 }
 
-function summarizeCase(caseId: string, attempts: readonly Attempt[]): CaseResult {
+function summarizeCase(
+  caseId: string,
+  attempts: readonly Attempt[],
+  expectedTrigger: boolean | undefined,
+): CaseResult {
   const passed = attempts.filter((a) => a.verdict === 'pass').length
   const failed = attempts.filter((a) => a.verdict === 'fail').length
   const unknown = attempts.filter((a) => a.verdict === 'unknown').length
   return {
     caseId,
+    ...(expectedTrigger === undefined ? {} : { expectedTrigger }),
     attempts,
     // Değişmez #4: unknown'lar paydadan çıkar, ayrıca sayılır.
     passRate: proportion(passed, passed + failed),

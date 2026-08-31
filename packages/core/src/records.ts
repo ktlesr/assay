@@ -229,6 +229,12 @@ export interface Attempt {
 /** Bir vakanın N tekrarının toplamı. */
 export interface CaseResult {
   caseId: string
+  /**
+   * Vakanın tetiklenme iddiası. Kayıt bunu taşıyor ki rapor ve karşılaştırma
+   * suite dosyasına ihtiyaç duymasın — Faz 2'de hosted taraf yalnızca kaydı
+   * görecek. İddia yoksa alan da yok.
+   */
+  expectedTrigger?: boolean
   attempts: readonly Attempt[]
   /** Değişmez #4: oran asla çıplak gösterilmez, bkz. Proportion. */
   passRate: Proportion

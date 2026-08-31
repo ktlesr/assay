@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { proportion, summarize, type Attempt, type Pins, type Run } from '@assay/core'
+import { proportion, summarizeRun, type Attempt, type Pins, type Run } from '@assay/core'
 import { RunStore } from '@assay/runner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EXIT, main } from './cli.js'
@@ -74,6 +74,7 @@ function makeRun(
     runs: 5,
     cases: cases.map(([caseId, passed, failed, unknown]) => ({
       caseId,
+      expectedTrigger: true,
       attempts: [
         ...Array.from({ length: passed }, () => attempt(caseId, 'pass')),
         ...Array.from({ length: failed }, () => attempt(caseId, 'fail')),
@@ -92,11 +93,7 @@ function makeRun(
   }
 }
 
-const summaryOf = (run: Run) =>
-  summarize(
-    run.cases.flatMap((c) => c.attempts),
-    () => true,
-  )
+const summaryOf = (run: Run) => summarizeRun(run)
 
 // ---------------------------------------------------------------------------
 

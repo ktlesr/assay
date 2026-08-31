@@ -9,7 +9,13 @@
  * yanlış; ikisi de gerçeği gizler.
  */
 
-import { proportion, type Attempt, type Proportion, type Verdict } from './records.js'
+import {
+  proportion,
+  type Attempt,
+  type Proportion,
+  type Run,
+  type Verdict,
+} from './records.js'
 
 // ---------------------------------------------------------------------------
 // Sayım
@@ -230,4 +236,18 @@ export function summarize(
     totals: totals(attempts),
     verdict: counts.fail > 0 ? 'fail' : counts.unknown > 0 ? 'unknown' : 'pass',
   }
+}
+
+/**
+ * Kayıttan doğrudan özet.
+ *
+ * Beklentiler kaydın kendisinde durduğu için suite dosyasına gerek yok;
+ * `assay report` ve ileride hosted taraf bunu kullanır.
+ */
+export function summarizeRun(run: Run): RunSummary {
+  const expected = new Map(run.cases.map((c) => [c.caseId, c.expectedTrigger]))
+  return summarize(
+    run.cases.flatMap((c) => c.attempts),
+    (caseId) => expected.get(caseId),
+  )
 }

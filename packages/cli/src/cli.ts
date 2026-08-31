@@ -11,7 +11,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { ClaudeCodeAdapter } from '@assay/adapters'
-import { compareRuns, parseSuite, summarize, type Run, type Suite } from '@assay/core'
+import { compareRuns, parseSuite, summarizeRun, type Run, type Suite } from '@assay/core'
 import { RunStore, runSuite } from '@assay/runner'
 import { renderHtmlReport } from './html.js'
 import {
@@ -279,7 +279,7 @@ async function run(
 
   const store = new RunStore(storeOptions(options))
   const savedTo = await store.save(record)
-  await emit(record, effective, options)
+  await emit(record, options)
   process.stderr.write(style.grey(`  stored ${savedTo}\n`))
 
   if (!ci) return EXIT.ok
@@ -311,7 +311,7 @@ async function report(runId: string | undefined, options: Options): Promise<numb
     )
     return EXIT.usage
   }
-  await emit(record, undefined, options)
+  await emit(record, options)
   return EXIT.ok
 }
 
@@ -354,16 +354,9 @@ function storeOptions(options: Options): { root?: string } {
   return typeof root === 'string' ? { root } : {}
 }
 
-async function emit(
-  record: Run,
-  suite: Suite | undefined,
-  options: Options,
-): Promise<void> {
-  const expected = new Map(suite?.cases.map((c) => [c.id, c.expect.triggered]) ?? [])
-  const summary = summarize(
-    record.cases.flatMap((c) => c.attempts),
-    (id) => expected.get(id),
-  )
+async function emit(record: Run, options: Options): Promise<void> {
+  // Beklentiler kaydın içinde; rapor suite dosyasına ihtiyaç duymuyor.
+  const summary = summarizeRun(record)
 
   if (options['json'] === true) {
     process.stdout.write(`${JSON.stringify({ run: record, summary }, null, 2)}\n`)
