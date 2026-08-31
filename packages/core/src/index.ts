@@ -72,4 +72,11 @@ export {
 
 export type { HostAdapter, AgentSession, RunConfig, SessionResult } from './adapter.js'
 
+export {
+  compareRuns,
+  type ChangeStatus,
+  type CaseComparison,
+  type RunComparison,
+} from './compare.js'
+
 export { matchGlob, globToRegExp, normalizePath, isWithin } from './glob.js'

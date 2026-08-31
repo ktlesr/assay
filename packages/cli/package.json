@@ -21,5 +21,11 @@
     "@assay/core": "workspace:*",
     "@assay/runner": "workspace:*",
     "@assay/adapters": "workspace:*"
+  },
+  "bin": {
+    "assay": "./dist/bin.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0"
   }
 }

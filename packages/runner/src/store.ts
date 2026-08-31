@@ -20,7 +20,7 @@ import type { Run } from '@assay/core'
  * Kanonik `Run` tipi değiştiğinde artırılır. Okuyucu tanımadığı sürümü
  * sessizce yorumlamaz — hata verir.
  */
-export const STORE_VERSION = 1
+export const STORE_VERSION = 2
 
 export interface StoredRun {
   storeVersion: number

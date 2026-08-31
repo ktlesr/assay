@@ -50,6 +50,7 @@ describe('proportion — değişmez #4', () => {
 describe('comparePins — değişmez #2', () => {
   const base: Pins = {
     skillSource: 'anthropics/skills@abc123',
+    skillHash: 'sha256:1111',
     model: 'claude-opus-5-20260514',
     systemPromptHash: 'sha256:aaa',
     suiteVersion: 3,
@@ -62,6 +63,7 @@ describe('comparePins — değişmez #2', () => {
 
   it.each([
     ['skillSource', 'anthropics/skills@def456'],
+    ['skillHash', 'sha256:2222'],
     ['model', 'claude-opus-5-20260601'],
     ['systemPromptHash', 'sha256:ccc'],
     ['suiteHash', 'sha256:ddd'],

@@ -79,6 +79,10 @@ importers:
       '@assay/runner':
         specifier: workspace:*
         version: link:../runner
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.1
 
   packages/core:
     dependencies:

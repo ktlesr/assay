@@ -35,6 +35,7 @@ import {
   captureFiles,
   createWorkspace,
   destroyWorkspace,
+  directoryHash,
   envDiff,
   snapshot,
 } from './sandbox.js'
@@ -82,6 +83,8 @@ export async function runSuite<S extends AgentSession>(
   const now = options.now ?? (() => new Date())
   const repeat = options.repeat ?? suite.runs
   const startedAt = now().toISOString()
+  // Pin 1'in denetçisi: beyan edilen sürüm unutulsa da içerik kayması görülür.
+  const skillHash = (await directoryHash(options.skillPath)) ?? ''
   const cases: CaseResult[] = []
 
   for (const testCase of suite.cases) {
@@ -107,7 +110,7 @@ export async function runSuite<S extends AgentSession>(
     startedAt,
     finishedAt: now().toISOString(),
     host: adapter.id,
-    pins: pinsOf(suite, options.source),
+    pins: pinsOf(suite, options.source, skillHash),
     runs: repeat,
     cases,
     verdict: allVerdicts.includes('fail')
@@ -118,9 +121,10 @@ export async function runSuite<S extends AgentSession>(
   }
 }
 
-export function pinsOf(suite: Suite, source: string): Pins {
+export function pinsOf(suite: Suite, source: string, skillHash = ''): Pins {
   return {
     skillSource: suite.target.source,
+    skillHash,
     model: suite.environment.model,
     systemPromptHash: suite.environment.system_prompt_hash,
     suiteVersion: suite.version,

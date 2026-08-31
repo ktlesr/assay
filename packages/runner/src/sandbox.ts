@@ -93,6 +93,23 @@ export async function captureFiles(dir: string): Promise<CapturedFile[]> {
   return files
 }
 
+/**
+ * Bir dizinin içerik hash'i — pin 1'in denetçisi.
+ *
+ * Dosya yolları ve içerik hash'leri sıralanıp tek bir hash'e indirgenir, yani
+ * dosya sırası veya zaman damgası sonucu etkilemez. Dizin okunamıyorsa `null`
+ * döner; uydurulmuş bir hash, kaymayı gizlerdi.
+ */
+export async function directoryHash(dir: string): Promise<string | null> {
+  const files = await snapshot(dir)
+  if (files.size === 0) return null
+  const canonical = [...files.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([path, hash]) => `${path}:${hash}`)
+    .join('\n')
+  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`
+}
+
 // ---------------------------------------------------------------------------
 // Ortam farkı
 // ---------------------------------------------------------------------------

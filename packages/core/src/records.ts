@@ -40,8 +40,17 @@ export interface VerdictDetail {
  * suite kaynağından hesaplar.
  */
 export interface Pins {
-  /** Pin 1 — skill sürümü. `owner/repo@<sha>` veya içerik hash'i. */
+  /** Pin 1 — beyan edilen skill sürümü. `owner/repo@<sha>` veya etiket. */
   skillSource: string
+  /**
+   * Pin 1'in denetçisi — skill dizininin içerik hash'i.
+   *
+   * `skillSource` insanın beyanı; unutulur, güncellenmez. Bu hash gerçeği
+   * taşır: skill dosyası değişip beyan değişmezse karşılaştırma yine de
+   * durur. `suiteVersion`/`suiteHash` çiftiyle aynı mantık.
+   * Runner hesaplayamadıysa boş kalır ve karşılaştırma `unknown` üretir.
+   */
+  skillHash: string
   /** Pin 2 — tam model kimliği. */
   model: string
   /** Pin 3 — host sistem promptunun hash'i. */
@@ -62,6 +71,7 @@ export interface PinComparison {
 export function comparePins(a: Pins, b: Pins): PinComparison {
   const keys: (keyof Pins)[] = [
     'skillSource',
+    'skillHash',
     'model',
     'systemPromptHash',
     'suiteVersion',

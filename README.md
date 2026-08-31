@@ -52,14 +52,38 @@ Assay'in ölçüm iddiasını ayakta tutan altı kural
 - Tetiklenme suite'i negatif ve yakın-komşu vakası içermek zorunda.
 - v0'da LLM judge yok.
 
+## Kullanım
+
+```
+pnpm install && pnpm typecheck
+
+node packages/cli/dist/bin.js init my-skill.suite.yaml
+node packages/cli/dist/bin.js validate my-skill.suite.yaml
+node packages/cli/dist/bin.js run my-skill.suite.yaml --skill ./my-skill
+node packages/cli/dist/bin.js compare <run-a> <run-b>
+```
+
+Claude Code adaptörü `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token` ile
+üretilir) veya `ANTHROPIC_API_KEY` ister: her koşum izole bir config dizininde
+yürüdüğü için interaktif oturumu devralmaz.
+
+CLI ayrıntıları: [packages/cli/README.md](packages/cli/README.md).
+
 ## Durum
 
-Faz 0 — fizibilite tamamlandı. Henüz koşulabilir bir CLI yok.
+**Faz 1 sürüyor.** SDK Claude Code üzerinde uçtan uca çalışıyor: örnek suite
+4 vaka × 3 tekrarla koşuyor, tetiklenme precision/recall ölçülüyor, artefakt
+doğrulanıyor, koşumlar `.assay/runs/` altına yazılıyor ve `compare` dört pin
+kaymışsa karşılaştırmayı reddediyor.
 
-Fizibilite sonucu: Claude Code'da dört sinyalin dördü de okunabiliyor, üçü
-yüksek güvenilirlikte; tetiklenme, modelin seçtiği durumda açık bir `Skill`
-araç çağrısı olarak görünüyor. Ayrıntılar ve iki diğer host'un durumu:
-[docs/host-feasibility.md](docs/host-feasibility.md).
+Faz 0 fizibilite sonucu: Claude Code'da dört sinyalin dördü de okunabiliyor;
+tetiklenme, modelin seçtiği durumda açık bir `Skill` araç çağrısı olarak
+görünüyor. Codex'te yapısal bir tetiklenme olayı yok — çapraz-host matrisi bu
+yüzden ertelendi. Ayrıntılar:
+[docs/host-feasibility.md](docs/host-feasibility.md) ve
+[docs/adapter-validation.md](docs/adapter-validation.md).
+
+Hosted katman (geçmiş, dashboard) henüz yok; Faz 2.
 
 Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 

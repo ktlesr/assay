@@ -19,6 +19,7 @@ export {
   createWorkspace,
   destroyWorkspace,
   snapshot,
+  directoryHash,
   captureFiles,
   envDiff,
   type Workspace,

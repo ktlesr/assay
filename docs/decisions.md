@@ -496,3 +496,43 @@ Gerekçe: Gerçekleşmemiş bir yazımı kaydetmek, ölçüm aracında kabul edi
 yalan. Ters yön de tehlikeli: sonucu bilinmeyen çağrıyı yok saymak gerçek bir
 yan etkiyi gizleyebilirdi, o yüzden şüphe hâlinde "oldu" kabul ediliyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Pin 1'e içerik hash'i eklendi (`skillHash`)
+Bağlam: CLI'ın `compare` komutu ilk gerçek denemede iki koşumu karşılaştırdı ve
+"regresyon yok" dedi — oysa aralarında skill dosyasını değiştirmiştim. Sebep:
+pin 1 (`target.source`) beyan edilen bir string ve içerik değişince kımıldamıyor.
+Seçenekler: kullanıcının beyanına güvenmek · skill dizininin içerik hash'ini
+runner'ın hesaplaması
+Karar: `Pins.skillHash` — runner skill dizininin içerik hash'ini hesaplar ve
+kayda yazar; `comparePins` bunu da denetler. `suiteVersion`/`suiteHash` çiftinin
+aynısı. Store sürümü 2'ye çıkarıldı.
+Gerekçe: Beyan edilen sürüm unutulur. Unutulduğunda iki farklı skill'in koşumları
+karşılaştırılabilir görünüyordu ve bu, ürünün tek iddiasını — regresyon sinyali —
+sessizce yanlış yapıyordu. Gerçek koşumla doğrulandı: skill'e tek satır eklendi,
+beyan değişmedi, `compare` "skillHash changed" diyerek reddetti ve exit 3 döndü.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — CLI çıkış kodu 3: ölçülemedi
+Bağlam: CI'da "başarısız" ile "ölçülemedi" aynı kodla dönerse değişmez #1
+komut satırında kaybolur.
+Seçenekler: unknown'ı 1 saymak · 0 saymak · ayrı kod
+Karar: `0` geçti, `1` bir vaka düştü, `2` kullanım hatası, `3` hiçbir şey
+ölçülemedi. `--allow-unknown` ile 3 → 0.
+Gerekçe: Bir test aracının en tehlikeli hatası ölçemediğini "geçti" saymaktır;
+`0` bunu yapardı. `1` de yanlış: kullanıcı kırık bir skill arar, oysa sorun
+kimlik bilgisi veya host'tur. Ayrı kod, boru hattının bu iki durumu farklı ele
+almasına izin veriyor. Bayrak, kararı kullanıcıya bırakıyor ama varsayılanı
+dürüst tarafta tutuyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Regresyon iddiası güven aralıklarına dayanır
+Bağlam: İki oran farklı diye regresyon demek, küçük N'de neredeyse her koşumda
+alarm üretir.
+Seçenekler: ham fark eşiği · güven aralığı kesişimi
+Karar: Aralıklar kesişiyorsa `within_noise`; ayrıksa ve düşüş varsa `regressed`.
+Gerekçe: N=3 ile %100'den %0'a düşüş bile istatistiksel olarak gürültüden ayırt
+edilemiyor ve bunu söylemek dürüstlük. Ham eşik, kullanıcıyı sahte alarmlara
+boğar ve alarmları görmezden gelmeyi öğretir — regresyon aracının ölümü budur.
+Bedeli: gerçek ama küçük regresyonları yakalamak için N büyütmek gerekiyor,
+ki zaten doğru cevap o.
+Geri dönüş maliyeti: düşük
