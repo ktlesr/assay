@@ -37,7 +37,7 @@ if (runs.length === 0) {
 
 // --- Özet tablo -------------------------------------------------------------
 
-line('## Ölçülen skill\'ler')
+line("## Ölçülen skill'ler")
 line('')
 line('| Skill | Verdict | Precision | Recall | F1 | Unknown | Maliyet | Süre |')
 line('|---|---|---|---|---|---|---|---|')

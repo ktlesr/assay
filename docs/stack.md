@@ -34,7 +34,7 @@ core     → hiçbir şey
 runner   → core
 adapters → core
 cli      → core, runner, adapters
-db       → (bağımsız)
+db       → core
 ui       → (bağımsız)
 web      → core, db, ui        ✗ runner'a ASLA
 ```

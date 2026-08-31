@@ -74,7 +74,11 @@ export const boundaries = [
     ['core', 'runner', 'adapters'],
     'cli yalnızca core, runner ve adapters’a bağlanabilir.',
   ),
-  boundary('packages/db', [], 'db bağımsızdır: başka bir Assay paketine bağlanamaz.'),
+  boundary(
+    'packages/db',
+    ['core'],
+    'db yalnızca core’a bağlanabilir: şema kanonik kayıt tiplerinden türer.',
+  ),
   boundary('packages/ui', [], 'ui bağımsızdır: başka bir Assay paketine bağlanamaz.'),
   boundary(
     'apps/web',

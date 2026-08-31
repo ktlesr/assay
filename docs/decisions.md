@@ -640,3 +640,64 @@ değil sandbox'ı ölçerdi ve raporu gürültüyle doldururdu. Sonucu baştan b
 olan bir ölçümü koşmak, ölçüm değil tören olur. Ama sessizce atlamak da
 olmaz — raporda açıkça yazılı.
 Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — `db` paketi `core`'a bağlanabilir
+Bağlam: 2.1 "şemayı core'daki kanonik tiplerden türet" diyor ama bağımlılık
+grafiği `db → (bağımsız)` idi.
+Seçenekler: db'yi bağımsız tutup eşlemeyi web'e taşımak · db → core izni
+Karar: `db → core`. Eşleme (`toRunRow`/`fromRunRow`) db paketinde.
+Gerekçe: Eşlemeyi web'e taşımak, CLI'ın `push` komutunun aynı kodu tekrar
+yazmasını gerektirirdi ve iki kopya er geç ayrışırdı — tam olarak 2.1'in
+yasakladığı şey. Kuralın amacı core'u bağımsız tutmak ve web'i runner'dan
+uzak tutmaktı; db'yi core'dan izole etmek o amaca hizmet etmiyor.
+`packages/ui` bağımsız kalıyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Kısıt testleri PGlite ile, Docker'sız
+Bağlam: CHECK kısıtlarının gerçekten tuttuğunu kanıtlamak için Postgres
+gerekiyor.
+Seçenekler: Docker'da postgres · testcontainers · PGlite (süreç içi WASM
+Postgres) · kısıtları test etmemek
+Karar: PGlite. `packages/db/src/constraints.test.ts` migration'ı uygulayıp
+her kısıtı ihlal ediyor.
+Gerekçe: Docker CI'da servis, yerelde kurulum demek; testler o an koşulmaz
+hâle gelir ve kısıtlar denetimsiz kalır. PGlite gerçek Postgres semantiği
+veriyor (CHECK, enum, jsonb, cascade) ve `pnpm test` içinde saniyeler sürüyor.
+Kısıtın gerçekten tuttuğu ancak koşulan bir testle bilinir.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Tüm zaman damgaları `timestamptz`
+Bağlam: Gidiş-dönüş testi 3 saatlik kayma gösterdi. Prisma'nın `DateTime`
+varsayılanı `timestamp(3)` — saat dilimsiz.
+Seçenekler: eşlemede UTC'ye zorlamak · şemada `@db.Timestamptz(3)`
+Karar: Şemada. Tüm `DateTime` alanları `timestamptz`.
+Gerekçe: Ölçüm kaydındaki zamanlar mutlak anlar. Saat dilimsiz saklamak,
+başka bir bölgedeki sunucunun farklı zamanlar okuması demek; eşlemede
+düzeltmek de her yeni alanda tekrarlanacak bir hatırlama işi olurdu.
+Test bunu yakaladı, kod incelemesi yakalamazdı.
+Geri dönüş maliyeti: düşük (migration henüz uygulanmadı)
+
+## 2026-08-31 — `Case.expectTriggered` NOT NULL değil, "bir şey ölçer" CHECK'i
+Bağlam: 2.1 `Case.expectTriggered NOT NULL` istiyor. Ama 0.3'te yayımlanan
+vaka şeması, yalnızca artefakt ölçen vakalara izin veriyor.
+Seçenekler: NOT NULL yapıp şemayı kırmak · nullable bırakıp kuralı gevşetmek ·
+nullable + "vaka bir şey ölçmeli" CHECK'i
+Karar: Üçüncüsü. `expectTriggered IS NOT NULL OR notTriggered dolu OR
+assertions dolu`.
+Gerekçe: Kuralın amacı "her vaka bir şey ölçsün" idi; `expectTriggered NOT
+NULL` bunun bir vekiliydi ve tamamlama vakalarını yasaklardı. CHECK niyeti
+doğrudan ifade ediyor.
+Not: ilk yazımı `array_length('{}',1) > 0` içeriyordu; Postgres'te bu NULL
+döner ve NULL sonuçlu CHECK ihlal sayılmaz — kısıt sessizce boşa çıkıyordu.
+Test yakaladı, `coalesce` ile düzeltildi.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Faz 2'de doğrudan `main`, feature branch değil
+Bağlam: Sözleşme 2 Faz 2'den itibaren her adım için feature branch ve PR
+istiyordu; kullanıcı sonradan "commit et, main'e push et" talimatı verdi.
+Seçenekler: PR akışını sürdürmek · doğrudan main
+Karar: Doğrudan `main`. `faz2/veri-modeli` dalı açılmıştı, main'e birleştirildi.
+Gerekçe: Kullanıcının açık talimatı sözleşmenin üzerinde. Tek geliştiricili
+otonom bir akışta PR, incelemesi olmayan bir tören olurdu; koruma testlerde
+ve pre-commit hook'ta duruyor.
+Geri dönüş maliyeti: düşük

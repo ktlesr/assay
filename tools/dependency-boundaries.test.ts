@@ -20,8 +20,8 @@ const forbidden: ReadonlyArray<[string, string]> = [
   ['packages/core/src/x.ts', '@assay/ui'],
   ['packages/runner/src/x.ts', '@assay/cli'],
   ['packages/adapters/src/x.ts', '@assay/runner'],
-  ['packages/db/src/x.ts', '@assay/core'],
   ['packages/ui/src/x.ts', '@assay/core'],
+  ['packages/db/src/x.ts', '@assay/runner'],
   ['apps/web/app/x.tsx', '@assay/runner'],
   ['apps/web/app/x.tsx', '@assay/adapters'],
   ['apps/web/app/x.tsx', '@assay/cli'],
@@ -29,6 +29,7 @@ const forbidden: ReadonlyArray<[string, string]> = [
 
 const allowed: ReadonlyArray<[string, string]> = [
   ['packages/runner/src/x.ts', '@assay/core'],
+  ['packages/db/src/x.ts', '@assay/core'],
   ['packages/adapters/src/x.ts', '@assay/core'],
   ['packages/cli/src/x.ts', '@assay/runner'],
   ['packages/cli/src/x.ts', '@assay/adapters'],
