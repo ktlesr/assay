@@ -32,14 +32,15 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 | 2.5 Kimlik doğrulama | Auth.js, rol, API token, assay push, DB'den okuma | `5332597` |
 | 2.6 Admin panel | kullanıcılar, koşumlar, denetim kaydı | `b685d50` |
 | 2.7 Tanıtım sayfası | yalnızca veritabanından okunan gerçek ölçüm | `f25fd36` |
+| 3.1 Güvenlik incelemesi | 2 yüksek + 3 orta bulgu kapatıldı | `cb76d75` |
+| 3.2 Test ve CI | kapsam eşiği, prisma generate, derleme adımı | `4bbc04d` |
+| 3.3 Deploy | Dockerfile, compose, /api/health, docs/deploy.md | `a3c0858` |
 
 ## Sırada
 
-| Adım | Durum |
-|---|---|
-| 3.1 Tam güvenlik incelemesi | sırada |
-| 3.2 Test ve CI | bekliyor |
-| 3.3 Deploy | bekliyor |
+Faz 0–3 kapandı. Sıradaki dalga roadmap.md'de: skill çakışma testi, model
+güncelleme sertifikasyonu, çapraz-host uyumluluk matrisi, skill kalite rozeti.
+Bunlar bilerek yapılmadı.
 
 ## Çalışma kuralları (oturum sıfırlanırsa)
 
