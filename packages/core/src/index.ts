@@ -5,9 +5,6 @@
  * ağ, süreç yok. Kural eslint.config.js içinde makine seviyesinde zorlanır.
  */
 
-/** Değişmez #1: verdict üç durumludur. Sinyal alınamadıysa `unknown`. */
-export type Verdict = 'pass' | 'fail' | 'unknown'
-
 export {
   parseSuite,
   validateSuite,
@@ -22,3 +19,38 @@ export {
   type TraceRule,
   type FileFormat,
 } from './suite.js'
+
+export {
+  comparePins,
+  proportion,
+  formatProportion,
+  type Verdict,
+  type VerdictDetail,
+  type Pins,
+  type PinComparison,
+  type TraceEvent,
+  type TraceEventKind,
+  type SessionOutcome,
+  type TriggerObservation,
+  type NetworkRequest,
+  type EnvDiff,
+  type CapturedFile,
+  type Evidence,
+  type AssertionResult,
+  type Cost,
+  type Attempt,
+  type CaseResult,
+  type Run,
+  type Proportion,
+} from './records.js'
+
+export {
+  evaluateAssertion,
+  evaluateAssertions,
+  combineVerdicts,
+  type AssertionContext,
+} from './assertions.js'
+
+export { evaluateNoSwallowedErrors } from './no-swallowed-errors.js'
+
+export { matchGlob, globToRegExp, normalizePath, isWithin } from './glob.js'

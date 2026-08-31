@@ -208,3 +208,70 @@ hesaplanamaz çünkü `node:crypto` I/O yasağının kapsamında ve tarayıcıda
 üstelik hash'in doğal yeri kaynağı okuyan taraf. Beyan edilen sürüm insan
 niyetini, runner'ın yazdığı hash gerçeği taşır — biri unutulursa diğeri yakalar.
 Geri dönüş maliyeti: orta (suite dosyalarına alan eklemek geriye dönük kırar)
+
+## 2026-08-31 — Kanıt modeli: core değerlendirir, runner toplar
+Bağlam: `file_exists`, `file_valid`, `side_effect` gibi assertion'lar dosya
+sistemine bakmak zorunda; ama core I/O yapmıyor.
+Seçenekler: assertion motorunu runner'a taşımak · core'a dosya okuma vermek ·
+runner'ın topladığı `Evidence` nesnesini core'a girdi vermek
+Karar: Üçüncüsü. `Evidence { files?, trace?, exitCode?, env? }` — her alan
+opsiyonel, çünkü toplanamamış olabilir. Runner kanıtı toplar, core değerlendirir.
+Gerekçe: Motoru runner'a taşımak core'u boşaltır ve ileride hosted tarafın aynı
+kaydı yeniden değerlendirmesini imkânsız kılar. Kanıt nesnesi ayrıca ölçümü
+yeniden üretilebilir yapar: aynı Evidence her zaman aynı verdict'i verir.
+Geri dönüş maliyeti: yüksek (motorun konumu mimarinin merkezinde)
+
+## 2026-08-31 — "Veri yokken pass yok" kuralı sevk katmanında zorlanıyor
+Bağlam: Değişmez #1 "hiçbir assertion veri yokluğunda PASS dönmez, tip
+seviyesinde zorla" diyor.
+Seçenekler: her değerlendiricide elle kontrol · sevk katmanının kanıtı önceden
+çözmesi · sonuç tipinde kısıt
+Karar: Her assertion tipi hangi kanıt alanlarına ihtiyaç duyduğunu `REQUIRES`
+tablosunda bildirir. Sevk katmanı eksik alan görürse değerlendiriciyi **hiç
+çağırmaz** ve `unknown` üretir. Değerlendiricilerin girdi tipinde (`Resolved<K>`)
+o alanlar opsiyonel değildir.
+Gerekçe: Değerlendirici eksik kanıtı göremediği için yanlışlıkla `pass` dönmesi
+yapısal olarak imkânsız. Elle kontrol, yeni bir assertion tipi eklendiğinde
+unutulacak tek satırdı.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — no_swallowed_errors üç kademeli deterministik bildirim tespiti
+Bağlam: "Ajan hatayı bildirdi mi?" sorusu LLM judge olmadan cevaplanmalı
+(değişmez #6).
+Seçenekler: yalnızca host sinyaline güvenmek (pratikte hep unknown) · anahtar
+sözcük sezgiseli · üç kademe
+Karar: (1) adaptörün `acknowledgesError` alanı, (2) hata metnindeki ayırt edici
+belirteçlerin veya araç adının mesajda geçmesi, (3) genel başarısızlık
+sözcükleri. Üçü de tutmuyorsa `fail`. Oturum başarıyla bitmediyse `pass`;
+`session_end` yoksa veya sonucu yoksa `unknown`.
+Gerekçe: Yalnızca host sinyali beklemek ölçümü pratikte hep `unknown` yapardı ve
+ürünün ayırt edici özelliği ölürdü. Üç kademe yanlış `fail` riskini düşürüyor:
+`fail` demek için ajanın hatadan sonra ürettiği metnin ne aracı, ne hata
+belirtecini, ne de herhangi bir başarısızlık sözcüğünü içermemesi gerekiyor.
+Tavan: yalnızca imalı kabul yakalanamaz; yükseltme yolu adaptörün
+`acknowledgesError` doldurması, ki o sezgiselin önüne geçiyor.
+Geri dönüş maliyeti: düşük (tek modül)
+
+## 2026-08-31 — JSON Schema doğrulaması için ajv
+Bağlam: `json_schema` ve `tool_args_valid` assertion'ları JSON Schema
+doğrulaması istiyor.
+Seçenekler: elle yazılmış alt küme · ajv · @cfworker/json-schema
+Karar: ajv 8, `strict: false`, `allErrors: true`. Derlenen şemalar
+önbelleklenir.
+Gerekçe: Elle yazılmış bir alt küme, tam da sessizce yanlış veri geçiren yerdir —
+bir doğrulayıcı aracında kabul edilemez. ajv sıkıcı ve standart seçim. `strict`
+kapalı, çünkü kullanıcının şemasındaki tanımadığımız anahtar kelimeler koşumu
+düşürmemeli.
+Geri dönüş maliyeti: düşük
+
+## 2026-08-31 — Oran tipi N ve güven aralığını yapısal olarak taşır
+Bağlam: Değişmez #4 "hiçbir oran N ve güven aralığı olmadan gösterilmez" diyor.
+Bir kod incelemesi kuralı olarak bu er geç aşınır.
+Seçenekler: `number` döndürüp gösterim katmanında kural · `Proportion` tipi
+Karar: `Proportion { successes, n, rate: number | null, ci: {...} | null }`.
+Wilson skor aralığı. Gözlem yoksa `rate` de `ci` de `null`.
+Gerekçe: Çıplak bir `number` üretilmediği için oranı N'siz göstermek için
+kasıtlı çaba gerekiyor. Wilson, Wald yerine seçildi: 10/10 başarıda Wald
+[%100, %100] der ve belirsizliği tamamen gizler, Wilson [%72, %100] der.
+`null` seçeneği "N=0 iken oran yoktur"u tüketiciye zorla hatırlatıyor.
+Geri dönüş maliyeti: orta

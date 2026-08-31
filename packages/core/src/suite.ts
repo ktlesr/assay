@@ -261,6 +261,19 @@ function checkAssertions(c: SuiteCase, index: number, issues: SuiteIssue[]): voi
       }
     }
 
+    if (assertion.type === 'file_content_matches') {
+      try {
+        new RegExp(assertion.matches, assertion.flags)
+      } catch (cause) {
+        issues.push(
+          error(
+            `${at}.matches`,
+            `file_content_matches carries an invalid regex: ${(cause as Error).message}`,
+          ),
+        )
+      }
+    }
+
     if (
       assertion.type === 'side_effect' &&
       assertion.writes_within === undefined &&

@@ -264,6 +264,12 @@ describe('parseSuite — assertion şekilleri', () => {
     expect(errorsOf(parse(withAssertion(assertion)).issues)).toEqual([])
   })
 
+  it('geçersiz regex taşıyan file_content_matches reddedilir', () => {
+    const result = parse(withAssertion('{ type: file_content_matches, path: "a", matches: "([" }'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('invalid regex')
+  })
+
   it('yolsuz file_valid, aynı vakada file_exists yoksa reddedilir', () => {
     const result = parse(
       withReplacement('        - { type: file_exists, path: "out/*.docx" }\n', ''),
