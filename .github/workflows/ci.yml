@@ -47,6 +47,11 @@ jobs:
       - name: standalone çıktısı üretildi mi
         run: test -f apps/web/.next/standalone/apps/web/server.js
 
+      # Dağıtılan derlemede sır aranıyor. `scan-staged` commit'e gireni,
+      # `scan-history` geçmişte kalanı tarıyor; bu üçüncüsü tarayıcıya ve
+      # sunucuya gerçekten giden dosyalara bakıyor.
+      - run: pnpm scan:build
+
       - uses: actions/upload-artifact@v5
         if: always()
         with:

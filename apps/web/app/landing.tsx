@@ -36,6 +36,10 @@ export async function Landing() {
       ? null
       : await compare(previous.slug, failing.latest.slug)
 
+  // Yayın modunda giriş kapalı (middleware.ts); ziyaretçiyi 404'e götüren
+  // bir düğme göstermek yerine paketi gösteriyoruz.
+  const publicSite = process.env['ASSAY_PUBLIC_SITE'] === 'true'
+
   return (
     <Shell>
       <section className="hero">
@@ -47,9 +51,15 @@ export async function Landing() {
           reports the rate with its uncertainty attached.
         </p>
         <div className="hero-actions">
-          <Link href="/signin" className="btn">
-            Sign in
-          </Link>
+          {publicSite ? (
+            <a href="https://www.npmjs.com/package/@ktlsr/assay" className="btn">
+              Get the CLI
+            </a>
+          ) : (
+            <Link href="/signin" className="btn">
+              Sign in
+            </Link>
+          )}
           <code className="code">npx assay run ./my-skill.suite.yaml</code>
         </div>
       </section>

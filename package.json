@@ -21,6 +21,8 @@
     "version-packages": "changeset version && pnpm install --lockfile-only",
     "release": "pnpm -r --filter \"./packages/*\" publish --access public",
     "pack:check": "node tools/pack-check.mjs",
+    "scan:build": "node tools/scan-build.mjs",
+    "scan:history": "node tools/scan-history.mjs",
     "prepare": "git config core.hooksPath .githooks || exit 0",
     "assay": "node packages/cli/dist/bin.js",
     "db:dev": "node tools/dev-postgres.mjs",
