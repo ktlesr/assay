@@ -15,12 +15,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Sürüm package.json'daki `packageManager` alanından okunuyor. Burada
       # `version:` de vermek action'ı "Multiple versions of pnpm specified"
       # hatasıyla düşürüyor — tek doğruluk kaynağı `packageManager`.
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -47,7 +47,7 @@ jobs:
       - name: standalone çıktısı üretildi mi
         run: test -f apps/web/.next/standalone/apps/web/server.js
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: coverage

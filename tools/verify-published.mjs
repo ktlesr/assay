@@ -10,16 +10,36 @@
  * [{ name, version }, ...]
  */
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
-const raw = process.env.PUBLISHED_PACKAGES
-if (!raw) {
-  console.error('::error::PUBLISHED_PACKAGES boş — doğrulanacak bir şey bildirilmedi')
-  process.exit(1)
+/**
+ * Yayımlanan paketleri çalışma alanından okur.
+ *
+ * changesets'in `publishedPackages` çıktısına güvenilmiyor: kendi yayın
+ * komutumuzu (`pnpm -r publish`) kullandığımız için action çıktıyı
+ * ayrıştıramıyor ve `published` bayrağını `false` bırakıyor. 0.1.0 yayınında
+ * bu yüzden doğrulama adımı sessizce atlandı — paketler yayımlanmıştı ama
+ * kimse kontrol etmemişti. Kaynağı manifestolar yapmak bu boşluğu kapatıyor.
+ */
+function fromWorkspace() {
+  return ['core', 'runner', 'adapters', 'cli'].map((dir) => {
+    const pkg = JSON.parse(readFileSync(`packages/${dir}/package.json`, 'utf8'))
+    return { name: pkg.name, version: pkg.version }
+  })
 }
 
-const packages = JSON.parse(raw)
+const raw = process.env.PUBLISHED_PACKAGES
+let packages
+
+if (raw && raw.trim() !== '' && raw.trim() !== '[]') {
+  packages = JSON.parse(raw)
+} else {
+  packages = fromWorkspace()
+  console.log('PUBLISHED_PACKAGES boş — manifestolardan okunuyor.')
+}
+
 if (!Array.isArray(packages) || packages.length === 0) {
-  console.error('::error::PUBLISHED_PACKAGES boş liste — yayın bildirildi ama paket yok')
+  console.error('::error::doğrulanacak paket bulunamadı')
   process.exit(1)
 }
 

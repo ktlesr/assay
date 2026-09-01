@@ -1172,3 +1172,36 @@ yalnızca CI'da üretilebiliyor, elle yayın `--no-provenance` istiyor ve o
 sürüm kaynağını kanıtlamıyor. Bu yüzden elle yayın bir kaçış yolu olarak
 belgelendi, tercih edilen yol olarak değil.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Kimlik doğrulama trusted publishing, token hattan çıkarıldı
+Bağlam: 0.1.0'ın ilk yayın denemesi `EOTP` ile düştü — npm'in varsayılan paket
+ayarı publish için 2FA ya da bypass-2FA yetkili token istiyor ve CI interaktif
+istemi cevaplayamıyor. Trusted publishing kurulunca ikinci deneme geçti ve log
+"No NPM_TOKEN found, but OIDC is available" dedi.
+Seçenekler: bypass-2FA yetkili tokenı hatta bırakmak · token'ı çıkarıp yalnızca
+OIDC'ye dayanmak
+Karar: `NPM_TOKEN` iş akışından tamamen çıkarıldı. `guard` işinin token
+kontrolü ve `npm whoami` adımı kaldırıldı; `id-token: write` kaldı.
+Gerekçe: changesets/action token bulduğunda OIDC'yi kullanmıyor, yani token'ı
+bırakmak trusted publishing'i sessizce devre dışı bırakırdı — ve bypass-2FA
+yetkisi npm tarafından kullanımdan kaldırılıyor (≈Ocak 2027'de yayın yetkisi
+gidiyor). Token'sız hatta yenilenecek secret, sızacak sır ve 90 günlük döngü
+yok. Bedeli: elle yayın artık mümkün değil, çünkü OIDC kimliği yalnızca
+yapılandırılmış iş akışından geliyor. Bu bir kayıp değil — denetlenmemiş bir
+kaçış yolunun kapanması.
+Geri dönüş maliyeti: düşük (token geri eklenebilir, ama eklenmemeli)
+
+## 2026-09-01 — Yayın doğrulaması changesets'in bayrağına değil, yayın moduna bağlı
+Bağlam: 0.1.0 başarıyla yayımlandı ama "yayımlanan sürümler registry'de
+görünüyor mu" adımı atlandı. Sebep: adım `steps.changesets.outputs.published`
+koşuluna bağlıydı; kendi yayın komutumuzu (`pnpm -r publish`) kullandığımız
+için action çıktıyı ayrıştıramıyor ve bayrağı `false` bırakıyor.
+Seçenekler: changesets'in kendi publish komutunu kullanmak · bayrağı düzeltmeye
+çalışmak · koşulu yayın moduna bağlayıp paket listesini manifestolardan okumak
+Karar: Üçüncüsü. Koşul `needs.guard.outputs.publishing == 'true'`;
+`verify-published.mjs` `PUBLISHED_PACKAGES` boşsa dört manifestodan okuyor.
+Gerekçe: Doğrulamanın varlık sebebi "aracın beyanına güvenme" idi ve tam da
+aracın bir beyanına bağlanmıştı. Paketler yayımlandı, doğrulama sessizce
+atlandı ve bunu ancak elle bakınca fark ettim — ölçüm aracının kendi hattında
+kabul edilemez. Manifestolar yayımlanan sürümün tek doğruluk kaynağı zaten.
+Geri dönüş maliyeti: düşük

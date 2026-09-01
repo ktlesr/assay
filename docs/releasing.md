@@ -25,15 +25,15 @@ Paketler birbirine `workspace:*` ile bağlı. Bu belirteci gerçek sürüm
 numarasına çeviren pnpm'dir; npm onu olduğu gibi bırakır ve tarball
 kurulamaz hâlde yayımlanır. Kural `pnpm release` script'inde sabit.
 
-## İlk sürüm (0.1.0)
+## İlk sürüm (0.1.0) — yayımlandı
 
-İlk yayın changeset ile yapılmıyor: manifestolar zaten `0.1.0` diyor ve bir
-`minor` changeset onu `0.2.0`'a çıkarırdı. `0.1.0`'ın CHANGELOG'ları elle
-yazıldı.
+2026-09-01'de dört paket olarak yayımlandı, trusted publishing ile,
+provenance'lı. Changeset kullanılmadı: manifestolar zaten `0.1.0` diyordu ve
+bir `minor` changeset onu `0.2.0`'a çıkarırdı; CHANGELOG'lar elle yazıldı.
 
 Changesets `0.2.0`'dan itibaren devralıyor. Depoda changeset yokken
-`changesets/action` doğrudan yayın moduna geçer ve npm'de bulunmayan sürümleri
-gönderir — yani `NPM_TOKEN` tanımlandığı anda `0.1.0` yayımlanır.
+`changesets/action` yayın moduna geçer ve npm'de **bulunmayan** sürümleri
+gönderir; var olanları atlar.
 
 ## Sürüm yükseltme
 
@@ -92,14 +92,13 @@ build'iyle 27 dosya ve 32.3 KB, geçiyor.
 
 ## Kimlik doğrulama
 
-CI `NPM_TOKEN` repo secret'ını kullanıyor. Token bir **granular access token**
-ve yazma izinli olduğu için **en fazla 90 gün** yaşıyor; yenileme prosedürü,
-süresi dolduğunda görülecek hata ve tokendan tamamen kurtulma yolu
-(trusted publishing) [operations.md](operations.md)'de.
+**Saklanan token yok.** Yayın trusted publishing (OIDC) ile: npm, GitHub'ın
+verdiği kısa ömürlü ve bu iş akışına özgü kimliği doğruluyor. Yenilenecek bir
+secret olmadığı için token döngüsü de yok.
 
-İş akışı, pahalı adımlardan önce `npm whoami` ile tokenın geçerliliğini
-sınıyor. Sebebi kısmi yayın riski: kimlik hatası yayının ortasında çıkarsa
-dört paketin bir kısmı gitmiş olabilir.
+İş akışına bir `NPM_TOKEN` geri eklenirse `changesets/action` OIDC yerine onu
+kullanır ve provenance ile 2FA sorunları geri gelir. Ayrıntı:
+[operations.md](operations.md).
 
 ## Elle yayın
 
@@ -121,16 +120,13 @@ onu reddediyor. `npm config set` kullan.
 ister ve ücretsiz hesapta bu hata verir. Değer ayrıca her pakette
 `publishConfig` içinde de duruyor.
 
-**Elle yayında provenance üretilemez.** `publishConfig.provenance: true`
-yalnızca desteklenen bir CI'da (OIDC ile) çalışır; geliştirme makinesinde
-`pnpm release` bu yüzden düşer. Elle yayımlaman gerekiyorsa:
+**Elle yayın artık pratikte mümkün değil ve bu iyi.** Trusted publishing
+yalnızca yapılandırılmış iş akışından gelen yayınları kabul ediyor; geliştirme
+makinesinden yapılan bir `pnpm publish` OIDC kimliği sunamaz. Ayrıca
+`publishConfig.provenance: true` da CI dışında çalışmaz.
 
-```
-pnpm release --no-provenance
-```
-
-Bu bilinçli bir taviz: elle yayımlanan bir sürüm, kaynağını kanıtlayan
-imzayı taşımaz. Bu yüzden elle yayın bir kaçış yolu, tercih edilen yol değil.
+Yani yayının tek yolu `release.yml`. Bir aracın kendi dağıtım zincirinde
+denetlenmemiş bir kaçış yolu bırakmaması, ölçüm dürüstlüğü iddiasıyla tutarlı.
 
 ## Provenance
 
@@ -141,6 +137,9 @@ npm paket sayfasında doğrulanabilir bir rozet olarak görünür.
 Gereken üç şey de yerinde: public depo, `permissions.id-token: write`, ve
 `publishConfig.provenance: true`. Üçünden biri eksikse npm sessizce
 provenance'sız yayımlamaz — hata verir, ki doğrusu budur.
+
+0.1.0'da dört paketin dördünde de doğrulandı: `npm view <paket> dist.attestations`
+her birinde `https://slsa.dev/provenance/v1` döndürüyor.
 
 ## İlk yayından sonra
 

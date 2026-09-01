@@ -7,10 +7,10 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 
 ## Durum
 
-**Faz 0–3 tamam** · **npm yayın hazırlığı tamam** · **kalibrasyon tamam**
+**Faz 0–3 tamam** · **kalibrasyon tamam** · **0.1.0 npm'de yayımlandı**
 
-0.1.0 yayıma hazır ve yayın tetiği kullanıcıda. Bekleyen tek şey
-`gh workflow run release.yml -f confirm=yayimla`.
+Dört paket 2026-09-01'de yayımlandı: `@ktlsr/assay`, `-core`, `-runner`,
+`-adapters`. Trusted publishing (OIDC), provenance'lı, saklanan token yok.
 
 ## Tamamlananlar
 
@@ -54,16 +54,17 @@ Bunlar bilerek yapılmadı.
 
 - Paketler: `@ktlsr/assay` (bin `assay`), `-core`, `-runner`, `-adapters`.
   `db`, `ui`, `web` yayımlanmaz.
-- Sürüm 0.1.0, hiçbiri npm'de değil. Dört ad da müsait.
+- Sürüm 0.1.0 **yayımlandı**; dördü de registry'de ve provenance taşıyor.
 - Yayın **push ile tetiklenmiyor**: `gh workflow run release.yml -f
   confirm=yayimla`. Sebep — main'e atılan her commit bir yayın denemesine
   dönüşüyordu.
-- Yayın hattı uçtan uca doğrulandı (koşum `33498914984`): token geçerli
-  (`npm whoami` → `ktlsr`), `pnpm check` ve `pack:check` CI'da geçti,
-  changesets "Not publishing because no publish script found" dedi — yani
-  push yayımlamıyor, kapı çalışıyor.
-- Yayından sonra sırada: trusted publishing kurulumu ve `NPM_TOKEN`'ın
-  kaldırılması ([operations.md](operations.md), beş adım).
+- Kimlik doğrulama trusted publishing (OIDC). `NPM_TOKEN` hattan çıkarıldı;
+  iş akışına geri eklenirse OIDC devre dışı kalır — eklemeyin.
+- İlk yayın denemesi `EOTP` ile düşmüştü (token 2FA'yı atlayamıyor); trusted
+  publishing bu sınıfı tamamen ortadan kaldırdı.
+- Yayın sonrası doğrulama artık changesets'in `published` bayrağına değil
+  yayın moduna bağlı: 0.1.0'da bayrak `false` kaldığı için doğrulama sessizce
+  atlanmıştı, paketler gitmişti ama kimse kontrol etmemişti.
 - Süreç [releasing.md](releasing.md), işletim [operations.md](operations.md),
   kalibrasyon [calibration.md](calibration.md).
 

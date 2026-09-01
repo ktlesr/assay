@@ -10,15 +10,13 @@
 # denemesine çevirir; belge düzelten bir commit bile. npm yayını geri
 # alınamaz, o yüzden tetiği çekmek açık bir eylem olmalı.
 #
-# Kimlik doğrulama bugün NPM_TOKEN ile. npm granular access token'ları yazma
-# izniyle en fazla 90 gün yaşıyor, yani bu secret düzenli olarak yenilenmek
-# zorunda — prosedür docs/operations.md'de. Kalıcı çözüm trusted publishing
-# (OIDC): paketler npm'de var olduktan sonra yapılandırılabiliyor ve secret'ı
-# tamamen ortadan kaldırıyor.
+# Kimlik doğrulama trusted publishing (OIDC) ile. Saklanan token yok: npm,
+# GitHub'ın verdiği kısa ömürlü ve bu iş akışına özgü kimliği doğruluyor.
+# Yenilenecek bir secret olmadığı için 90 günlük token döngüsü de yok.
 #
 # Depo public olduğu için provenance üretiliyor: yayımlanan her tarball'a,
 # hangi commit'ten hangi iş akışıyla derlendiğini söyleyen imzalı bir kanıt
-# ekleniyor. Kullanıcı npm sayfasında doğrulayabiliyor.
+# ekleniyor. npm paket sayfasında doğrulanabiliyor.
 
 name: Release
 
@@ -40,13 +38,9 @@ permissions:
   contents: read
 
 jobs:
-  # Secrets bağlamı iş seviyesindeki `if` içinde okunamıyor; bu yüzden token'ın
-  # varlığı önce bir çıktıya dönüştürülüyor. Token yoksa yayın işi hiç koşmaz
-  # ve sebebi loga yazılır — sessizce atlanmaz.
   guard:
     runs-on: ubuntu-latest
     outputs:
-      has_token: ${{ steps.check.outputs.has_token }}
       publishing: ${{ steps.mode.outputs.publishing }}
     steps:
       # Yayın yalnızca elle tetiklendiğinde ve onay yazıldığında yapılır.
@@ -66,27 +60,15 @@ jobs:
             echo "mod: yalnızca sürüm hazırlığı (push)"
           fi
 
-      - id: check
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            echo "has_token=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_token=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::NPM_TOKEN secret'ı tanımlı değil — yayın adımı atlandı. docs/operations.md"
-          fi
-
   release:
     needs: guard
-    if: needs.guard.outputs.has_token == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write # sürüm PR'ı ve etiketi
       pull-requests: write
       id-token: write # npm provenance: Sigstore'a OIDC ile kimlik kanıtı
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # changesets değişen paketleri bulmak için geçmişi ister
 
@@ -95,26 +77,11 @@ jobs:
       # hatasıyla düşürüyor — tek doğruluk kaynağı `packageManager`.
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
-
-      # Token'ın GEÇERLİ olduğu, pahalı adımlardan ÖNCE sınanıyor. `guard` yalnızca
-      # secret'ın var olduğunu biliyor; süresi dolmuş bir token da doludur. Bu
-      # kontrol olmasaydı hata ancak `pnpm check` ve `pack:check` koştuktan sonra,
-      # yayının tam ortasında çıkardı — dört paketin bir kısmı gitmiş olabilirdi.
-      - name: npm kimlik doğrulaması geçerli mi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if ! user=$(npm whoami 2>&1); then
-            echo "::error::NPM_TOKEN geçersiz veya süresi dolmuş. npm yazma izinli granular access token'ları en fazla 90 gün yaşar. Yenileme prosedürü: docs/operations.md"
-            echo "npm yanıtı: $user"
-            exit 1
-          fi
-          echo "npm kullanıcısı: $user"
 
       - run: pnpm install --frozen-lockfile
 
@@ -139,13 +106,19 @@ jobs:
           commit: 'chore(release): sürümleri yükselt'
           title: 'chore(release): sürümleri yükselt'
         env:
+          # NPM_TOKEN bilerek verilmiyor: changesets/action token bulamayınca
+          # OIDC'ye düşüyor ve trusted publishing kullanıyor.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Aracın "yayımladım" demesi bir iddia; registry'den okumak kanıt. Bu
       # projenin adaptörü de host'un başarı bildirimine aynı sebeple güvenmiyor.
+      #
+      # Koşul changesets'in `published` çıktısına DEĞİL, yayın moduna bağlı:
+      # kendi yayın komutumuzu kullandığımız için action çıktıyı ayrıştıramıyor
+      # ve bayrağı `false` bırakıyor. 0.1.0'da bu yüzden doğrulama sessizce
+      # atlandı — paketler gitmişti ama kimse kontrol etmemişti.
       - name: yayımlanan sürümler registry'de görünüyor mu
-        if: steps.changesets.outputs.published == 'true'
+        if: needs.guard.outputs.publishing == 'true'
         env:
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
         run: node tools/verify-published.mjs

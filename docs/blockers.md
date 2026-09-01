@@ -50,7 +50,7 @@ eşikleriyle test, derleme).
 Neden izole edildi: `gh` kimlik doğrulaması yok; sır uydurulmaz.
 Açmak için: `gh auth login` sonrası `gh run list`.
 
-## 2026-09-01 — npm yayını için NPM_TOKEN yok — ÇÖZÜLDÜ (2026-09-01)
+## 2026-09-01 — npm yayını için NPM_TOKEN yok — GEÇERSİZ (trusted publishing)
 Çözüm: Token üretildi ve `NPM_TOKEN` adıyla GitHub repo secret'ı olarak
 eklendi. Tür **Granular Access Token** — klasik ("Automation") tokenlar Kasım
 2025'te iptal edildiği için tek seçenek bu, ve yazma izinliler en fazla 90 gün
@@ -76,7 +76,9 @@ reddediyor. Secret tanımlanana kadar `release.yml` içindeki `guard` işi
 `release` işini hiç koşturmuyor ve loga `::warning::` yazıyor.
 Süreç: [releasing.md](releasing.md).
 
-## 2026-09-01 — 0.1.0 yayını 2FA (EOTP) nedeniyle durdu
+## 2026-09-01 — 0.1.0 yayını 2FA (EOTP) nedeniyle durdu — ÇÖZÜLDÜ (aynı gün)
+Çözüm: Trusted publishing (OIDC) kuruldu; token yolu tamamen terk edildi.
+0.1.0 dört paket olarak yayımlandı ve provenance ile doğrulandı.
 Ne gerekiyor: Ya bypass-2FA yetkili yeni bir `NPM_TOKEN`, ya da elle yayın
 için bir authenticator kodu. İkisi de kullanıcının npm hesabında.
 Ne yapıldı: Yayın `workflow_dispatch` ile tetiklendi (koşum `33500616977`).
