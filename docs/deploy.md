@@ -17,9 +17,41 @@ Hiçbiri repoda yok ve uydurulmaz. `.env.example` şablonu; gerçek değerler
 | `AUTH_SECRET` | Oturum imzalama anahtarı | `openssl rand -base64 32` |
 | `AUTH_URL` | Sitenin dış adresi | `https://<alan adı>` |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google ile giriş | isteğe bağlı; boşsa sağlayıcı gösterilmez |
+| `ASSAY_PUBLIC_SITE` | Yayın modu | `true` iken uygulamanın yarısı kapanır (aşağıya bak) |
+
+Açılışta `docker-entrypoint.sh` ilk üçünü denetliyor ve eksikse **konteyner
+başlamıyor**: `exit 1`. Ayrıca `AUTH_URL` sonunda eğik çizgi varsa veya https
+değilse de duruyor. Yanlış yapılandırılmış bir sürümü yayına almaktansa
+dağıtımı düşürmek daha ucuz; Dokploy o sırada eski sürümü ayakta tutuyor.
 
 `DATABASE_POOL_MAX` boş bırakılır. Yalnızca geliştirmedeki PGlite soketiyle
 koşarken `1` olmalı.
+
+## Yayın modu — yalnızca tanıtım ve yayımlanmış ölçümler
+
+`ASSAY_PUBLIC_SITE=true` iken şu rotalar 404 döner: `/admin`, `/settings`,
+`/signin`, `/compare`, `/dev`, `/api/auth`. Landing'deki giriş düğmesi ve
+başlıktaki oturum bağlantısı da gizlenir.
+
+Açık kalanlar: `/` (tanıtım), `/runs` ve `/suites` (yalnızca `public: true`
+vaka setleri), `/api/health`, `/api/runs` (token ile korunuyor — kapatılırsa
+siteye yeni ölçüm yüklenemez).
+
+Sebep ürünle ilgili: assayctl.dev'e gelen kişi bir SaaS'a değil, bir ölçüm
+aracının tanıtımına ve gerçek bir koşum çıktısına bakıyor. Boş bir admin
+paneline veya kimse için çalışmayan bir giriş ekranına rastlamamalı.
+
+### İki aşamalı ilk kurulum
+
+Yayın modunda giriş kapalı olduğu için yönetici ve token üretimi önce yapılır:
+
+1. `ASSAY_PUBLIC_SITE` **boş** bırakılarak dağıt.
+2. Yöneticiyi aç, arayüzden bir API token üret.
+3. Yerelden referans ölçümü yükle: `assay push --suite ./suite.yaml`.
+4. O vaka setini **public** işaretle (admin > suites).
+5. `ASSAY_PUBLIC_SITE=true` yap ve yeniden dağıt.
+
+Sonraki ölçümler `/api/runs` açık olduğu için yayın modunda da yüklenebilir.
 
 ## Konteyner
 
@@ -75,6 +107,11 @@ docker compose exec db pg_dump -U assay assay | gzip > assay-$(date +%F).sql.gz
 - [ ] Bir koşum `assay push` ile yüklendi ve arayüzde göründü
 - [ ] Vaka setleri gizli; yalnızca kasten yayımlananlar `public`
 - [ ] Yedekleme komutu bir kez elle koşturuldu ve dosya geri yüklendi
+- [ ] `ASSAY_PUBLIC_SITE=true` ve kapalı rotalar gerçekten 404 dönüyor
+- [ ] `robots.txt` alan adını doğru gösteriyor
+- [ ] Sayfa koyu ve açık temada açılıyor, mobilde yatay kaydırma yok
+- [ ] Google OAuth geri dönüş adresi konsola eklendi:
+      `https://<alan adı>/api/auth/callback/google`
 
 ## Doğrulanmamış olan
 
