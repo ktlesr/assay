@@ -1,11 +1,11 @@
-import { proportion, type Proportion } from '@assay/core'
-import type { Measurement } from '@assay/ui'
+import { proportion, type Proportion } from '@ktlsr/assay-core'
+import type { Measurement } from '@ktlsr/assay-ui'
 import { describe, expect, it } from 'vitest'
-import { formatMeasurement } from '@assay/ui'
-import { formatProportion } from '@assay/core'
+import { formatMeasurement } from '@ktlsr/assay-ui'
+import { formatProportion } from '@ktlsr/assay-core'
 
 /**
- * `@assay/ui` bilerek hiçbir Assay paketine bağlanmıyor: tasarım sistemi
+ * `@ktlsr/assay-ui` bilerek hiçbir Assay paketine bağlanmıyor: tasarım sistemi
  * kendi başına kullanılabilir olmalı. Ama `Measurement` tipi core'daki
  * `Proportion` ile **yapısal olarak** uyumlu kalmak zorunda, yoksa ekranlar
  * ölçümü taşıyamaz.
@@ -49,7 +49,7 @@ describe('ui ⇄ core sözleşmesi', () => {
     const assayDeps = Object.keys({
       ...(pkg.dependencies ?? {}),
       ...(pkg.peerDependencies ?? {}),
-    }).filter((d) => d.startsWith('@assay/'))
+    }).filter((d) => d.startsWith('@ktlsr/assay'))
     expect(assayDeps).toEqual([])
   })
 })

@@ -1,4 +1,4 @@
-import type { Run } from '@assay/core'
+import type { Run } from '@ktlsr/assay-core'
 
 /**
  * Sertifikanın künyesi: dört pin ve iki denetçisi.

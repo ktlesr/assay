@@ -1,4 +1,4 @@
-import { type Attempt, type CaseResult, type RunSummary } from '@assay/core'
+import { type Attempt, type CaseResult, type RunSummary } from '@ktlsr/assay-core'
 import {
   Badge,
   Callout,
@@ -7,7 +7,7 @@ import {
   MeasurementBlock,
   RateFigure,
   countSentence,
-} from '@assay/ui'
+} from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Pins } from '../../components/run-meta'

@@ -55,12 +55,19 @@ Assay'in ölçüm iddiasını ayakta tutan altı kural
 ## Kullanım
 
 ```
-pnpm install && pnpm typecheck
+npm install -g @ktlsr/assay
 
-node packages/cli/dist/bin.js init my-skill.suite.yaml
+assay init my-skill.suite.yaml
+assay validate my-skill.suite.yaml
+assay run my-skill.suite.yaml --skill ./my-skill
+assay compare <run-a> <run-b>
+```
+
+Depodan çalıştırmak için:
+
+```
+pnpm install && pnpm typecheck
 node packages/cli/dist/bin.js validate my-skill.suite.yaml
-node packages/cli/dist/bin.js run my-skill.suite.yaml --skill ./my-skill
-node packages/cli/dist/bin.js compare <run-a> <run-b>
 ```
 
 Claude Code adaptörü `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token` ile
@@ -70,6 +77,18 @@ yürüdüğü için interaktif oturumu devralmaz.
 CLI ayrıntıları: [packages/cli/README.md](packages/cli/README.md).
 GitHub Action: [action/README.md](action/README.md), hazır workflow
 [examples/workflows/assay.yml](examples/workflows/assay.yml).
+
+### npm paketleri
+
+| Paket | Rol |
+|---|---|
+| [`@ktlsr/assay`](packages/cli) | CLI. `bin: assay` |
+| [`@ktlsr/assay-core`](packages/core) | Şema, assertion motoru, skorlama, karşılaştırma. Saf, I/O yok |
+| [`@ktlsr/assay-runner`](packages/runner) | Sandbox koşumu, kanıt toplama, yerel store |
+| [`@ktlsr/assay-adapters`](packages/adapters) | Host adaptörleri. Bugün Claude Code |
+
+`packages/db`, `packages/ui` ve `apps/web` hosted katmana ait; yayımlanmaz.
+Yayın süreci: [docs/releasing.md](docs/releasing.md).
 
 ## Durum
 
@@ -108,6 +127,8 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/adapters.md](docs/adapters.md) — host adaptör sözleşmesi
 - [docs/adapter-validation.md](docs/adapter-validation.md) — Claude Code adaptörünün canlı doğrulaması
 - [docs/sandbox-security.md](docs/sandbox-security.md) — sandbox güvenlik incelemesi ve kabul edilen riskler
+- [docs/releasing.md](docs/releasing.md) — npm yayın süreci ve denetimleri
+- [docs/blockers.md](docs/blockers.md) — izole edilen engeller ve açma koşulları
 - [docs/dogfooding.md](docs/dogfooding.md) — üç gerçek skill üzerinde 150 koşumluk ölçüm raporu
 - [docs/design.md](docs/design.md) — tasarım dili: tahlil sertifikası
 - [docs/progress.md](docs/progress.md) — faz ilerlemesi

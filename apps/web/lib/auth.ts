@@ -1,5 +1,5 @@
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { isConfigured, prisma } from '@assay/db'
+import { isConfigured, prisma } from '@ktlsr/assay-db'
 import { verify } from '@node-rs/argon2'
 import NextAuth, { type DefaultSession } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'

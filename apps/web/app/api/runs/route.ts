@@ -1,11 +1,11 @@
-import { parseSuite, type Run } from '@assay/core'
+import { parseSuite, type Run } from '@ktlsr/assay-core'
 import {
   RunAlreadyStoredError,
   SuiteNotStorableError,
   isConfigured,
   prisma,
   storeRun,
-} from '@assay/db'
+} from '@ktlsr/assay-db'
 import { rateLimit } from '../../../lib/rate-limit'
 import { identify } from '../../../lib/tokens'
 

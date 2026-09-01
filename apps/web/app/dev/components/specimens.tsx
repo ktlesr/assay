@@ -21,7 +21,7 @@ import {
   TraceViewer,
   type Column,
   type Measurement,
-} from '@assay/ui'
+} from '@ktlsr/assay-ui'
 import { useState, type ReactNode } from 'react'
 
 /**

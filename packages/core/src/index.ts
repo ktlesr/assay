@@ -1,5 +1,5 @@
 /**
- * @assay/core — şema tipleri, kanonik kayıt, assertion motoru, skorlama.
+ * @ktlsr/assay-core — şema tipleri, kanonik kayıt, assertion motoru, skorlama.
  *
  * Bu paket başka bir Assay paketine bağlanmaz ve I/O yapmaz: dosya sistemi,
  * ağ, süreç yok. Kural eslint.config.js içinde makine seviyesinde zorlanır.

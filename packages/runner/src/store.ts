@@ -5,14 +5,14 @@
  * ihtiyacı dört pin ve N tekrarın kaydı ve tekrar okunması
  * ([decisions.md](../../../docs/decisions.md)).
  *
- * Kayıtlar `@assay/core`'daki kanonik `Run` tipini olduğu gibi taşır. Faz 2'de
+ * Kayıtlar `@ktlsr/assay-core`'daki kanonik `Run` tipini olduğu gibi taşır. Faz 2'de
  * Postgres aynı tipin ikinci kalıcılık hedefi olacak; burada kendi formatımızı
  * uydurmuyoruz ki iki taraf ayrışmasın.
  */
 
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Run } from '@assay/core'
+import type { Run } from '@ktlsr/assay-core'
 
 /**
  * Dosya biçimi sürümü.

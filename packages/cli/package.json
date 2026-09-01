@@ -1,8 +1,40 @@
 {
-  "name": "@assay/cli",
-  "version": "0.0.0",
-  "type": "module",
+  "name": "@ktlsr/assay",
+  "version": "0.1.0",
+  "description": "A CI test runner for Agent Skills. Measures whether a skill triggers on the right request, stays quiet on the wrong one, produces the artifact it promised, and still does all of that tomorrow.",
+  "keywords": [
+    "agent-skills",
+    "skills",
+    "claude",
+    "claude-code",
+    "anthropic",
+    "testing",
+    "test-runner",
+    "ci",
+    "eval",
+    "regression",
+    "llm",
+    "assay",
+    "cli"
+  ],
   "license": "Apache-2.0",
+  "author": "ktlesr <kutlueser@gmail.com>",
+  "homepage": "https://github.com/ktlesr/assay/tree/main/packages/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ktlesr/assay.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/ktlesr/assay/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,19 +43,25 @@
       "default": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsc -b"
-  },
-  "dependencies": {
-    "@assay/core": "workspace:*",
-    "@assay/runner": "workspace:*",
-    "@assay/adapters": "workspace:*"
-  },
   "bin": {
     "assay": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "build:publish": "node ../../tools/clean-dist.mjs && tsc -b tsconfig.build.json --force",
+    "prepublishOnly": "pnpm -w run check && pnpm run build:publish"
+  },
+  "dependencies": {
+    "@ktlsr/assay-core": "workspace:*",
+    "@ktlsr/assay-runner": "workspace:*",
+    "@ktlsr/assay-adapters": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.0"

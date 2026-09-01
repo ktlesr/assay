@@ -42,3 +42,7 @@ Thumbs.db
 !.vscode/extensions.json
 coverage/
 packages/db/generated/
+.tsbuildinfo.publish
+
+# npm kimlik bilgisi — asla commitlenmez
+.npmrc

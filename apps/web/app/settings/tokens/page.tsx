@@ -1,5 +1,5 @@
-import { prisma } from '@assay/db'
-import { Button, EmptyState } from '@assay/ui'
+import { prisma } from '@ktlsr/assay-db'
+import { Button, EmptyState } from '@ktlsr/assay-ui'
 import { Shell } from '../../components/shell'
 import { requireUser } from '../../../lib/guard'
 import { revokeToken } from './actions'

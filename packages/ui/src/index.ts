@@ -1,8 +1,8 @@
 /**
- * @assay/ui — tema, tokenlar ve paylaşılan bileşenler.
+ * @ktlsr/assay-ui — tema, tokenlar ve paylaşılan bileşenler.
  *
- * Tokenlar `@assay/ui/tokens.css`. Bu paket hiçbir Assay paketine bağlanmaz;
- * `Measurement` tipi `@assay/core`'daki `Proportion` ile yapısal olarak
+ * Tokenlar `@ktlsr/assay-ui/tokens.css`. Bu paket hiçbir Assay paketine bağlanmaz;
+ * `Measurement` tipi `@ktlsr/assay-core`'daki `Proportion` ile yapısal olarak
  * uyumludur ve uyum `tools/ui-contract.test.ts` ile denetlenir.
  */
 

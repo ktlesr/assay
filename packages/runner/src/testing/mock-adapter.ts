@@ -2,15 +2,15 @@
  * MockAdapter — **yalnızca test aracıdır.**
  *
  * Arayüze, seed'e veya rapora veri beslemek için kullanılamaz (docs/workflow.md,
- * veri gerçekliği sözleşmesi). Bu yüzden `@assay/runner`'ın ana giriş
- * noktasından değil, `@assay/runner/testing` alt yolundan dışa verilir: üretim
+ * veri gerçekliği sözleşmesi). Bu yüzden `@ktlsr/assay-runner`'ın ana giriş
+ * noktasından değil, `@ktlsr/assay-runner/testing` alt yolundan dışa verilir: üretim
  * kodunun kazara içine düşmesi için ayrı bir import yazmak gerekir.
  *
  * Amacı adaptör sözleşmesinin kenar durumlarını canlandırmak: sinyalin hiç
  * okunamaması, izin kısmi gelmesi, oturumun çökmesi.
  */
 
-import type { TraceEvent, TriggerObservation } from '@assay/core'
+import type { TraceEvent, TriggerObservation } from '@ktlsr/assay-core'
 import type { AgentSession, HostAdapter, RunConfig, SessionResult } from '../adapter.js'
 
 /** Tek bir attempt'te adaptörün ne yapacağı. */

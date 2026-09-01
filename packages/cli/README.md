@@ -12,7 +12,7 @@ Works fully offline of any hosted service. Runs are stored locally under
 ## Install
 
 ```
-npm install -g @assay/cli
+npm install -g @ktlsr/assay
 ```
 
 Requires Node 22 and a host CLI. The Claude Code adapter needs
@@ -70,7 +70,7 @@ every request passes every positive case and looks perfect; the near-neighbour
 case — a request that resembles the skill's scope but sits outside it — is the
 only thing that measures real discrimination.
 
-Full format: [docs/suite-format.md](../../docs/suite-format.md).
+Full format: [docs/suite-format.md](https://github.com/ktlesr/assay/blob/main/docs/suite-format.md).
 
 ## Four rules the output obeys
 
@@ -88,6 +88,17 @@ hash, model id, system prompt hash, and case set version and content hash. If
 one drifted, `compare` refuses and names it — a score that fell because the
 model changed is not a regression.
 
+## Packages
+
+`@ktlsr/assay` is the command line face of the SDK. It is built from three
+libraries that can also be used directly:
+
+| Package | Role |
+|---|---|
+| [`@ktlsr/assay-core`](https://www.npmjs.com/package/@ktlsr/assay-core) | Suite schema, assertion engine, scoring, run comparison. Pure, no I/O |
+| [`@ktlsr/assay-runner`](https://www.npmjs.com/package/@ktlsr/assay-runner) | Sandboxed execution, workspace capture, local run store |
+| [`@ktlsr/assay-adapters`](https://www.npmjs.com/package/@ktlsr/assay-adapters) | Host adapters. Claude Code today |
+
 ## License
 
-Apache-2.0.
+Apache-2.0. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

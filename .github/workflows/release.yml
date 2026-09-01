@@ -1,0 +1,87 @@
+# Yayın hattı. İki aşama, ikisi de bu dosyada:
+#
+#   1. main'e bir changeset girdiğinde: sürümleri ve CHANGELOG'ları güncelleyen
+#      bir "Version Packages" PR'ı açılır veya tazelenir. Hiçbir şey yayımlanmaz.
+#   2. O PR birleştiğinde: changeset kalmadığı için action publish moduna geçer
+#      ve `pnpm release` ile npm'e gönderir.
+#
+# Sürüm yükseltmenin bir PR olması kasıtlı: npm yayını geri alınamaz, o yüzden
+# yayımlanacak sürüm numarası birleştirilmeden önce görünür olmalı.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Secrets bağlamı iş seviyesindeki `if` içinde okunamıyor; bu yüzden token'ın
+  # varlığı önce bir çıktıya dönüştürülüyor. Token yoksa yayın işi hiç koşmaz
+  # ve sebebi loga yazılır — sessizce atlanmaz.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      has_token: ${{ steps.check.outputs.has_token }}
+    steps:
+      - id: check
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NPM_TOKEN secret'ı tanımlı değil — yayın adımı atlandı. docs/blockers.md"
+          fi
+
+  release:
+    needs: guard
+    if: needs.guard.outputs.has_token == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # sürüm PR'ı ve etiketi
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # changesets değişen paketleri bulmak için geçmişi ister
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # Prisma istemcisi repoda tutulmuyor (üretilen kod); typecheck ona bağlı.
+      - run: pnpm --filter @ktlsr/assay-db exec prisma generate
+
+      # Yayımlanan bir sürüm geri alınamaz: kontroller publish'ten ÖNCE koşar.
+      # Paketlerin kendi prepublishOnly'si de aynı kontrolü koşar; burada
+      # tekrarlanması, hata durumunda npm'e hiç ulaşılmamasını garanti eder.
+      - run: pnpm check
+
+      # Tarball'a test dosyası, source map veya kaynak sızmadığını kanıtlar.
+      - run: pnpm pack:check
+
+      - uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
+          publish: pnpm release
+          commit: 'chore(release): sürümleri yükselt'
+          title: 'chore(release): sürümleri yükselt'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

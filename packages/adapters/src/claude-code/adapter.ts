@@ -26,7 +26,7 @@ import type {
   SessionResult,
   TraceEvent,
   TriggerObservation,
-} from '@assay/core'
+} from '@ktlsr/assay-core'
 import { parseSession, parseStreamJson, type ParsedStream } from './stream.js'
 
 export interface ClaudeCodeSession extends AgentSession {

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": false,
+    "declarationMap": false,
+    "tsBuildInfoFile": "./.tsbuildinfo.publish"
+  },
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "src/testing/**/*.test.ts"],
+  "references": []
+}

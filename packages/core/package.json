@@ -1,8 +1,41 @@
 {
-  "name": "@assay/core",
-  "version": "0.0.0",
-  "type": "module",
+  "name": "@ktlsr/assay-core",
+  "version": "0.1.0",
+  "description": "Assertion engine, three-valued verdicts, Wilson-interval scoring and canonical run records for Assay — a CI test runner for Agent Skills. Pure TypeScript, no I/O.",
+  "keywords": [
+    "agent-skills",
+    "skills",
+    "claude",
+    "claude-code",
+    "anthropic",
+    "testing",
+    "test-runner",
+    "ci",
+    "eval",
+    "regression",
+    "llm",
+    "assay",
+    "assertions",
+    "confidence-interval"
+  ],
   "license": "Apache-2.0",
+  "author": "ktlesr <kutlueser@gmail.com>",
+  "homepage": "https://github.com/ktlesr/assay/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ktlesr/assay.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/ktlesr/assay/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,10 +45,16 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "build:publish": "node ../../tools/clean-dist.mjs && tsc -b tsconfig.build.json --force",
+    "prepublishOnly": "pnpm -w run check && pnpm run build:publish"
   },
   "dependencies": {
     "ajv": "^8.20.0",

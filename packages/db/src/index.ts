@@ -1,5 +1,5 @@
 /**
- * @assay/db — hosted katmanın veri modeli.
+ * @ktlsr/assay-db — hosted katmanın veri modeli.
  *
  * Prisma şeması `prisma/schema.prisma`, migration'lar `prisma/migrations/`.
  * Bu paket kanonik `Run` tipini satırlara açar ve geri kurar; hosted taraf

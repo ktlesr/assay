@@ -16,7 +16,7 @@ import {
   type RunSummary,
   type SuiteIssue,
   type Verdict,
-} from '@assay/core'
+} from '@ktlsr/assay-core'
 
 // ---------------------------------------------------------------------------
 // Renk

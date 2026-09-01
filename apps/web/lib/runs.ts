@@ -15,14 +15,14 @@ import {
   type Run,
   type RunComparison,
   type RunSummary,
-} from '@assay/core'
+} from '@ktlsr/assay-core'
 import {
   isConfigured,
   listRuns as dbListRuns,
   loadRun,
   prisma,
   type RunScope,
-} from '@assay/db'
+} from '@ktlsr/assay-db'
 import { auth } from './auth'
 
 export interface RunWithSummary {
@@ -107,7 +107,7 @@ export async function getSuite(
 /**
  * İki koşumun karşılaştırması.
  *
- * Karar `@assay/core`'da: dört pin sabit değilse karşılaştırma üretilmez.
+ * Karar `@ktlsr/assay-core`'da: dört pin sabit değilse karşılaştırma üretilmez.
  * Web bu kuralı yeniden yazmaz, çağırır.
  */
 export async function compare(

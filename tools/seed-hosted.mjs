@@ -15,7 +15,7 @@
 import { spawnSync } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { suiteHash } from '@assay/runner'
+import { suiteHash } from '@ktlsr/assay-runner'
 
 const RUN_STORE = 'apps/web/seed'
 const SUITE_DIRS = ['examples', 'examples/dogfood']

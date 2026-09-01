@@ -1,5 +1,5 @@
-import { prisma } from '@assay/db'
-import { Badge, EmptyState } from '@assay/ui'
+import { prisma } from '@ktlsr/assay-db'
+import { Badge, EmptyState } from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { Shell } from '../../components/shell'
 import { deleteRun } from '../actions'

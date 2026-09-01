@@ -5,7 +5,7 @@ import {
   MeasurementBlock,
   RateFigure,
   countSentence,
-} from '@assay/ui'
+} from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Shell } from '../../components/shell'

@@ -49,3 +49,25 @@ Ne yapıldı: CI adımlarının tamamı yerelde aynı sırayla koşturuldu ve ge
 eşikleriyle test, derleme).
 Neden izole edildi: `gh` kimlik doğrulaması yok; sır uydurulmaz.
 Açmak için: `gh auth login` sonrası `gh run list`.
+
+## 2026-09-01 — npm yayını için NPM_TOKEN yok
+Ne gerekiyor: npmjs.com üzerinde **Automation** türü bir access token
+(`npm_` ile başlayan 36 karakterlik değer). Alınışı: npmjs.com > *Access
+Tokens* > *Generate New Token* > *Classic Token* > **Automation**. Automation
+türü 2FA istemediği için CI'da çalışan tür budur.
+Ne yapıldı: Yayın hazırlığının tamamı token olmadan bitirildi ve doğrulandı —
+paket adları `@ktlsr/*` olarak değiştirildi, sürümler 0.1.0'a çekildi,
+changesets kuruldu, `tsconfig.build.json` ile testler ve map'ler tarball'dan
+çıkarıldı, LICENSE/NOTICE/README/CHANGELOG her pakete kondu,
+`.github/workflows/release.yml` yazıldı. Dört tarball üretildi, içerikleri
+`pnpm pack:check` ile denetlendi, geçici bir dizine kurulup `assay` komutu
+çalıştırıldı.
+Neden izole edildi: Sır uydurulmaz (sözleşme 1). Ayrıca npm yayını geri
+alınamaz; tetiği kullanıcı çekmeli.
+Açmak için: GitHub > repo > *Settings* > *Secrets and variables* > *Actions* >
+*New repository secret*, ad `NPM_TOKEN`. Yerelde `npm login` yeterli; token'la
+çalışılacaksa `npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN` —
+`.npmrc` elle yazılmaz, `.gitignore` kapsamında ve pre-commit taraması
+reddediyor. Secret tanımlanana kadar `release.yml` içindeki `guard` işi
+`release` işini hiç koşturmuyor ve loga `::warning::` yazıyor.
+Süreç: [releasing.md](releasing.md).

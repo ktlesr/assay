@@ -73,13 +73,13 @@ process.exit(result.status ?? 1)
 function resolveCli() {
   for (const candidate of [
     join(process.cwd(), 'packages/cli/dist/bin.js'),
-    join(process.cwd(), 'node_modules/@assay/cli/dist/bin.js'),
+    join(process.cwd(), 'node_modules/@ktlsr/assay/dist/bin.js'),
   ]) {
     if (existsSync(candidate)) return candidate
   }
   fail(
     'cannot find the assay CLI. Build it first (pnpm install && pnpm typecheck) ' +
-      'or install @assay/cli in the workspace.',
+      'or install @ktlsr/assay in the workspace.',
   )
   return ''
 }

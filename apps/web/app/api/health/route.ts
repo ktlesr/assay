@@ -1,4 +1,4 @@
-import { isConfigured, prisma } from '@assay/db'
+import { isConfigured, prisma } from '@ktlsr/assay-db'
 
 /**
  * Sağlık kontrolü.

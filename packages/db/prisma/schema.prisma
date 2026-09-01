@@ -1,6 +1,6 @@
 // Assay — hosted katman veri modeli.
 //
-// Bu şema `@assay/core`'daki kanonik kayıt tiplerinden türetilmiştir. Yerel
+// Bu şema `@ktlsr/assay-core`'daki kanonik kayıt tiplerinden türetilmiştir. Yerel
 // dosya store ile hosted veritabanı aynı kavramsal modeli paylaşır; ayrışma
 // `tools/schema-drift.test.ts` tarafından denetlenir.
 //
@@ -100,7 +100,7 @@ model Case {
   expectTriggered Boolean?
   /// Coexistence: tetiklenmemesi gereken diğer skill'ler.
   notTriggered    String[] @default([])
-  /// Assertion listesi. Biçimi `@assay/core`'daki `Assertion` birleşimi.
+  /// Assertion listesi. Biçimi `@ktlsr/assay-core`'daki `Assertion` birleşimi.
   assertions      Json     @default("[]")
 
   /// Yakın komşu vakası mı — id konvansiyonundan türetilir, sorgulanabilir olsun diye saklanır.
@@ -260,7 +260,7 @@ model AssertionResult {
   attemptId String
   attempt   Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
-  /// Assertion'ın kendisi — `@assay/core`'daki `Assertion`.
+  /// Assertion'ın kendisi — `@ktlsr/assay-core`'daki `Assertion`.
   assertion Json
   verdict   Verdict
   reason    String

@@ -1,5 +1,5 @@
-import { prisma } from '@assay/db'
-import { Badge } from '@assay/ui'
+import { prisma } from '@ktlsr/assay-db'
+import { Badge } from '@ktlsr/assay-ui'
 import { Shell } from '../components/shell'
 import { requireAdmin } from '../../lib/guard'
 import { setRole, setSuspended } from './actions'

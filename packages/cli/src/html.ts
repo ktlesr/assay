@@ -8,7 +8,7 @@
  * `unknown` kendi rengini ve kendi sayacını taşır.
  */
 
-import { formatProportion, type Run, type RunSummary, type Verdict } from '@assay/core'
+import { formatProportion, type Run, type RunSummary, type Verdict } from '@ktlsr/assay-core'
 
 const escape = (value: string): string =>
   value.replace(

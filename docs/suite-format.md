@@ -109,7 +109,7 @@ eklemek bedava. Çarpışma motoru Faz 2 sonrasına planlı ([roadmap.md](roadma
 ## API
 
 ```ts
-import { parseSuite } from '@assay/core'
+import { parseSuite } from '@ktlsr/assay-core'
 
 const result = parseSuite(yamlText)
 if (result.ok) {

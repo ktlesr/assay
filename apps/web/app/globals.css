@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '@assay/ui/tokens.css';
+@import '@ktlsr/assay-ui/tokens.css';
 
 /*
  * Kaynak taraması açıkça bildiriliyor.
@@ -16,7 +16,7 @@
 /*
  * Tailwind v4 tema köprüsü.
  *
- * Tokenlar CSS değişkeni olarak `@assay/ui` içinde tanımlı; burada Tailwind'in
+ * Tokenlar CSS değişkeni olarak `@ktlsr/assay-ui` içinde tanımlı; burada Tailwind'in
  * utility üretebilmesi için `@theme` altında yeniden bağlanıyor. Tek kaynak
  * hâlâ tokens.css — buradaki her satır ona işaret ediyor, kendi değerini
  * tanımlamıyor.

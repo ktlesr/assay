@@ -8,7 +8,7 @@ export default defineConfig({
       'apps/web/lib/**/*.test.ts',
     ],
     alias: {
-      '@assay/core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
+      '@ktlsr/assay-core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
     },
     coverage: {
       provider: 'v8',

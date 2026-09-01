@@ -9,7 +9,7 @@
  * Akışın şekli docs/host-feasibility.md'de deneyle belgelendi.
  */
 
-import type { SessionOutcome, TraceEvent } from '@assay/core'
+import type { SessionOutcome, TraceEvent } from '@ktlsr/assay-core'
 
 // ---------------------------------------------------------------------------
 // Ham akış tipleri — host'un verdiği kadarı

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { isConfigured, prisma } from '@assay/db'
+import { isConfigured, prisma } from '@ktlsr/assay-db'
 
 /**
  * API token'ları — `assay push` bunlarla konuşur.

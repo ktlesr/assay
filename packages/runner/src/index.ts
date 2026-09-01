@@ -1,7 +1,7 @@
 /**
- * @assay/runner — sandbox koşumu, adaptör arayüzü, kayıt katmanı, yerel store.
+ * @ktlsr/assay-runner — sandbox koşumu, adaptör arayüzü, kayıt katmanı, yerel store.
  *
- * Sahte adaptör bilerek buradan dışa verilmez; `@assay/runner/testing` altında.
+ * Sahte adaptör bilerek buradan dışa verilmez; `@ktlsr/assay-runner/testing` altında.
  * Veri gerçekliği sözleşmesi gereği yalnızca test aracıdır.
  */
 

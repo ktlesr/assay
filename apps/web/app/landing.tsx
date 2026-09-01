@@ -1,4 +1,4 @@
-import type { CaseResult } from '@assay/core'
+import type { CaseResult } from '@ktlsr/assay-core'
 import {
   Badge,
   Callout,
@@ -6,7 +6,7 @@ import {
   RateFigure,
   countSentence,
   intervalGloss,
-} from '@assay/ui'
+} from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { Shell } from './components/shell'
 import { compare, listSuites, type RunWithSummary } from '../lib/runs'

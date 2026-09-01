@@ -14,6 +14,8 @@ export const SECRET_PATTERNS = [
   ['AWS access key', /\bAKIA[0-9A-Z]{16}\b/],
   ['Google API key', /\bAIza[0-9A-Za-z_-]{30,}/],
   ['Slack token', /\bxox[baprs]-[0-9A-Za-z-]{10,}/],
+  ['npm token', /\bnpm_[A-Za-z0-9]{36}\b/],
+  ['npm registry auth', /_authToken\s*=\s*[A-Za-z0-9_.~+=/-]{8,}/],
   ['private key block', /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/],
 ]
 

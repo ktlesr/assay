@@ -11,7 +11,7 @@
  * bağlantısı gelene kadar bu yalnızca kurulum aracıdır.
  */
 
-import { prisma } from '@assay/db'
+import { prisma } from '@ktlsr/assay-db'
 import { hash } from '@node-rs/argon2'
 
 const [email, password, role = 'USER'] = process.argv.slice(2)

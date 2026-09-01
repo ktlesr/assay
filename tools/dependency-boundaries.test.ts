@@ -16,26 +16,26 @@ async function violations(filePath: string, code: string) {
 }
 
 const forbidden: ReadonlyArray<[string, string]> = [
-  ['packages/core/src/x.ts', '@assay/runner'],
-  ['packages/core/src/x.ts', '@assay/ui'],
-  ['packages/runner/src/x.ts', '@assay/cli'],
-  ['packages/adapters/src/x.ts', '@assay/runner'],
-  ['packages/ui/src/x.ts', '@assay/core'],
-  ['packages/db/src/x.ts', '@assay/runner'],
-  ['apps/web/app/x.tsx', '@assay/runner'],
-  ['apps/web/app/x.tsx', '@assay/adapters'],
-  ['apps/web/app/x.tsx', '@assay/cli'],
+  ['packages/core/src/x.ts', '@ktlsr/assay-runner'],
+  ['packages/core/src/x.ts', '@ktlsr/assay-ui'],
+  ['packages/runner/src/x.ts', '@ktlsr/assay'],
+  ['packages/adapters/src/x.ts', '@ktlsr/assay-runner'],
+  ['packages/ui/src/x.ts', '@ktlsr/assay-core'],
+  ['packages/db/src/x.ts', '@ktlsr/assay-runner'],
+  ['apps/web/app/x.tsx', '@ktlsr/assay-runner'],
+  ['apps/web/app/x.tsx', '@ktlsr/assay-adapters'],
+  ['apps/web/app/x.tsx', '@ktlsr/assay'],
 ]
 
 const allowed: ReadonlyArray<[string, string]> = [
-  ['packages/runner/src/x.ts', '@assay/core'],
-  ['packages/db/src/x.ts', '@assay/core'],
-  ['packages/adapters/src/x.ts', '@assay/core'],
-  ['packages/cli/src/x.ts', '@assay/runner'],
-  ['packages/cli/src/x.ts', '@assay/adapters'],
-  ['apps/web/app/x.tsx', '@assay/core'],
-  ['apps/web/app/x.tsx', '@assay/ui'],
-  ['apps/web/app/x.tsx', '@assay/db'],
+  ['packages/runner/src/x.ts', '@ktlsr/assay-core'],
+  ['packages/db/src/x.ts', '@ktlsr/assay-core'],
+  ['packages/adapters/src/x.ts', '@ktlsr/assay-core'],
+  ['packages/cli/src/x.ts', '@ktlsr/assay-runner'],
+  ['packages/cli/src/x.ts', '@ktlsr/assay-adapters'],
+  ['apps/web/app/x.tsx', '@ktlsr/assay-core'],
+  ['apps/web/app/x.tsx', '@ktlsr/assay-ui'],
+  ['apps/web/app/x.tsx', '@ktlsr/assay-db'],
 ]
 
 /** core saf hesaplamadır: I/O yasağı da lint seviyesinde. */
@@ -85,7 +85,7 @@ describe('paket bağımlılık sınırları', () => {
       dependencies?: Record<string, string>
     }
     const assayDeps = Object.keys(pkg.dependencies ?? {}).filter((d) =>
-      d.startsWith('@assay/'),
+      d.startsWith('@ktlsr/assay'),
     )
     expect(assayDeps).toEqual([])
   })
@@ -104,11 +104,11 @@ describe('MockAdapter yalnızca test aracı', () => {
 
   /** Yorumları değil, gerçek import/export ifadelerini arar. */
   const importsTesting = (source: string) =>
-    /from\s+['"][^'"]*(?:@assay\/runner\/testing|testing\/mock-adapter)[^'"]*['"]/.test(
+    /from\s+['"][^'"]*(?:@ktlsr\/assay-runner\/testing|testing\/mock-adapter)[^'"]*['"]/.test(
       source,
     )
 
-  it('@assay/runner ana giriş noktası testing alt yolunu dışa vermez', () => {
+  it('@ktlsr/assay-runner ana giriş noktası testing alt yolunu dışa vermez', () => {
     expect(importsTesting(readFileSync('packages/runner/src/index.ts', 'utf8'))).toBe(
       false,
     )

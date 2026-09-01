@@ -13,6 +13,23 @@ import tseslint from 'typescript-eslint'
  *   db, ui   -> hiçbir şey
  *   web      -> core, db, ui        (runner/adapters/cli ASLA)
  */
+
+/**
+ * Kısa ad -> yayımlanan paket adı. CLI paketi `@ktlsr/assay`, yani diğerlerinin
+ * `@ktlsr/assay-*` kalıbına uymuyor; bu yüzden kalıp değil açık bir tablo.
+ */
+const PKG = {
+  core: '@ktlsr/assay-core',
+  runner: '@ktlsr/assay-runner',
+  adapters: '@ktlsr/assay-adapters',
+  cli: '@ktlsr/assay',
+  db: '@ktlsr/assay-db',
+  ui: '@ktlsr/assay-ui',
+}
+
+/** Paketin kendisi ve alt yolları (`@ktlsr/assay-runner/testing` gibi). */
+const withSubpaths = (name) => [name, `${name}/*`]
+
 const boundary = (dir, allowed, why, extraPatterns = []) => ({
   files: [`${dir}/**/*.{ts,tsx}`],
   rules: {
@@ -21,7 +38,10 @@ const boundary = (dir, allowed, why, extraPatterns = []) => ({
       {
         patterns: [
           {
-            group: ['@assay/*', ...allowed.map((p) => `!@assay/${p}`)],
+            group: [
+              ...Object.values(PKG).flatMap(withSubpaths),
+              ...allowed.flatMap((p) => withSubpaths(PKG[p]).map((g) => `!${g}`)),
+            ],
             message: why,
           },
           ...extraPatterns,

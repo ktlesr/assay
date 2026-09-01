@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto'
 import { cp, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { CapturedFile, EnvDiff, NetworkRequest, TraceEvent } from '@assay/core'
+import type { CapturedFile, EnvDiff, NetworkRequest, TraceEvent } from '@ktlsr/assay-core'
 
 /** Yol → içerik hash'i. Anlık görüntü. */
 export type Snapshot = ReadonlyMap<string, string>

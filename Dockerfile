@@ -32,7 +32,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages ./packages
 COPY . .
-RUN pnpm --filter @assay/db exec prisma generate
+RUN pnpm --filter @ktlsr/assay-db exec prisma generate
 RUN pnpm -r --filter=!web build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_STANDALONE=1

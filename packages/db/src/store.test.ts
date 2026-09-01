@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { proportion, type Attempt, type Run, type Suite } from '@assay/core'
+import { proportion, type Attempt, type Run, type Suite } from '@ktlsr/assay-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '../generated/client/client.js'
 import {

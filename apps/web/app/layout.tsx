@@ -1,4 +1,4 @@
-import { themeScript } from '@assay/ui'
+import { themeScript } from '@ktlsr/assay-ui'
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from 'next/font/google'
 import type { ReactNode } from 'react'

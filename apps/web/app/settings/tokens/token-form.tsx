@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Callout } from '@assay/ui'
+import { Button, Callout } from '@ktlsr/assay-ui'
 import { useActionState } from 'react'
 import { createToken, type MintResult } from './actions'
 

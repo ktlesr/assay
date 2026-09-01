@@ -1,6 +1,6 @@
 'use server'
 
-import { prisma } from '@assay/db'
+import { prisma } from '@ktlsr/assay-db'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '../../../lib/guard'
 import { mintToken } from '../../../lib/tokens'

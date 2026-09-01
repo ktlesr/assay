@@ -10,9 +10,9 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { ClaudeCodeAdapter } from '@assay/adapters'
-import { compareRuns, parseSuite, summarizeRun, type Run, type Suite } from '@assay/core'
-import { RunStore, runSuite, suiteHash } from '@assay/runner'
+import { ClaudeCodeAdapter } from '@ktlsr/assay-adapters'
+import { compareRuns, parseSuite, summarizeRun, type Run, type Suite } from '@ktlsr/assay-core'
+import { RunStore, runSuite, suiteHash } from '@ktlsr/assay-runner'
 import { renderHtmlReport } from './html.js'
 import {
   renderComparison,

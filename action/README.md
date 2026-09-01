@@ -62,7 +62,7 @@ beyond `GITHUB_TOKEN`. Its limits are real and worth knowing —
 - Two pull requests that land close together compare against the same baseline.
 
 Phase 2 adds a hosted baseline. The comparison itself lives in
-`@assay/core`, so that change swaps where the earlier run comes from and
+`@ktlsr/assay-core`, so that change swaps where the earlier run comes from and
 nothing else.
 
 ## Requirements

@@ -9,9 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@assay/core": "workspace:*",
-    "@assay/db": "workspace:*",
-    "@assay/ui": "workspace:*",
+    "@ktlsr/assay-core": "workspace:*",
+    "@ktlsr/assay-db": "workspace:*",
+    "@ktlsr/assay-ui": "workspace:*",
     "@auth/prisma-adapter": "^2.11.3",
     "@node-rs/argon2": "^2.2.0",
     "@tailwindcss/postcss": "^4.3.3",

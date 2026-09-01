@@ -1,6 +1,6 @@
 'use client'
 
-import { IconMoon, IconSun, IconSystem, applyTheme, readTheme, type Theme } from '@assay/ui'
+import { IconMoon, IconSun, IconSystem, applyTheme, readTheme, type Theme } from '@ktlsr/assay-ui'
 import { useEffect, useState } from 'react'
 
 const CYCLE: ReadonlyArray<{ value: Theme; label: string; Glyph: typeof IconSun }> = [

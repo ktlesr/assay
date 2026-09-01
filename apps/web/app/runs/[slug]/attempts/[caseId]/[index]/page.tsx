@@ -1,5 +1,5 @@
-import type { Attempt } from '@assay/core'
-import { Badge, Callout, Determination, TraceViewer } from '@assay/ui'
+import type { Attempt } from '@ktlsr/assay-core'
+import { Badge, Callout, Determination, TraceViewer } from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Shell } from '../../../../../components/shell'

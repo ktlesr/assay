@@ -300,7 +300,7 @@ arkasına saklamak, ölçmediğini `pass` demek kadar zararlı — kullanıcı k
 skill'i "ölçülemedi" diye geçiştirir.
 Geri dönüş maliyeti: düşük
 
-## 2026-08-31 — MockAdapter `@assay/runner/testing` alt yolunda
+## 2026-08-31 — MockAdapter `@ktlsr/assay-runner/testing` alt yolunda
 Bağlam: Veri gerçekliği sözleşmesi MockAdapter'ın arayüze veya seed'e veri
 beslemesini yasaklıyor. Bu bir niyet beyanı olarak kalırsa aşınır.
 Seçenekler: ana giriş noktasından dışa verip yorumla uyarmak · ayrı alt yol ·
@@ -749,7 +749,7 @@ yetmesi ilkesini bozar — hosted taraf suite dosyasını görmüyor.
 `expectedTrigger` ile aynı gerekçe.
 Geri dönüş maliyeti: düşük
 
-## 2026-08-31 — `@assay/ui` bağımsız kalıyor, `Measurement` yapısal olarak uyuyor
+## 2026-08-31 — `@ktlsr/assay-ui` bağımsız kalıyor, `Measurement` yapısal olarak uyuyor
 Bağlam: `MetricValue` bileşeni core'daki `Proportion` tipine ihtiyaç duyuyor
 ama bağımlılık grafiği `ui → (bağımsız)` diyor.
 Seçenekler: `ui → core` izni · ui'da yapısal olarak uyumlu kendi tipi
@@ -773,12 +773,12 @@ Gerekçe: Kök şartı, temayı iç içe kullanmayı imkânsız kılıyordu. Ekr
 görüntüsü yakaladı; kod incelemesi yakalamazdı çünkü CSS geçerliydi.
 Geri dönüş maliyeti: düşük
 
-## 2026-08-31 — `apps/web` `@assay/ui`'yi kaynaktan derliyor
+## 2026-08-31 — `apps/web` `@ktlsr/assay-ui`'yi kaynaktan derliyor
 Bağlam: İz görüntüleyicinin ızgarası sessizce çöktü. Sebep: Tailwind `src`'yi
 tarıyordu ama çalışma zamanı derlenmiş `dist`i kullanıyordu; sınıf adı ile
 CSS kuralı ayrıştı.
 Seçenekler: dev sırasında `tsc -b --watch` · Next `transpilePackages`
-Karar: `transpilePackages: ['@assay/ui']`, ui'nın `exports` alanı `src`i
+Karar: `transpilePackages: ['@ktlsr/assay-ui']`, ui'nın `exports` alanı `src`i
 gösteriyor. İç importlardaki `.js` uzantıları kaldırıldı (ui zaten Bundler
 çözümlemesi kullanıyor).
 Gerekçe: İki yerden derlenen tek bir paket her zaman ayrışır. Watch süreci
@@ -940,4 +940,111 @@ Gerekçe: İstatistik bilmeyen okuyucu birinci satırda cevabı alıyor, bilen
 üçüncüde belirsizliği görüyor. Aralığı küçültmek onu süse çevirirdi; kaldırmak
 değişmezi ihlal ederdi. Payda görünür olduğu için "%100" ile "4/4" arasındaki
 fark da kayboluyor değil.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — npm scope `@ktlsr`, CLI adı `@ktlsr/assay`
+Bağlam: Paketler `@assay/*` adıyla duruyordu ama o scope npm'de bize ait
+değil. Yayın için gerçek bir ad uzayı gerekiyordu.
+Seçenekler: `@assay` scope'unu almaya çalışmak · scope'suz `assay` · `@ktlsr`
+kullanıcı scope'u
+Karar: `@ktlsr`. CLI `@ktlsr/assay` (bin: `assay`), kütüphaneler
+`@ktlsr/assay-core`, `-runner`, `-adapters`.
+Gerekçe: Kullanıcı scope'u zaten sahip olunan ad uzayı; ek bir org kurulumu
+ve ad çekişmesi yok. Scope'suz `assay` npm'de alınmış (v1.0.0, ilgisiz bir
+paket) ve alınmamış olsa bile kullanıcının kararı onu şimdi kapmamaktı:
+scope'suz bir ad ileride devretmesi zor bir bakım yükü. `bin` adı `assay`
+kaldığı için kullanıcı deneyimi değişmiyor — kurulum adı ile komut adı ayrı
+şeyler.
+Geri dönüş maliyeti: yüksek (yayımlandıktan sonra ad değişimi yeni paket demek)
+
+## 2026-09-01 — `db` ve `ui` yayımlanmıyor
+Bağlam: Altı paketin hangilerinin npm'e gideceği belirsizdi.
+Seçenekler: hepsini yayımlamak · yalnızca SDK dörtlüsünü yayımlamak
+Karar: `core`, `runner`, `adapters`, `cli` yayımlanır; `db` ve `ui`
+`private: true`.
+Gerekçe: Ürün tanımındaki ayrım bu: SDK ölçer ve dağıtılır, hosted katman
+hatırlar ve dağıtılmaz. `db` bir Prisma şeması ve migration seti — dışarıdan
+kurulabilir bir kütüphane değil. `ui` kaynaktan tüketiliyor (`main` →
+`src/index.ts`, web tarafında `transpilePackages`) ve tek tüketicisi
+`apps/web`. İkisini yayımlamak, bakmak zorunda kalacağımız bir genel API
+yüzeyi yaratırdı — kimsenin istemediği bir yüzey.
+Geri dönüş maliyeti: düşük (sonradan yayımlamak kolay, geri çekmek zor)
+
+## 2026-09-01 — Dört paket `fixed` grubunda, tek sürüm numarası
+Bağlam: Changesets paketleri bağımsız da sürümleyebilir.
+Seçenekler: bağımsız sürümler · `linked` · `fixed`
+Karar: `fixed` — dördü her yayında aynı sürümü alır.
+Gerekçe: Dördü tek bir SDK'nın parçaları ve yalnızca birlikte test ediliyorlar.
+Bağımsız sürümlerde kullanıcı `@ktlsr/assay@0.2.0` ile hangi
+`@ktlsr/assay-core`'un uyumlu olduğunu çözmek zorunda kalırdı; `linked`
+yalnızca değişenleri hizalayıp aradaki boşlukları açık bırakıyor. Bedeli:
+değişmeyen paketler de sürüm atlıyor — npm'de ucuz bir bedel.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Yayın build'i ayrı tsconfig; map üretilmiyor, `src` gönderilmiyor
+Bağlam: Geliştirme build'i `dist`e test dosyaları ve source map yazıyor;
+`files: ["dist"]` bunların hepsini tarball'a alıyordu. Ayrıca map'ler `src`'yi
+gösteriyor ama `src` tarball'da yok.
+Seçenekler: `src`'yi de yayımlayıp map'leri çalışır kılmak · `.npmignore` ile
+tek tek dışlamak · yayın için ayrı `tsconfig.build.json`
+Karar: Üçüncüsü. `tsconfig.build.json` testleri hariç tutuyor,
+`sourceMap`/`declarationMap` kapalı, `tsBuildInfoFile` dist dışında.
+`build:publish` önce dist'i siliyor.
+Gerekçe: `src`'yi yayımlamak tarball'ı iki katına çıkarır ve kullanıcıya işine
+yaramayan bir kopya gönderir; asıl istenen şey `.d.ts` ve o zaten var.
+`.npmignore` bir dışlama listesi — yeni bir dosya türü eklendiğinde
+güncellenmesi unutulur, `files` beyaz listesi ise unutulduğunda eksik yayımlar
+(güvenli taraf). Ölçüldü: geliştirme build'iyle `@ktlsr/assay-core` 84 dosya /
+65.7 KB, yayın build'iyle 26 dosya / 32.2 KB.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Tarball içeriği testle kanıtlanıyor (`pnpm pack:check`)
+Bağlam: "Testler dist'ten çıkarıldı" bir iddiaydı; `files` alanına bakarak
+doğrulanamıyordu çünkü sorun `files`'ta değil `dist`in içeriğindeydi.
+Seçenekler: kod incelemesine güvenmek · `npm pack --dry-run` çıktısını elle
+okumak · paketleyip içeriği programatik denetlemek
+Karar: `tools/pack-check.mjs` — dört paketi gerçekten paketler, tarball'ı
+zlib ile açıp yolları listeler, yasaklı desen (test, map, `src/`, `.env`,
+`.npmrc`, anahtar, `node_modules`) bulursa exit 1; LICENSE/NOTICE/README
+yoksa yine exit 1.
+Gerekçe: Bu projenin kendi iddiası "ölçmediğini geçti sayma". Yayın
+hazırlığında aynı standart geçerli: denetimin gerçekten yakaladığı,
+geliştirme build'i paketlenerek kanıtlandı (9 test dosyası + 40 map
+yakalandı, exit 1). `tar` komutuna kabuk açmak yerine `node:zlib` ile
+başlıkların yürünmesinin sebebi Windows: GNU tar `C:\...` yolunu uzak sunucu
+adresi sanıyor ve denetim hiç koşamıyordu.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Yayın yolu `pnpm publish`, npm değil
+Bağlam: Paketler birbirine `workspace:*` ile bağlı.
+Seçenekler: `npm publish` · `pnpm publish`
+Karar: `pnpm publish`. `pnpm release` script'inde sabit, docs/releasing.md'de
+gerekçesiyle yazılı.
+Gerekçe: `workspace:*` belirtecini gerçek sürüm numarasına çeviren pnpm.
+`npm publish` onu olduğu gibi bırakır ve kurulamayan bir tarball yayımlar —
+üstelik sessizce, çünkü paketleme başarılı görünür. Hata ancak bir kullanıcı
+kurmaya çalıştığında ortaya çıkar ve sürüm geri alınamaz.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Sürüm yükseltme bir PR, doğrudan yayın değil
+Bağlam: `release.yml` main'e her push'ta yayımlayabilirdi.
+Seçenekler: main'e push = yayın · changesets'in sürüm PR'ı akışı
+Karar: İkincisi. Changeset girince "Version Packages" PR'ı açılır; o PR
+birleşince yayımlanır.
+Gerekçe: npm yayını geri alınamaz. Yayımlanacak sürüm numarasının
+birleştirilmeden önce görünür olması, bu geri alınamazlığın tek makul
+karşılığı. Ayrıca CHANGELOG'un gözden geçirilecek bir yeri oluyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — `NPM_TOKEN` yoksa yayın işi koşmaz, sessizce atlanmaz
+Bağlam: Secret henüz tanımlı değil ama workflow eklenecekti.
+Seçenekler: workflow'u secret gelene kadar eklememek · secret yokken
+başarısız olmak · guard işiyle atlamak ve uyarı yazmak
+Karar: Üçüncüsü. `guard` işi token'ın varlığını çıktıya çevirir; `release`
+işi ona bağlı. Token yoksa `::warning::` yazılır ve docs/blockers.md'ye
+yönlendirilir.
+Gerekçe: Secrets bağlamı iş seviyesindeki `if` içinde okunamıyor, o yüzden
+guard bir iş olmak zorunda. Kırmızı bir CI, sebebi "henüz token yok" olan
+bir durumda yanlış sinyal — ekip kırmızıyı görmezden gelmeyi öğrenir. Sessiz
+atlama ise daha kötü: yayımlandı sanılır. Uyarı ikisinin arası ve doğru olanı.
 Geri dönüş maliyeti: düşük

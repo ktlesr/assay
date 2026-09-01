@@ -1,5 +1,5 @@
-import { prisma } from '@assay/db'
-import { EmptyState } from '@assay/ui'
+import { prisma } from '@ktlsr/assay-db'
+import { EmptyState } from '@ktlsr/assay-ui'
 import { Shell } from '../../components/shell'
 import { AdminNav } from '../admin-nav'
 

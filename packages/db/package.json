@@ -1,6 +1,7 @@
 {
-  "name": "@assay/db",
+  "name": "@ktlsr/assay-db",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
@@ -18,7 +19,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@assay/core": "workspace:*",
+    "@ktlsr/assay-core": "workspace:*",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@prisma/client-runtime-utils": "^7.10.0",

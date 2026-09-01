@@ -1,4 +1,4 @@
-import { evaluateNoSwallowedErrors, evaluateTrigger } from '@assay/core'
+import { evaluateNoSwallowedErrors, evaluateTrigger } from '@ktlsr/assay-core'
 import { describe, expect, it } from 'vitest'
 import type { RunConfig } from '../adapter.js'
 import {

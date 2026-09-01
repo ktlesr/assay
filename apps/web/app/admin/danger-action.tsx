@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, ConfirmDialog } from '@assay/ui'
+import { Button, ConfirmDialog } from '@ktlsr/assay-ui'
 import { useTransition } from 'react'
 
 /**

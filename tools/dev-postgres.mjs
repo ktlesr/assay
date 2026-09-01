@@ -1,7 +1,7 @@
 /**
  * Geliştirme veritabanı — süreç içinde Postgres.
  *
- * `@assay/db` gerçek bir Postgres istiyor; geliştirme makinesinde bir sunucu
+ * `@ktlsr/assay-db` gerçek bir Postgres istiyor; geliştirme makinesinde bir sunucu
  * kurmak veya Docker çalıştırmak bir kuruluma bağımlılık ekler. PGlite,
  * Postgres'in kendisini WASM olarak koşturuyor ve `pglite-socket` onu
  * Postgres tel protokolüyle bir TCP portuna açıyor — Prisma farkı görmüyor.

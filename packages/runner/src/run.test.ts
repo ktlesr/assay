@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { parseSuite, type Suite } from '@assay/core'
+import { parseSuite, type Suite } from '@ktlsr/assay-core'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { runSuite, suiteHash } from './run.js'
 import { RunStore } from './store.js'

@@ -1,5 +1,5 @@
-import { isConfigured } from '@assay/db'
-import { Callout, ErrorState } from '@assay/ui'
+import { isConfigured } from '@ktlsr/assay-db'
+import { Callout, ErrorState } from '@ktlsr/assay-ui'
 import { AuthError } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { auth, googleEnabled, signIn } from '../../lib/auth'

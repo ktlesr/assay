@@ -1,4 +1,4 @@
-import { Button } from '@assay/ui'
+import { Button } from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { auth, signOut } from '../../lib/auth'
 

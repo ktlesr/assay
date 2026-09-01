@@ -1,4 +1,4 @@
-import type { CaseComparison } from '@assay/core'
+import type { CaseComparison } from '@ktlsr/assay-core'
 import {
   Badge,
   Determination,
@@ -6,7 +6,7 @@ import {
   IntervalRule,
   RateFigure,
   countSentence,
-} from '@assay/ui'
+} from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { Pins } from '../components/run-meta'
 import { Shell } from '../components/shell'
@@ -15,7 +15,7 @@ import { compare } from '../../lib/runs'
 /**
  * Regresyon karşılaştırması.
  *
- * Kararı `@assay/core` veriyor: koşulların biri kaymışsa hiçbir vaka
+ * Kararı `@ktlsr/assay-core` veriyor: koşulların biri kaymışsa hiçbir vaka
  * karşılaştırılmaz. Bu ekran o kararı yeniden yorumlamaz — reddi hükmün
  * yerine koyar ve neyin kaydığını söyler.
  */

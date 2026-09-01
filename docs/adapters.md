@@ -57,7 +57,7 @@ verir. Veremiyorsa alan yoktur; runner pin eksikliğini raporlar, **uydurmaz**.
 
 ## MockAdapter
 
-`@assay/runner/testing` altında. **Yalnızca test aracıdır**; arayüze, seed'e veya
+`@ktlsr/assay-runner/testing` altında. **Yalnızca test aracıdır**; arayüze, seed'e veya
 rapora veri besleyemez (docs/workflow.md, veri gerçekliği sözleşmesi). Ana giriş
 noktasından bilerek dışa verilmez ve `tools/dependency-boundaries.test.ts` bunu
 denetler.

@@ -1,7 +1,7 @@
 /**
  * Kanonik kayıt ⇄ veritabanı satırları.
  *
- * Hosted taraf **kendi formatını dayatmaz**: `@assay/core`'daki `Run` tipini
+ * Hosted taraf **kendi formatını dayatmaz**: `@ktlsr/assay-core`'daki `Run` tipini
  * alır, satırlara açar, geri okuduğunda aynı `Run`'ı kurar. Bu dosyanın tek
  * işi o iki yönü birbirine sadık tutmak; `mapping.test.ts` gerçek bir
  * Postgres üzerinde gidiş-dönüş yaparak kanıtlıyor.
@@ -21,7 +21,7 @@ import {
   type SuiteCase,
   type TraceEvent,
   type Verdict,
-} from '@assay/core'
+} from '@ktlsr/assay-core'
 
 // ---------------------------------------------------------------------------
 // Satır biçimleri

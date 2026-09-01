@@ -24,7 +24,7 @@ export type { Measurement }
  * İstatistik bilmeyen okuyucu birinci satırda cevabı alıyor; bilen üçüncüde
  * belirsizliğin genişliğini görüyor. Hiçbiri diğerinin yerine geçmiyor.
  *
- * `@assay/core`'daki `Proportion` bu tipe yapısal olarak uyar; paket bilerek
+ * `@ktlsr/assay-core`'daki `Proportion` bu tipe yapısal olarak uyar; paket bilerek
  * hiçbir Assay paketine bağlanmıyor (docs/stack.md), uyum
  * `tools/ui-contract.test.ts` ile denetleniyor.
  */

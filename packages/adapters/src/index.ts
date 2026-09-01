@@ -1,4 +1,4 @@
-/** @assay/adapters — host ortamı başına bir adaptör. */
+/** @ktlsr/assay-adapters — host ortamı başına bir adaptör. */
 
 export {
   ClaudeCodeAdapter,

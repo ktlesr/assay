@@ -1,4 +1,4 @@
-import { Badge, EmptyState, IntervalRule, RateFigure, countSentence } from '@assay/ui'
+import { Badge, EmptyState, IntervalRule, RateFigure, countSentence } from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { Shell } from './components/shell'
 import { Landing } from './landing'

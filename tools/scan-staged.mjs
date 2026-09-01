@@ -21,10 +21,14 @@ if (staged.length === 0) process.exit(0)
 const problems = []
 
 // .env ve türevleri hiçbir koşulda commit'lenmez (.env.example hariç).
+// .npmrc de öyle: yayın kimlik bilgisini taşıyan dosya odur.
 for (const file of staged) {
   const name = file.split('/').pop() ?? file
   if (name === '.env' || (name.startsWith('.env.') && name !== '.env.example')) {
     problems.push(`${file}: env dosyaları commit'lenemez`)
+  }
+  if (name === '.npmrc') {
+    problems.push(`${file}: .npmrc commit'lenemez — npm token taşır`)
   }
 }
 

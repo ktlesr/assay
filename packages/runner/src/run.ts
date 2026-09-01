@@ -34,7 +34,7 @@ import {
   type TriggerObservation,
   type Verdict,
   type VerdictDetail,
-} from '@assay/core'
+} from '@ktlsr/assay-core'
 import {
   capture,
   createWorkspace,

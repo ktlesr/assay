@@ -6,7 +6,7 @@
  * Kendi formatını dayatmaz — geri okunan `Run`, yazılan `Run`'dır.
  */
 
-import type { Assertion, AssertionResult, Attempt, Run, Suite, Verdict } from '@assay/core'
+import type { Assertion, AssertionResult, Attempt, Run, Suite, Verdict } from '@ktlsr/assay-core'
 import type { PrismaClient } from '../generated/client/client.js'
 import {
   assertSuiteStorable,

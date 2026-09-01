@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
-import { parseSuite, proportion, type Attempt, type Run } from '@assay/core'
+import { parseSuite, proportion, type Attempt, type Run } from '@ktlsr/assay-core'
 import { beforeAll, describe, expect, it } from 'vitest'
 import {
   assertSuiteStorable,
