@@ -90,9 +90,10 @@ jobs:
         with:
           fetch-depth: 0 # changesets değişen paketleri bulmak için geçmişi ister
 
+      # Sürüm package.json'daki `packageManager` alanından okunuyor. Burada
+      # `version:` de vermek action'ı "Multiple versions of pnpm specified"
+      # hatasıyla düşürüyor — tek doğruluk kaynağı `packageManager`.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:

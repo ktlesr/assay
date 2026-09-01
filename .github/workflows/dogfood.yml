@@ -19,9 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Sürüm package.json'daki `packageManager` alanından okunuyor. Burada
+      # `version:` de vermek action'ı "Multiple versions of pnpm specified"
+      # hatasıyla düşürüyor — tek doğruluk kaynağı `packageManager`.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
