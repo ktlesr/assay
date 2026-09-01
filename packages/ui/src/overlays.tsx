@@ -7,6 +7,7 @@ import * as RadixPopover from '@radix-ui/react-popover'
 import * as RadixToast from '@radix-ui/react-toast'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
 import type { ReactNode } from 'react'
+import { IconClose } from './icons'
 
 /**
  * Katman bileşenleri.
@@ -248,10 +249,10 @@ export function Toast({
         </RadixToast.Description>
       )}
       <RadixToast.Close
-        className="absolute right-2 top-2 px-1 text-text-faint hover:text-text"
+        className="absolute right-2 top-2 p-1 text-text-faint transition-colors hover:text-text"
         aria-label="Dismiss"
       >
-        ✕
+        <IconClose size={14} />
       </RadixToast.Close>
     </RadixToast.Root>
   )

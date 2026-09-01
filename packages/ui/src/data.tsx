@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, type ReactNode } from 'react'
+import { IconCall, IconEnd, IconMessage, IconResult, IconSkill, IconSort } from './icons'
 import { Badge, type VerdictKind } from './measurement'
 
 /**
@@ -96,11 +97,14 @@ export function Table<Row>({
                           : { key: column.key, direction: 'asc' },
                       )
                     }
-                    className="uppercase tracking-[0.09em] hover:text-text"
+                    className="inline-flex items-center gap-1 uppercase tracking-[0.09em] transition-colors hover:text-text"
                   >
                     {column.header}
-                    <span aria-hidden="true" className="ml-1 text-text-faint">
-                      {active ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}
+                    <span className="text-text-faint">
+                      <IconSort
+                        size={12}
+                        {...(active ? { direction: sort.direction } : {})}
+                      />
                     </span>
                   </button>
                 ) : (
@@ -148,12 +152,12 @@ export interface TraceStep {
   args?: Record<string, unknown> | undefined
 }
 
-const KIND_GLYPH: Record<TraceStep['kind'], string> = {
-  tool_call: '→',
-  tool_result: '←',
-  assistant_message: '¶',
-  skill_trigger: '◆',
-  session_end: '■',
+const KIND_GLYPH: Record<TraceStep['kind'], typeof IconCall> = {
+  tool_call: IconCall,
+  tool_result: IconResult,
+  assistant_message: IconMessage,
+  skill_trigger: IconSkill,
+  session_end: IconEnd,
 }
 
 /**
@@ -175,7 +179,7 @@ export function TraceViewer({
 }) {
   if (steps.length === 0) {
     return (
-      <p className="border-l-2 border-unknown-rule py-2 pl-4 text-sm text-unknown">
+      <p className="note-empty">
         No trace was captured. An empty trace and a missing trace are different claims —
         this one is missing.
       </p>
@@ -187,12 +191,13 @@ export function TraceViewer({
         {steps.map((step) => (
           <li
             key={step.seq}
-            className={`grid grid-cols-[1.5rem_8rem_1fr] gap-3 py-2 ${
-              step.isError === true ? 'border-l-2 border-fail-rule pl-3 text-fail' : ''
-            }`}
+            className={`trace-step${step.isError === true ? ' trace-step-error' : ''}`}
           >
-            <span className="text-text-faint" aria-hidden="true">
-              {KIND_GLYPH[step.kind]}
+            <span className="trace-glyph">
+              {(() => {
+                const Glyph = KIND_GLYPH[step.kind]
+                return <Glyph size={14} />
+              })()}
             </span>
             <span
               className="truncate text-text-muted"
@@ -209,20 +214,14 @@ export function TraceViewer({
         ))}
       </ol>
       {swallowed === undefined ? null : (
-        <div
-          className={`mt-4 border-l-2 py-2 pl-4 ${
-            swallowed.verdict === 'fail'
-              ? 'border-fail-rule'
-              : swallowed.verdict === 'unknown'
-                ? 'border-unknown-rule'
-                : 'border-pass-rule'
-          }`}
-        >
-          <p className="mark">
+        <div className="note mt-6">
+          <span className="note-mark">
             <Badge verdict={swallowed.verdict} showLabel={false} />
-            <span className="text-text-muted">no swallowed errors</span>
-          </p>
-          <p className="mt-1 max-w-[70ch] text-sm text-text-muted">{swallowed.reason}</p>
+          </span>
+          <div className="note-body">
+            <p className="mark text-text-muted">did the agent report the failure?</p>
+            <p className="note-text">{swallowed.reason}</p>
+          </div>
         </div>
       )}
     </div>

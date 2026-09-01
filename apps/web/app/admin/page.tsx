@@ -22,8 +22,8 @@ export default async function AdminUsersPage() {
   return (
     <Shell breadcrumbs={[{ label: 'admin' }, { label: 'users' }]}>
       <AdminNav />
-      <h1 className="font-display text-3xl leading-none">Users</h1>
-      <p className="mt-3 max-w-[64ch] text-sm text-text-muted">
+      <h1 className="page-title">Users</h1>
+      <p className="page-lede">
         Every change here is written to the audit log with the account that made it.
       </p>
 
@@ -37,7 +37,7 @@ export default async function AdminUsersPage() {
             >
               <span className="min-w-0">
                 <span className="font-mono text-sm">{user.email}</span>
-                <span className="ml-3 text-xs uppercase tracking-[0.09em] text-accent-quiet">
+                <span className="ml-3 text-xs uppercase tracking-[0.09em] text-text">
                   {user.role.toLowerCase()}
                 </span>
                 {self ? (

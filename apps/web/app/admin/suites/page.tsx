@@ -20,8 +20,8 @@ export default async function AdminSuitesPage() {
   return (
     <Shell breadcrumbs={[{ label: 'admin' }, { label: 'case sets' }]}>
       <AdminNav />
-      <h1 className="font-display text-3xl leading-none">Case sets</h1>
-      <p className="mt-3 max-w-[64ch] text-sm text-text-muted">
+      <h1 className="page-title">Case sets</h1>
+      <p className="page-lede">
         A case set is private until it is published here. Publishing exposes every run
         measured with it — prompts, tool arguments and file paths included — to anyone
         with the link, signed in or not.
@@ -43,7 +43,7 @@ export default async function AdminSuitesPage() {
             >
               <span className="min-w-0">
                 <span className="font-mono text-sm">{suite.skill}</span>
-                <span className="ml-3 text-xs uppercase tracking-[0.09em] text-accent-quiet">
+                <span className="ml-3 text-xs uppercase tracking-[0.09em] text-text">
                   {suite.public ? 'public' : 'private'}
                 </span>
                 <span className="mt-1 block text-xs text-text-faint">

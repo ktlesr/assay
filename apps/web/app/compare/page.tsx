@@ -1,5 +1,12 @@
-import { formatProportion, type CaseComparison } from '@assay/core'
-import { Badge, Callout, EmptyState, IntervalRule } from '@assay/ui'
+import type { CaseComparison } from '@assay/core'
+import {
+  Badge,
+  Determination,
+  EmptyState,
+  IntervalRule,
+  RateFigure,
+  countSentence,
+} from '@assay/ui'
 import Link from 'next/link'
 import { Pins } from '../components/run-meta'
 import { Shell } from '../components/shell'
@@ -8,9 +15,9 @@ import { compare } from '../../lib/runs'
 /**
  * Regresyon karşılaştırması.
  *
- * Kararı `@assay/core` veriyor: pinlerden biri kaymışsa hiçbir vaka
- * karşılaştırılmaz. Bu ekran o kararı yeniden yorumlamaz — reddi olduğu gibi
- * gösterir ve hangi pinin kaydığını söyler.
+ * Kararı `@assay/core` veriyor: koşulların biri kaymışsa hiçbir vaka
+ * karşılaştırılmaz. Bu ekran o kararı yeniden yorumlamaz — reddi hükmün
+ * yerine koyar ve neyin kaydığını söyler.
  */
 export default async function ComparePage({
   searchParams,
@@ -23,13 +30,10 @@ export default async function ComparePage({
       <Shell breadcrumbs={[{ label: 'compare' }]}>
         <EmptyState
           title="Pick two runs"
-          description="A comparison needs a baseline and a candidate. Open a suite and choose “vs previous” on any run in its history."
+          description="A comparison needs a baseline and a candidate. Open a skill and choose “vs previous” on any run in its history."
           action={
-            <Link
-              href="/"
-              className="text-sm text-accent-quiet underline underline-offset-4"
-            >
-              Browse suites
+            <Link href="/" className="link text-sm">
+              Browse measured skills
             </Link>
           }
         />
@@ -45,11 +49,8 @@ export default async function ComparePage({
           title="One of those runs is missing"
           description="A comparison against a run that is no longer stored reports a missing baseline rather than quietly passing."
           action={
-            <Link
-              href="/"
-              className="text-sm text-accent-quiet underline underline-offset-4"
-            >
-              Browse suites
+            <Link href="/" className="link text-sm">
+              Browse measured skills
             </Link>
           }
         />
@@ -58,127 +59,139 @@ export default async function ComparePage({
   }
 
   const { before, after, comparison } = result
+  const regressed = comparison.cases.filter((c) => c.status === 'regressed').length
+  const improved = comparison.cases.filter((c) => c.status === 'improved').length
 
   return (
     <Shell
       breadcrumbs={[
-        {
-          label: after.run.skill,
-          href: `/suites/${encodeURIComponent(after.run.skill)}`,
-        },
+        { label: after.run.skill, href: `/suites/${encodeURIComponent(after.run.skill)}` },
         { label: 'compare' },
       ]}
     >
-      <div className="mb-10 flex flex-wrap items-baseline justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl leading-none">{after.run.skill}</h1>
-          <p className="mt-2 font-mono text-xs text-text-faint">
-            {before.run.startedAt.slice(0, 19).replace('T', ' ')} →{' '}
-            {after.run.startedAt.slice(0, 19).replace('T', ' ')}
-          </p>
-        </div>
-        <Badge verdict={comparison.verdict} />
-      </div>
-
-      <section className="mb-12">
-        <Callout
-          tone={
-            comparison.comparable
-              ? comparison.verdict === 'fail'
-                ? 'danger'
-                : 'info'
-              : 'warning'
-          }
-          title={comparison.comparable ? 'Comparison produced' : 'Comparison refused'}
-        >
-          {comparison.reason}
-        </Callout>
-      </section>
+      <Determination
+        verdict={comparison.verdict}
+        subject={comparison.comparable ? headline(regressed, improved) : 'Not comparable'}
+        sentence={comparison.reason}
+        meta={
+          <>
+            <span>{before.run.startedAt.slice(0, 16).replace('T', ' ')}</span>
+            <span>{after.run.startedAt.slice(0, 16).replace('T', ' ')}</span>
+            <span>{after.run.skill}</span>
+          </>
+        }
+      />
 
       {comparison.comparable ? (
-        <section className="mb-12">
-          <p className="rule-label mb-4">Cases</p>
-          <p className="mb-4 max-w-[68ch] text-xs text-text-faint">
+        <section className="mt-12">
+          <p className="rule-label mb-2">Case by case</p>
+          <p className="mb-8 mt-4 max-w-[62ch] text-sm text-text-muted">
             A move is only called a regression when the two intervals do not overlap.
-            Overlapping intervals mean the difference cannot be told apart from run-to-run
-            noise, however large the gap between the two percentages looks.
+            Overlapping intervals mean the difference cannot be told apart from
+            run-to-run noise, however large the gap between the two percentages looks.
           </p>
           <div className="ruled">
-            {comparison.cases.map((row) => (
-              <CaseDelta key={row.caseId} row={row} />
+            {comparison.cases.map((row, index) => (
+              <CaseDelta key={row.caseId} row={row} delayMs={Math.min(index * 45, 270)} />
             ))}
           </div>
         </section>
       ) : (
-        <section className="mb-12">
-          <p className="rule-label mb-4">Drifted pins</p>
+        <section className="mt-12">
+          <p className="rule-label mb-6">What drifted</p>
           <ul className="ruled">
             {comparison.drifted.map((pin) => (
-              <li key={pin} className="py-3 font-mono text-sm text-unknown">
+              <li key={pin} className="py-4 font-mono text-sm text-unknown">
                 {pin}
               </li>
             ))}
           </ul>
-          <p className="mt-4 max-w-[68ch] text-sm text-text-muted">
-            Any difference between these two runs could come from the pin that moved. A
-            score that dropped because the model changed is not a regression in the skill,
-            and reporting it as one would send you to fix the wrong thing.
+          <p className="mt-8 max-w-[62ch] text-sm text-text-muted">
+            Any difference between these two runs could come from the condition that
+            moved. A score that dropped because the model changed is not a regression in
+            the skill, and reporting it as one would send you to fix the wrong thing.
           </p>
         </section>
       )}
 
-      <section className="grid gap-10 sm:grid-cols-2">
+      <section className="mt-14 grid gap-12 sm:grid-cols-2">
         <div>
-          <p className="rule-label mb-4">Baseline pins</p>
-          <Pins run={before.run} />
+          <p className="rule-label mb-6">Baseline conditions</p>
+          <Pins run={before.run} drifted={comparison.drifted} />
         </div>
         <div>
-          <p className="rule-label mb-4">Candidate pins</p>
-          <Pins run={after.run} />
+          <p className="rule-label mb-6">Candidate conditions</p>
+          <Pins run={after.run} drifted={comparison.drifted} />
         </div>
       </section>
     </Shell>
   )
 }
 
+function headline(regressed: number, improved: number): string {
+  if (regressed > 0) return `${regressed} case${regressed === 1 ? '' : 's'} regressed`
+  if (improved > 0) return `${improved} case${improved === 1 ? '' : 's'} improved`
+  return 'No change beyond noise'
+}
+
 const STATUS: Record<CaseComparison['status'], { label: string; tone: string }> = {
   regressed: { label: 'regressed', tone: 'text-fail' },
   improved: { label: 'improved', tone: 'text-pass' },
-  within_noise: { label: 'within noise', tone: 'text-text-muted' },
+  within_noise: { label: 'within noise', tone: 'text-text-faint' },
   unknown: { label: 'not comparable', tone: 'text-unknown' },
 }
 
-function CaseDelta({ row }: { row: CaseComparison }) {
+function CaseDelta({ row, delayMs }: { row: CaseComparison; delayMs: number }) {
   const status = STATUS[row.status]
   return (
-    <div className="py-4">
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
-        <span className="font-mono text-xs">{row.caseId}</span>
-        <span className={`mark ${status.tone}`}>{status.label}</span>
+    <div className="delta">
+      <div className="delta-head">
+        <span className="case-id">{row.caseId}</span>
+        <span className={`mark ${status.tone}`}>
+          {row.status === 'regressed' ? (
+            <Badge verdict="fail" showLabel={false} size={13} />
+          ) : null}
+          {status.label}
+        </span>
       </div>
-      <div className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 py-1">
+
+      <div className="delta-row">
         <span className="col-label">Before</span>
         {row.before === null ? (
           <span className="text-xs text-text-faint">not measured</span>
         ) : (
-          <IntervalRule value={row.before} />
+          <IntervalRule value={row.before} delayMs={delayMs} />
         )}
-        <span className="whitespace-nowrap font-mono text-xs text-text-muted">
-          {row.before === null ? '—' : formatProportion(row.before)}
+        <span className="delta-figure">
+          {row.before === null ? (
+            '—'
+          ) : (
+            <>
+              <RateFigure value={row.before} /> · {countSentence(row.before, 'passed')}
+            </>
+          )}
         </span>
       </div>
-      <div className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 py-1">
+
+      <div className="delta-row">
         <span className="col-label">After</span>
         {row.after === null ? (
           <span className="text-xs text-text-faint">not measured</span>
         ) : (
-          <IntervalRule value={row.after} tone={status.tone} />
+          <IntervalRule value={row.after} delayMs={delayMs + 60} tone={status.tone} />
         )}
-        <span className="whitespace-nowrap font-mono text-xs text-text-muted">
-          {row.after === null ? '—' : formatProportion(row.after)}
+        <span className="delta-figure">
+          {row.after === null ? (
+            '—'
+          ) : (
+            <>
+              <RateFigure value={row.after} /> · {countSentence(row.after, 'passed')}
+            </>
+          )}
         </span>
       </div>
-      <p className="mt-2 max-w-[68ch] text-sm text-text-muted">{row.reason}</p>
+
+      <p className="delta-reason">{row.reason}</p>
     </div>
   )
 }

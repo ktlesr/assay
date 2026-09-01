@@ -45,7 +45,7 @@ export async function UserMenu() {
       <span className="text-xs text-text-faint" title={session.user.email ?? ''}>
         {session.user.email}
         {session.user.role === 'ADMIN' ? (
-          <span className="ml-2 uppercase tracking-[0.09em] text-accent-quiet">admin</span>
+          <span className="ml-2 uppercase tracking-[0.09em] text-text">admin</span>
         ) : null}
       </span>
       <form action={endSession}>

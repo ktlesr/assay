@@ -887,3 +887,57 @@ Gerekçe: Elle uygulama, bir migration'ı atlamış bir geliştirme veritabanıy
 saatlerce koşmak demek. Üretimde `prisma migrate deploy` kullanılacak; bu
 yalnızca geliştirme kolaylığı ve on beş satır.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Palet akromatik; kroma yalnızca ölçümde
+Bağlam: İlk palet (sıcak krem zemin, koyu kahve, altın vurgu) gerçek ekranlarda
+görülünce ölçüm aleti değil dergi kapağı gibi duruyordu ve o kombinasyon şu an
+her yerde.
+Seçenekler: sıcaklığı azaltmak · başka bir marka rengi seçmek · arayüzü
+akromatik yapıp kromayı ölçüme ayırmak
+Karar: Üçüncüsü. Zemin ve çizgiler soğuk nötr; renk yalnızca verdict işareti,
+güven aralığı ve kayan koşulda. Marka vurgu rengi yok — vurgu mürekkebin
+kendisi.
+Gerekçe: Kural artık okunabilir: ekranda bir renk gördüysen o bir ölçüm
+sonucudur. Marka rengi eklemek renge ikinci bir anlam yüklerdi ve birinciyi
+zayıflatırdı. Ayrıca kroma nadir olduğu için verdict renkleri neon olmak
+zorunda kalmıyor; iki temada da düşük doygunlukla ayrışıyorlar.
+Geri dönüş maliyeti: düşük (yalnızca token)
+
+## 2026-09-01 — İkonlar çizilmiş SVG, Unicode glifi değil
+Bağlam: Verdict işaretleri, iz adımları ve tema düğmesi Unicode glifleriyle
+yazılmıştı (`●`, `✕`, `◐`, `→`, `¶`).
+Seçenekler: glifleri sürdürmek · bir ikon kütüphanesi eklemek · seti kendimiz
+çizmek
+Karar: `packages/ui/src/icons.tsx` — 16×16 ızgara, 1.5 birim tek kalem
+kalınlığı, `currentColor`. Bağımlılık eklenmedi.
+Gerekçe: Glifler her yazı tipinde farklı boyda ve farklı taban çizgisinde
+oturuyor; hizalama tesadüfe kalıyordu. Kütüphane, on beş ikon için bir
+bağımlılık ve yabancı bir çizim dili demekti. Verdict işaretlerinin tek aileden
+olması (aynı çember, içi farklı) ancak kendi çizimimizle mümkündü.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Tema düğmesi tek ikon, tıkladıkça dönüyor
+Bağlam: Üç düğmelik grup (LIGHT/DARK/SYSTEM) hem metin butonlarından oluşuyordu
+hem dar ekranda başlığı sıkıştırıyordu.
+Seçenekler: üç ikonlu grup · açılır menü · tek düğme, döngü
+Karar: Tek düğme; o anki durumu gösteriyor, tıklamak sıradakine geçiriyor.
+Sıra: sistem → açık → koyu.
+Gerekçe: Üç düğme, üç durumun ikisini her zaman gereksiz gösteriyor. Açılır menü
+tek tıklık bir iş için iki tık. Döngü tahmin edilebilir ve tek bir hedef; ekran
+okuyucu etiketi hem şimdiki durumu hem sonraki adımı söylüyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Oran üç kayıtta gösteriliyor
+Bağlam: Değişmez #4 oranın N ve güven aralığıyla gösterilmesini şart koşuyor
+ama `%70 (N=20, %95 GA %48–%85)` biçimi istatistik bilmeyen kullanıcı için
+okunmuyordu.
+Seçenekler: biçimi sadeleştirip aralığı küçültmek · aralığı kaldırıp yalnızca N
+bırakmak (değişmez ihlali) · aynı oranı üç kayıtta göstermek
+Karar: Üçüncüsü. Sayım cümlesi ("20 denemenin 14'ünde tetiklendi") → büyük
+yüzde → çizilmiş aralık ve genişliğinin ne dediği. Ayrıca koşum ekranının
+tepesinde tek cümlelik hüküm.
+Gerekçe: İstatistik bilmeyen okuyucu birinci satırda cevabı alıyor, bilen
+üçüncüde belirsizliği görüyor. Aralığı küçültmek onu süse çevirirdi; kaldırmak
+değişmezi ihlal ederdi. Payda görünür olduğu için "%100" ile "4/4" arasındaki
+fark da kayboluyor değil.
+Geri dönüş maliyeti: düşük

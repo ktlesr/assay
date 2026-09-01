@@ -1,5 +1,5 @@
 import { isConfigured } from '@assay/db'
-import { Button, Callout, ErrorState } from '@assay/ui'
+import { Callout, ErrorState } from '@assay/ui'
 import { AuthError } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { auth, googleEnabled, signIn } from '../../lib/auth'
@@ -55,9 +55,9 @@ export default async function SignInPage({
 
   return (
     <Shell breadcrumbs={[{ label: 'sign in' }]}>
-      <div className="mx-auto max-w-md">
-        <h1 className="font-display text-3xl leading-none">Sign in</h1>
-        <p className="mt-3 text-sm text-text-muted">
+      <div className="mx-auto mt-8 max-w-md">
+        <h1 className="page-title">Sign in</h1>
+        <p className="mt-4 text-base text-text-muted">
           Runs measured by the CLI are yours before they are anyone else&rsquo;s. An
           account is only needed to keep their history in one place.
         </p>
@@ -79,14 +79,16 @@ export default async function SignInPage({
             type="password"
             autoComplete="current-password"
           />
-          <Button type="submit">Sign in</Button>
+          <button type="submit" className="btn">
+            Sign in
+          </button>
         </form>
 
         {googleEnabled ? (
           <form action={signInWithGoogle} className="mt-6">
-            <Button type="submit" tone="quiet">
+            <button type="submit" className="btn">
               Continue with Google
-            </Button>
+            </button>
           </form>
         ) : (
           <p className="mt-6 text-xs text-text-faint">
@@ -120,7 +122,7 @@ function Field({
         type={type}
         autoComplete={autoComplete}
         required
-        className="mt-2 w-full border border-rule-strong bg-transparent px-3 py-2 font-mono text-sm text-text outline-none focus:border-accent-quiet"
+        className="field-input"
       />
     </div>
   )

@@ -1,5 +1,12 @@
-import { formatProportion, type CaseResult } from '@assay/core'
-import { Badge, Callout, IntervalRule } from '@assay/ui'
+import type { CaseResult } from '@assay/core'
+import {
+  Badge,
+  Callout,
+  IntervalRule,
+  RateFigure,
+  countSentence,
+  intervalGloss,
+} from '@assay/ui'
 import Link from 'next/link'
 import { Shell } from './components/shell'
 import { compare, listSuites, type RunWithSummary } from '../lib/runs'
@@ -7,14 +14,16 @@ import { compare, listSuites, type RunWithSummary } from '../lib/runs'
 /**
  * Tanıtım sayfası.
  *
- * Tek kural: buradaki her sayı bu örneğin veritabanındaki gerçek bir
- * koşumdan okunuyor. Uydurma müşteri sayısı, logo, referans yok; gösterilecek
- * gerçek ölçüm yoksa bölüm hiç çizilmiyor. Boş bir bölüm, süslenmiş bir
- * yalandan iyidir.
+ * Tek kural: buradaki her sayı bu örneğin veritabanındaki gerçek bir koşumdan
+ * okunuyor. Uydurma müşteri sayısı, logo, referans yok; gösterilecek gerçek
+ * ölçüm yoksa bölüm hiç çizilmiyor. Boş bir bölüm, süslenmiş bir yalandan
+ * iyidir.
+ *
+ * Ziyaretçi ilk ekranda ürünün tarifini değil çıktısını görüyor: ölçümün
+ * kendisi kahraman.
  */
 export async function Landing() {
-  // Tanıtım sayfası oturumsuz ziyaretçiye görünüyor: yalnızca herkese açık
-  // işaretlenmiş vaka setleri.
+  // Oturumsuz ziyaretçi: yalnızca herkese açık işaretlenmiş vaka setleri.
   const suites = await listSuites({ kind: 'public' })
   const failing = suites.find((s) => s.latest.run.verdict === 'fail') ?? suites[0]
   const worst = failing === undefined ? undefined : worstCase(failing.latest)
@@ -29,71 +38,62 @@ export async function Landing() {
 
   return (
     <Shell>
-      <section className="border-b border-rule pb-16">
-        <p className="rule-label mb-6">A CI test runner for Agent Skills</p>
-        <h1 className="max-w-[18ch] font-display text-5xl leading-[1.05] sm:text-6xl">
-          Does your skill still fire?
-        </h1>
-        <p className="mt-8 max-w-[62ch] text-base text-text-muted">
-          A skill ships with a README and a promise. Whether it triggers on the request
-          it claims, stays quiet on the one next to it, and does the same thing tomorrow
-          — nobody measures. Assay runs a case set against a real host, repeats it, and
+      <section className="hero">
+        <h1 className="hero-title">Does your skill still fire?</h1>
+        <p className="hero-lede">
+          A skill ships with a README and a promise. Whether it triggers on the request it
+          claims, stays quiet on the one next to it, and does the same thing tomorrow —
+          nobody measures. Assay runs a case set against a real host, repeats it, and
           reports the rate with its uncertainty attached.
         </p>
-        <div className="mt-10 flex flex-wrap items-center gap-6">
-          <Link
-            href="/signin"
-            className="border border-rule-strong px-4 py-2 text-xs uppercase tracking-[0.09em] no-underline hover:bg-surface-sunken"
-          >
+        <div className="hero-actions">
+          <Link href="/signin" className="btn">
             Sign in
           </Link>
-          <code className="font-mono text-xs text-text-faint">
-            npx assay run ./my-skill.suite.yaml --skill ./my-skill
-          </code>
+          <code className="code">npx assay run ./my-skill.suite.yaml</code>
         </div>
       </section>
 
       {failing === undefined || worst === undefined ? (
-        <section className="border-b border-rule py-16">
+        <section className="section">
           <p className="rule-label mb-6">A real measurement</p>
-          <Callout tone="info" title="This instance has no runs yet">
+          <Callout tone="info" title="This instance has no published runs yet">
             Every figure on this page is read out of the database, from runs uploaded by
-            the CLI. Nothing is written by hand, so until a run arrives there is nothing
-            to show here.
+            the CLI. Nothing is written by hand, so until a run is published there is
+            nothing to show here.
           </Callout>
         </section>
       ) : (
-        <section className="border-b border-rule py-16">
-          <p className="rule-label mb-6">A real measurement</p>
-          <p className="max-w-[62ch] text-sm text-text-muted">
-            The run below is stored on this instance. The{' '}
-            <code className="font-mono text-xs">{failing.skill}</code> skill was measured
-            on {failing.latest.run.startedAt.slice(0, 10)} against{' '}
-            <code className="font-mono text-xs">{failing.latest.run.pins.model}</code>,{' '}
-            {failing.latest.run.runs} attempts per case. Below is the case it handled
-            least reliably.
-          </p>
-
-          <div className="mt-10 border border-rule px-6 py-6">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-              <span className="font-mono text-xs">{worst.caseId}</span>
-              <Badge verdict={worst.failed > 0 ? 'fail' : 'pass'} />
+        <section className="section">
+          <p className="rule-label mb-8">One case, measured ten times</p>
+          <div className="specimen">
+            <div className="specimen-head">
+              <Badge verdict={worst.failed > 0 ? 'fail' : 'pass'} size={16} />
+              <span className="code">{worst.caseId}</span>
             </div>
-            <IntervalRule value={worst.passRate} tone="text-fail" />
-            <p className="mt-3 font-mono text-sm">{formatProportion(worst.passRate)}</p>
-            <p className="mt-4 max-w-[62ch] text-sm text-text-muted">
-              {worst.passed} of {worst.passRate.n} attempts held; {worst.failed} did not.
-              One attempt would have reported either outcome as a fact. The interval is
-              the honest part: it says how little {worst.passRate.n} observations can
-              settle.
+            <p className="specimen-count">
+              {countSentence(worst.passRate, 'behaved as the case set expects')}
+            </p>
+            <div className="specimen-figure">
+              <span className="measure-pct">
+                <RateFigure value={worst.passRate} />
+              </span>
+              <div className="measure-instrument">
+                <IntervalRule value={worst.passRate} showBounds tone="text-fail" />
+              </div>
+            </div>
+            <p className="specimen-gloss">
+              {intervalGloss(worst.passRate) ?? 'No attempt produced a readable signal.'}{' '}
+              One attempt would have reported either outcome as a fact.
+            </p>
+            <p className="specimen-meta">
+              <span>{failing.skill}</span>
+              <span>{failing.latest.run.pins.model}</span>
+              <span>{failing.latest.run.startedAt.slice(0, 10)}</span>
             </p>
           </div>
-
-          <p className="mt-6">
-            <Link
-              href={`/runs/${failing.latest.slug}`}
-              className="text-sm text-accent-quiet underline underline-offset-4"
-            >
+          <p className="mt-8">
+            <Link href={`/runs/${failing.latest.slug}`} className="link text-sm">
               Open the full scorecard
             </Link>
           </p>
@@ -101,9 +101,9 @@ export async function Landing() {
       )}
 
       {comparison === null ? null : (
-        <section className="border-b border-rule py-16">
+        <section className="section">
           <p className="rule-label mb-6">What it refuses to claim</p>
-          <p className="max-w-[62ch] text-sm text-text-muted">
+          <p className="section-lede">
             Two runs of the same skill are stored. Here is what Assay says when asked
             whether the second is better than the first — not a headline, the actual
             output:
@@ -120,18 +120,18 @@ export async function Landing() {
               {comparison.comparison.reason}
             </Callout>
           </div>
-          <p className="mt-6 max-w-[62ch] text-sm text-text-muted">
+          <p className="section-note">
             A regression is only called when the two intervals do not overlap, and two
-            runs are only compared when the skill, the model, the environment and the
-            case set are all identical. A tool that skips these produces confident
-            numbers about nothing.
+            runs are only compared when the skill, the model, the environment and the case
+            set are all identical. A tool that skips these produces confident numbers
+            about nothing.
           </p>
         </section>
       )}
 
-      <section className="border-b border-rule py-16">
+      <section className="section">
         <p className="rule-label mb-8">What it measures</p>
-        <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+        <dl className="layer-grid">
           <Layer
             title="Trigger accuracy"
             body="Does it fire on the request it claims, and stay quiet on the near neighbour? A case set without a negative case is rejected — a skill that fires on everything would pass every positive case."
@@ -154,33 +154,33 @@ export async function Landing() {
           />
           <Layer
             title="Regression"
-            body="Did the new version get worse? Only claimed when four pins are identical and the intervals do not overlap."
+            body="Did the new version get worse? Only claimed when the conditions are identical and the intervals do not overlap."
           />
         </dl>
       </section>
 
-      <section className="border-b border-rule py-16">
+      <section className="section">
         <p className="rule-label mb-8">Three verdicts, not two</p>
-        <div className="grid gap-8 sm:grid-cols-3">
-          <Verdict
+        <div className="verdict-grid">
+          <VerdictCard
             kind="pass"
             body="The assertion held, and there was enough signal to say so."
           />
-          <Verdict kind="fail" body="The assertion did not hold. Something is broken." />
-          <Verdict
+          <VerdictCard kind="fail" body="The assertion did not hold. Something is broken." />
+          <VerdictCard
             kind="unknown"
-            body="The signal could not be read. This is a first-class result, counted and shown separately — never rounded up to a pass."
+            body="The signal could not be read. A first-class result, counted and shown separately — never rounded up to a pass."
           />
         </div>
-        <p className="mt-8 max-w-[62ch] text-sm text-text-muted">
+        <p className="section-note">
           The most dangerous thing a test tool can do is report what it could not measure
           as a success. Everything else here follows from refusing that.
         </p>
       </section>
 
-      <section className="border-b border-rule py-16">
+      <section className="section">
         <p className="rule-label mb-8">Getting started</p>
-        <ol className="ruled font-mono text-sm">
+        <ol className="ruled steps">
           <Step
             command="npx assay init ./my-skill"
             note="writes an example case set next to the skill"
@@ -198,20 +198,20 @@ export async function Landing() {
             note="optional — keeps the history here so the next run can be compared against it"
           />
         </ol>
-        <p className="mt-6 max-w-[62ch] text-sm text-text-muted">
+        <p className="section-note">
           The SDK is Apache-2.0 and works with no account: runs are stored under{' '}
-          <code className="font-mono text-xs">.assay/runs/</code> and printed as JSON. The
-          hosted side does not measure anything — it remembers.
+          <code className="code">.assay/runs/</code> and printed as JSON. The hosted side
+          does not measure anything — it remembers.
         </p>
       </section>
 
-      <section className="py-16">
-        <p className="rule-label mb-4">Pricing</p>
-        <p className="mb-8 max-w-[62ch] text-sm text-text-muted">
+      <section className="section section-last">
+        <p className="rule-label mb-6">Pricing</p>
+        <p className="section-lede">
           Draft, and not yet charged for. The measuring half stays free and open — a
           measurement layer nobody can read is a measurement nobody should trust.
         </p>
-        <div className="grid gap-8 sm:grid-cols-3">
+        <div className="tier-grid">
           <Tier
             name="SDK"
             price="Free, Apache-2.0"
@@ -243,40 +243,40 @@ function worstCase(item: RunWithSummary): CaseResult | undefined {
 
 function Layer({ title, body }: { title: string; body: string }) {
   return (
-    <div>
-      <dt className="mark text-text">{title}</dt>
-      <dd className="mt-2 max-w-[52ch] text-sm text-text-muted">{body}</dd>
+    <div className="layer">
+      <dt className="layer-title">{title}</dt>
+      <dd className="layer-body">{body}</dd>
     </div>
   )
 }
 
-function Verdict({ kind, body }: { kind: 'pass' | 'fail' | 'unknown'; body: string }) {
+function VerdictCard({ kind, body }: { kind: 'pass' | 'fail' | 'unknown'; body: string }) {
   return (
-    <div className="border-t border-rule-strong pt-4">
-      <Badge verdict={kind} />
-      <p className="mt-3 text-sm text-text-muted">{body}</p>
+    <div className="verdict-card">
+      <Badge verdict={kind} size={16} />
+      <p className="verdict-body">{body}</p>
     </div>
   )
 }
 
 function Step({ command, note }: { command: string; note: string }) {
   return (
-    <li className="py-3">
-      <p className="overflow-x-auto">
-        <span className="text-text-faint">$ </span>
+    <li className="step">
+      <p className="step-command">
+        <span className="step-prompt">$</span>
         {command}
       </p>
-      <p className="mt-1 text-xs text-text-faint">{note}</p>
+      <p className="step-note">{note}</p>
     </li>
   )
 }
 
 function Tier({ name, price, body }: { name: string; price: string; body: string }) {
   return (
-    <div className="border-t border-rule-strong pt-4">
-      <p className="font-display text-xl">{name}</p>
-      <p className="mt-1 text-xs uppercase tracking-[0.09em] text-accent-quiet">{price}</p>
-      <p className="mt-3 text-sm text-text-muted">{body}</p>
+    <div className="tier">
+      <p className="tier-name">{name}</p>
+      <p className="tier-price">{price}</p>
+      <p className="tier-body">{body}</p>
     </div>
   )
 }

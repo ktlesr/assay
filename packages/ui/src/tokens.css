@@ -20,59 +20,64 @@
  */
 
 /* ---------------------------------------------------------------------------
- * Marka renkleri — altısı isimli, gerisi bunlardan türetilir.
+ * Renk — ölçüm dışında renk yok
  *
- * Palet tahlil ocağından geliyor: pota, kâğıt, altın boncuk, patinalı bakır,
- * pas, antimon. Hiçbiri bir arayüz kütüphanesinin varsayılanı değil.
+ * Arayüzün kendisi akromatik: soğuk grafit ve soğuk kâğıt, aradaki her ton
+ * nötr. Kroma yalnızca **ölçümde** görünüyor — verdict işareti, güven aralığı,
+ * kayan koşul. Bunun iki sonucu var:
+ *
+ *  1. Ekranda bir renk gördüyseniz o bir ölçüm sonucudur. Marka değil, süs
+ *     değil, "birincil eylem" değil. Renk burada bir sözcük.
+ *  2. Kroma nadir olduğu için az doygunlukla bile bağırıyor; verdict renkleri
+ *     neon olmak zorunda kalmıyor.
+ *
+ * Sıcak krem ve kahve bilerek yok: o palet her yerde ve bu bir ölçüm aleti,
+ * bir dergi değil. Vurgu rengi de yok — vurgu mürekkebin kendisi, yani en
+ * yüksek kontrast.
  * ------------------------------------------------------------------------- */
-:root {
-  --brand-crucible: #141310; /* pota — koyu zemin */
-  --brand-paper: #f5f2eb; /* laboratuvar kâğıdı — açık zemin */
-  --brand-assay-gold: #b08528; /* tahlil boncuğu — tek vurgu, nadir kullanılır */
-  --brand-verdigris: #2e6f55; /* patinalı bakır — pass */
-  --brand-iron-oxide: #a33b2a; /* pas — fail */
-  --brand-antimony: #5b6b8a; /* antimon — unknown. Yeşil ve kırmızıdan eşit uzak. */
-}
 
 /* ---------------------------------------------------------------------------
  * Temalar
  *
- * Sıra önemli: temel açık, sistem tercihi, açık öznitelik, koyu öznitelik.
+ * Sıra önemli: temel açık, sistem tercihi, koyu öznitelik, açık öznitelik.
  * Öznitelik seçicileri `:root`'a bağlı DEĞİL — bileşen kataloğu iki temayı
  * aynı sayfada yan yana gösterebilsin diye herhangi bir elemana konabiliyor.
  * Bunu `:root[data-theme]` ile yazmak, koyu paneli sessizce açık render
  * ediyordu; ekran görüntüsü yakaladı.
+ *
+ * İki tema birbirinin tersi değil: kontrast oranları ayrı ayrı ayarlandı.
  * ------------------------------------------------------------------------- */
 
-/* 1) Temel: açık tema. */
+/* 1) Temel: açık tema — soğuk kâğıt. */
 :root {
   color-scheme: light;
 
-  --surface: var(--brand-paper);
-  --surface-raised: #fbf9f5;
-  --surface-sunken: #ebe7dd;
+  --surface: #f1f3f3;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e2e7e7;
 
-  --text: #1a1814;
-  --text-muted: #5f5b54;
-  --text-faint: #8b857a;
+  --text: #0d1112;
+  --text-muted: #4e5658;
+  --text-faint: #6a7375;
 
   /* Hairline: 1px'te bile ezilmeyen ama bağırmayan çizgi. */
-  --rule: #d8d2c5;
-  --rule-strong: #b3ab9b;
+  --rule: #d2d8d8;
+  --rule-strong: #a6afb0;
 
-  --accent: var(--brand-assay-gold);
-  --accent-quiet: #8a6a2f;
+  /* Vurgu mürekkebin kendisi: odak halkası ve satır işareti tam kontrast. */
+  --accent: #0d1112;
+  --accent-quiet: #4e5658;
 
-  --pass: #2b6a50;
-  --fail: #9c3627;
-  --unknown: #4d5d7c;
+  /* Ölçüm renkleri — ekranda kroma yalnızca burada. */
+  --pass: #0e7350;
+  --fail: #b03826;
+  --unknown: #4d5f80;
 
-  /* Verdict'in zemini yok; yalnızca kendi mürekkebi ve bir hairline. */
-  --pass-rule: #a8c3b4;
-  --fail-rule: #d9b0a8;
-  --unknown-rule: #b3bcce;
+  --pass-rule: #7fae98;
+  --fail-rule: #d3a096;
+  --unknown-rule: #97a4bb;
 
-  --focus: var(--brand-assay-gold);
+  --focus: #0d1112;
 }
 
 /* 2) Sistem tercihi — kullanıcı açıkça bir şey seçmediyse. */
@@ -80,29 +85,29 @@
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    --surface: var(--brand-crucible);
-    --surface-raised: #1c1a16;
-    --surface-sunken: #0d0c0a;
+    --surface: #0b0d0e;
+    --surface-raised: #121617;
+    --surface-sunken: #060809;
 
-    --text: #ece7dc;
-    --text-muted: #a29a8c;
-    --text-faint: #6f6759;
+    --text: #edf1f2;
+    --text-muted: #9aa4a7;
+    --text-faint: #6d7779;
 
-    --rule: #2e2b25;
-    --rule-strong: #4a463d;
+    --rule: #1f2527;
+    --rule-strong: #3a4346;
 
-    --accent: #d3a94a;
-    --accent-quiet: #a8832f;
+    --accent: #edf1f2;
+    --accent-quiet: #9aa4a7;
 
-    --pass: #7fbf9d;
-    --fail: #e08878;
-    --unknown: #93a5c6;
+    --pass: #58c091;
+    --fail: #ec8172;
+    --unknown: #92a4c2;
 
-    --pass-rule: #37543f;
-    --fail-rule: #653c33;
-    --unknown-rule: #3c485f;
+    --pass-rule: #2d5443;
+    --fail-rule: #613a32;
+    --unknown-rule: #39465c;
 
-    --focus: #d3a94a;
+    --focus: #edf1f2;
   }
 }
 
@@ -110,60 +115,58 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --surface: var(--brand-crucible);
-  --surface-raised: #1c1a16;
-  --surface-sunken: #0d0c0a;
+  --surface: #0b0d0e;
+  --surface-raised: #121617;
+  --surface-sunken: #060809;
 
-  --text: #ece7dc;
-  --text-muted: #a29a8c;
-  --text-faint: #6f6759;
+  --text: #edf1f2;
+  --text-muted: #9aa4a7;
+  --text-faint: #6d7779;
 
-  --rule: #2e2b25;
-  --rule-strong: #4a463d;
+  --rule: #1f2527;
+  --rule-strong: #3a4346;
 
-  --accent: #d3a94a;
-  --accent-quiet: #a8832f;
+  --accent: #edf1f2;
+  --accent-quiet: #9aa4a7;
 
-  --pass: #7fbf9d;
-  --fail: #e08878;
-  --unknown: #93a5c6;
+  --pass: #58c091;
+  --fail: #ec8172;
+  --unknown: #92a4c2;
 
-  --pass-rule: #37543f;
-  --fail-rule: #653c33;
-  --unknown-rule: #3c485f;
+  --pass-rule: #2d5443;
+  --fail-rule: #613a32;
+  --unknown-rule: #39465c;
 
-  --focus: #d3a94a;
+  --focus: #edf1f2;
 }
 
 /* 4) Açıkça aydınlık — koyu bir sayfa içindeki açık ada da çalışsın diye en son. */
 [data-theme='light'] {
   color-scheme: light;
 
-  --surface: var(--brand-paper);
-  --surface-raised: #fbf9f5;
-  --surface-sunken: #ebe7dd;
+  --surface: #f1f3f3;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e2e7e7;
 
-  --text: #1a1814;
-  --text-muted: #5f5b54;
-  --text-faint: #8b857a;
+  --text: #0d1112;
+  --text-muted: #4e5658;
+  --text-faint: #6a7375;
 
-  /* Hairline: 1px'te bile ezilmeyen ama bağırmayan çizgi. */
-  --rule: #d8d2c5;
-  --rule-strong: #b3ab9b;
+  --rule: #d2d8d8;
+  --rule-strong: #a6afb0;
 
-  --accent: var(--brand-assay-gold);
-  --accent-quiet: #8a6a2f;
+  --accent: #0d1112;
+  --accent-quiet: #4e5658;
 
-  --pass: #2b6a50;
-  --fail: #9c3627;
-  --unknown: #4d5d7c;
+  --pass: #0e7350;
+  --fail: #b03826;
+  --unknown: #4d5f80;
 
-  /* Verdict'in zemini yok; yalnızca kendi mürekkebi ve bir hairline. */
-  --pass-rule: #a8c3b4;
-  --fail-rule: #d9b0a8;
-  --unknown-rule: #b3bcce;
+  --pass-rule: #7fae98;
+  --fail-rule: #d3a096;
+  --unknown-rule: #97a4bb;
 
-  --focus: var(--brand-assay-gold);
+  --focus: #0d1112;
 }
 
 /* ---------------------------------------------------------------------------
@@ -191,12 +194,16 @@
   --text-xl: 1.5rem;
   --text-2xl: 2rem;
   --text-3xl: 2.75rem;
+  --text-4xl: 3.5rem;
+  --text-5xl: 4.5rem;
 
   --leading-tight: 1.15;
   --leading-normal: 1.55;
 
   /* Küçük kapital etiketler — sertifika bölüm başlıkları. */
   --tracking-label: 0.09em;
+  /* Hüküm sözcüğü: tek başına duran, aralıklı bir damga. */
+  --tracking-wide: 0.22em;
 }
 
 /* ---------------------------------------------------------------------------
@@ -221,18 +228,25 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Hareket — bir kez, ve yalnızca ölçümde
+ * Hareket — iki süre, tek fikir
  *
- * Sayfa yüklenirken hiçbir şey kaymaz. Tek hareket güven aralıklarının
- * merkezden dışa doğru çizilmesi: ibrenin yerine oturması. Bir kez olur.
+ * Sayfa yüklenirken hiçbir bölüm kaymıyor, hiçbir şey sırayla belirmiyor.
+ * Yazılmış tek an var: güven aralığının **ölçülen noktadan dışa** açılması —
+ * bir aletin ibresinin yerine oturması. Bir kez olur ve ölçümün kendisini
+ * anlatır: önce değer, sonra o değerin ne kadar belirsiz olduğu.
+ *
+ * `--tick` geri bildirim içindir: satır vurgusu, buton, tema seçimi. Kullanıcı
+ * akışın içinde; uzun geri bildirim gecikme gibi hissettirir.
  * ------------------------------------------------------------------------- */
 :root {
-  --settle: 420ms;
-  --ease-settle: cubic-bezier(0.16, 0.84, 0.32, 1);
+  --settle: 560ms;
+  --tick: 140ms;
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --settle: 1ms;
+    --tick: 1ms;
   }
 }

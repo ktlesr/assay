@@ -15,18 +15,51 @@ export {
   type Theme,
 } from './theme'
 
+/*
+ * Saf metin yardımcıları istemci modülünün dışında: `measurement.tsx`
+ * `'use client'` ve oradan dışa verilen bir fonksiyon sunucu bileşeninden
+ * çağrılamıyor. Sayfa sunucuda da aynı cümleyi üretebilsin diye ayrıldı.
+ */
+export {
+  countSentence,
+  formatMeasurement,
+  intervalGloss,
+  type Measurement,
+} from './format'
+
 export {
   Badge,
   Callout,
+  Determination,
   EmptyState,
   ErrorState,
   IntervalRule,
+  MeasurementBlock,
   MetricValue,
-  formatMeasurement,
+  RateFigure,
   type CalloutTone,
-  type Measurement,
   type VerdictKind,
 } from './measurement'
+
+export {
+  IconAlert,
+  IconArrow,
+  IconCall,
+  IconClose,
+  IconEnd,
+  IconFail,
+  IconInfo,
+  IconMessage,
+  IconMoon,
+  IconPass,
+  IconResult,
+  IconSkill,
+  IconSort,
+  IconSun,
+  IconSystem,
+  IconUnknown,
+  type IconProps,
+} from './icons'
 
 export {
   Button,

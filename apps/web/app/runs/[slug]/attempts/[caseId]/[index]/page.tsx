@@ -1,5 +1,5 @@
 import type { Attempt } from '@assay/core'
-import { Badge, Callout, TraceViewer } from '@assay/ui'
+import { Badge, Callout, Determination, TraceViewer } from '@assay/ui'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Shell } from '../../../../../components/shell'
@@ -39,36 +39,41 @@ export default async function AttemptPage({
         { label: `attempt ${attempt.index + 1}` },
       ]}
     >
-      <div className="mb-10 flex flex-wrap items-baseline justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="font-mono text-xl">{decodedCase}</h1>
-          <p className="mt-2 text-sm text-text-muted">
-            Attempt {attempt.index + 1} of {caseResult.attempts.length} ·{' '}
-            {attempt.latencyMs === undefined
-              ? 'latency not reported'
-              : `${(attempt.latencyMs / 1000).toFixed(1)} s`}
-          </p>
-        </div>
-        <Badge verdict={attempt.verdict} />
-      </div>
+      <Determination
+        verdict={attempt.verdict}
+        subject={`Attempt ${attempt.index + 1} of ${caseResult.attempts.length}`}
+        sentence={attempt.reason}
+        meta={
+          <>
+            <span>{decodedCase}</span>
+            <span>
+              {attempt.latencyMs === undefined
+                ? 'latency not reported'
+                : `${(attempt.latencyMs / 1000).toFixed(1)} s`}
+            </span>
+            {attempt.cost === undefined ? null : (
+              <span>
+                {attempt.cost.inputTokens}/{attempt.cost.outputTokens} tokens
+              </span>
+            )}
+          </>
+        }
+      />
 
-      <section className="mb-12">
-        <p className="rule-label mb-4">Outcome</p>
-        <p className="max-w-[70ch] text-sm text-text-muted">{attempt.reason}</p>
-      </section>
-
-      <section className="mb-12">
-        <p className="rule-label mb-4">Trigger</p>
+      <section className="mb-12 mt-12">
+        <p className="rule-label mb-6">Did the skill fire?</p>
         {attempt.trigger.available ? (
           <>
-            <p className="text-sm">
-              {attempt.trigger.triggered ? 'The skill fired.' : 'The skill did not fire.'}{' '}
-              <span className="text-text-faint">via {attempt.trigger.via}</span>
+            <p className="text-lg">
+              {attempt.trigger.triggered
+                ? 'Yes — the skill fired.'
+                : 'No — the skill never fired.'}
             </p>
-            <p className="mt-2 font-mono text-xs text-text-muted">
+            <p className="mt-3 text-sm text-text-muted">
+              Observed {attempt.trigger.via}.{' '}
               {attempt.trigger.skills.length === 0
-                ? 'no skills observed'
-                : attempt.trigger.skills.join(', ')}
+                ? 'No skill was invoked in this attempt.'
+                : `Skills invoked: ${attempt.trigger.skills.join(', ')}.`}
             </p>
             {attempt.trigger.complete ? null : (
               <p className="mt-3 text-sm text-unknown">
@@ -86,19 +91,19 @@ export default async function AttemptPage({
 
       {others.length === 0 ? null : (
         <section className="mb-12">
-          <p className="rule-label mb-4">Assertions</p>
+          <p className="rule-label mb-2">What was checked</p>
           <ul className="ruled">
             {others.map((result, i) => (
               <li
                 key={`${result.assertion.type}-${i}`}
-                className="grid grid-cols-[1.5rem_1fr] gap-4 py-3"
+                className="grid grid-cols-[1.5rem_1fr] gap-4 py-4"
               >
-                <Badge verdict={result.verdict} showLabel={false} />
+                <span className="case-mark">
+                  <Badge verdict={result.verdict} showLabel={false} size={15} />
+                </span>
                 <div className="min-w-0">
-                  <p className="font-mono text-xs">{label(result.assertion)}</p>
-                  <p className="mt-1 max-w-[70ch] text-sm text-text-muted">
-                    {result.reason}
-                  </p>
+                  <p className="case-id">{label(result.assertion)}</p>
+                  <p className="case-count max-w-[70ch]">{result.reason}</p>
                 </div>
               </li>
             ))}
@@ -107,7 +112,7 @@ export default async function AttemptPage({
       )}
 
       <section className="mb-12">
-        <p className="rule-label mb-4">Trace</p>
+        <p className="rule-label mb-6">What the agent did</p>
         <TraceViewer
           steps={(attempt.trace ?? []).map((event) => ({
             seq: event.seq,
@@ -127,15 +132,12 @@ export default async function AttemptPage({
       </section>
 
       <section className="mb-12">
-        <p className="rule-label mb-4">Environment</p>
+        <p className="rule-label mb-6">What it touched</p>
         <EnvSection attempt={attempt} />
       </section>
 
       <p>
-        <Link
-          href={`/runs/${slug}`}
-          className="text-sm text-accent-quiet underline underline-offset-4"
-        >
+        <Link href={`/runs/${slug}`} className="link text-sm">
           Back to the scorecard
         </Link>
       </p>
@@ -182,9 +184,9 @@ function EnvSection({ attempt }: { attempt: Attempt }) {
 function EnvList({ label, items }: { label: string; items: readonly string[] }) {
   return (
     <div>
-      <p className="col-label mb-2">{label}</p>
+      <p className="col-label mb-3">{label}</p>
       {items.length === 0 ? (
-        <p className="text-sm text-text-faint">none observed</p>
+        <p className="text-sm text-text-faint">nothing observed</p>
       ) : (
         <ul className="ruled font-mono text-xs">
           {items.map((entry) => (

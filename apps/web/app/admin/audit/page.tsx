@@ -23,8 +23,8 @@ export default async function AuditPage() {
   return (
     <Shell breadcrumbs={[{ label: 'admin' }, { label: 'audit log' }]}>
       <AdminNav />
-      <h1 className="font-display text-3xl leading-none">Audit log</h1>
-      <p className="mt-3 max-w-[64ch] text-sm text-text-muted">
+      <h1 className="page-title">Audit log</h1>
+      <p className="page-lede">
         Every administrative action, newest first. Read-only: there is no way to remove
         an entry from here.
       </p>

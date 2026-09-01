@@ -18,26 +18,72 @@ Arayüz bu belgeyi taklit eder. Üç somut sonucu var:
 3. **Verdict bir renk lekesi değil**, işaret + küçük kapital sözcük. Renk
    körlüğünde de ayrışır.
 
-## Palet — altı isimli renk
+## Palet — ölçüm dışında renk yok
 
-Tahlil ocağından: pota, kâğıt, altın boncuk, patinalı bakır, pas, antimon.
+Arayüzün kendisi **akromatik**: soğuk grafit ve soğuk kâğıt, aradaki her ton
+nötr. Kroma yalnızca ölçümde görünüyor — verdict işareti, güven aralığı, kayan
+koşul.
 
-| Ad | Hex | Rol |
+| Rol | Açık | Koyu |
 |---|---|---|
-| Crucible | `#141310` | koyu zemin — pota |
-| Paper | `#F5F2EB` | açık zemin — laboratuvar kâğıdı |
-| Assay Gold | `#B08528` | tek vurgu. Odak halkası ve marka çizgisi; **buton dolgusu asla** |
-| Verdigris | `#2E6F55` | pass — patinalı bakır, arayüz yeşili değil |
-| Iron Oxide | `#A33B2A` | fail — pas, alarm kırmızısı değil |
-| Antimony | `#5B6B8A` | unknown — soğuk arduvaz mavisi |
+| Zemin | `#F1F3F3` | `#0B0D0E` |
+| Yükseltilmiş | `#FFFFFF` | `#121617` |
+| Mürekkep | `#0D1112` | `#EDF1F2` |
+| Çizgi | `#D2D8D8` | `#1F2527` |
+| pass | `#0E7350` | `#58C091` |
+| fail | `#B03826` | `#EC8172` |
+| unknown | `#4D5F80` | `#92A4C2` |
 
-**Antimon neden.** `unknown` yeşile de kırmızıya da yakın olamaz (bağlayıcı
-kısıt). Soğuk mavi-gri ikisinden de eşit uzakta ve nötr; ama açık/koyu iki
-temada da metinden ayrışacak doygunlukta, yani görmezden gelinemiyor. Antimon
-tahlilde gerçekten kullanılan bir metal — paletin geri kalanıyla aynı dünyadan.
+Bunun iki sonucu var:
 
-**Şekil de ayrışır:** pass `●`, fail `✕`, unknown `◐`. Yarım dolu daire
-"kısmen bilinen" demek; renk kaldırılsa bile anlam duruyor.
+1. **Ekranda bir renk gördüyseniz o bir ölçüm sonucudur.** Marka değil, süs
+   değil, "birincil eylem" değil. Renk burada bir sözcük.
+2. Kroma nadir olduğu için az doygunlukla bile bağırıyor; verdict renkleri neon
+   olmak zorunda kalmıyor.
+
+**Vurgu rengi yok.** Vurgu mürekkebin kendisi: odak halkası, satır işareti ve
+buton kenarı tam kontrast. Bir marka rengi eklemek, renge ikinci bir anlam
+yüklemek ve birinciyi zayıflatmak olurdu.
+
+**İlk palet neden atıldı.** Sıcak krem zemin + koyu kahve + altın vurgu
+denendi. Ölçüm aleti değil dergi kapağı gibi duruyordu ve o kombinasyon şu an
+her yerde. Değişen konsept değil, sıcaklık: aynı sertifika, soğuk mürekkeple
+basılmış.
+
+**Antimon neden kaldı.** `unknown` yeşile de kırmızıya da yakın olamaz
+(bağlayıcı kısıt). Soğuk arduvaz mavisi ikisinden de eşit uzakta ve iki temada
+da metinden ayrışıyor, yani görmezden gelinemiyor.
+
+**Şekil de ayrışır:** pass dolu çember, fail çember içinde çarpı, unknown yarısı
+dolu çember. Renk kaldırılsa bile üçü ayrışır.
+
+## İkonlar — çizilmiş, glif değil
+
+Unicode glifleri (`●`, `✕`, `◐`, `→`) ikon değildir: her yazı tipinde farklı
+boyda, farklı ağırlıkta ve farklı taban çizgisinde otururlar. Set
+`packages/ui/src/icons.tsx` içinde 16×16 ızgarada, 1.5 birim tek bir kalem
+kalınlığıyla ve `currentColor` ile çizildi.
+
+Verdict işaretleri tek bir aileden: aynı çember, içi farklı. Tema düğmesi tek
+bir ikon — güneş, ay, ekran — ve tıkladıkça sıradakine dönüyor; üç düğmelik bir
+grup, üç durumun ikisini her zaman gereksiz gösteriyor ve dar ekranda başlığı
+sıkıştırıyordu.
+
+## Anlaşılırlık — bir oran üç kayıtta okunur
+
+Bağlayıcı kısıt "hiçbir oran N ve güven aralığı olmadan gösterilmez" diyor. Bu
+onu karşılamanın ötesinde bir okuma sırası:
+
+1. **sayım, düz cümleyle** — "20 denemenin 14'ünde tetiklendi"
+2. **yüzde**, büyük ve tabular
+3. **aralık**, çizilmiş, uçlarındaki sayılarla ve genişliğinin ne dediğiyle
+
+İstatistik bilmeyen okuyucu birinci satırda cevabı alıyor; bilen üçüncüde
+belirsizliğin genişliğini görüyor. Hiçbiri diğerinin yerine geçmiyor.
+
+Koşum ekranının en üstünde **hüküm** var: işaret, sözcük ve tek bir düz cümle
+("10 isteğin 2'sini kaçırdı — skill sessiz kaldı ve modelin kendisi cevapladı").
+Sayfadan tek bir şey okunacaksa o okunuyor.
 
 ## Tipografi
 
@@ -81,37 +127,50 @@ dilinde önemli: bir hash ile bir etiket yabancı görünmüyor.
 Bölüm başlığı: etiket, sonra sayfanın kenarına kadar giden hairline. Veri
 satırları kutu içinde değil, aralarında cetvel çizgisiyle.
 
-## Kendi planımın eleştirisi
+## İki kez atılan varsayılan
 
-Planı yazdıktan sonra "bunun hangi kısmı herhangi bir SaaS için de
-üretebileceğim genel bir varsayılan?" diye baktım. Beş şey çıktı, beşi de
-değişti.
+İlk taslak "sıcak kâğıt + koyu mürekkep + altın vurgu" idi. Yazdıktan sonra
+"bunun hangi kısmı herhangi bir SaaS için de üretebileceğim genel bir
+varsayılan?" diye baktım; beş şey çıktı ve beşi de değişti. Sonra arayüz gerçek
+ekranlarda görülünce **paletin kendisi** de atıldı.
 
-**1. "Sıcak kâğıt + koyu mürekkep + altın vurgu" premium editoryal şablonuna
-çok yakındı.** Düzeltme: altını **nadir** yaptım — yalnızca odak halkası ve
-marka. Hiçbir butonun dolgusu değil. Ve baskın görsel öğe renk değil **çizgi**
-oldu; veri görünümlerinde kart zemini tamamen kaldırıldı.
+**1. Sıcak krem + altın premium editoryal şablonuna çok yakındı.** Önce altın
+nadirleştirildi; sonra tamamen kaldırıldı. Vurgu artık mürekkebin kendisi ve
+kroma yalnızca ölçümde.
 
-**2. Verdict rozetleri dolgulu pill'di.** Pill bir SaaS varsayılanı.
-Düzeltme: dolgu ve zemin kaldırıldı; verdict artık sabit genişlikte bir
-sütunda duran **işaret + küçük kapital sözcük** — laboratuvar defterindeki
-kontrol listesi gibi.
+**2. Verdict rozetleri dolgulu pill'di.** Pill bir SaaS varsayılanı. Dolgu ve
+zemin kaldırıldı; verdict artık çizilmiş bir işaret + küçük kapital sözcük.
 
 **3. `── LABEL ──────` başlığını dekoratif tire dizisi olarak yazacaktım.**
-Düzeltme: gerçek bir hairline, `flex: 1` ile kabın kenarına kadar gidiyor.
-Metin süsü değil, çizgi.
+Gerçek bir hairline oldu, `flex: 1` ile kabın kenarına kadar. Metin süsü değil,
+çizgi.
 
-**4. Metrik satırı "sayı + N" idi — bariz olan.** Düzeltme: aralık sayıdan
-**daha fazla yatay alan** alıyor. Belirsizliğin genişliği önce okunuyor.
-N=3'teki bir %100 ile N=200'deki bir %100 aynı görünmemeli.
+**4. Metrik satırı "sayı + N" idi — bariz olan.** Artık üç kayıt: sayım cümlesi,
+yüzde, çizilmiş aralık. Aralık sayıdan daha fazla yatay alan alıyor; N=3'teki
+bir %100 ile N=200'deki bir %100 aynı görünmüyor.
 
-**5. Hareket olarak scroll'da fade-in-up düşünmüştüm.** Bu her yerde var.
-Düzeltme: sayfa yüklenirken **hiçbir şey kaymıyor**. Tek hareket, güven
-aralıklarının merkezden dışa çizilmesi — ibrenin yerine oturması. Bir kez.
-`prefers-reduced-motion` ile 1ms'ye iniyor.
+**5. Hareket olarak scroll'da fade-in-up düşünmüştüm.** Bu her yerde var. Tek
+hareket kaldı ve o da ölçümün kendisini anlatıyor.
 
-Sonuncusu akılda kalan detay: **aralıklar bir alet ibresi gibi yerine
-oturuyor.**
+**6. Unicode glifleri ikon sanılmıştı.** `●`, `✕`, `→` her yazı tipinde farklı
+oturuyor. Set çizildi.
+
+## Hareket — yazılmış tek an
+
+Sayfa yüklenirken hiçbir bölüm kaymıyor, hiçbir şey sırayla belirmiyor. Tek
+yazılı an güven aralığının **ölçülen noktadan dışa açılması**: bir aletin
+ibresinin yerine oturması. 560 ms, `cubic-bezier(0.16, 1, 0.3, 1)`, grup içinde
+45 ms gecikmeyle ve toplam 270 ms'de sınırlı.
+
+Anlamı var: önce değer, sonra o değerin ne kadar belirsiz olduğu. `clip-path`
+ile yapılıyor, `scaleX` ile değil — `scaleX` uç seriflerini de gerer ve aralık
+lastik gibi görünürdü.
+
+Geri bildirim ayrı ve kısa (140 ms): satır vurgusu, buton kenarı, tema
+ikonunun yer değiştirmesi. Kullanıcı akışın içinde; uzun geri bildirim gecikme
+gibi hissettiriyor.
+
+`prefers-reduced-motion` ile hepsi 1 ms'ye iniyor ve son durum aynı kalıyor.
 
 ## Tema geçişi
 
@@ -130,5 +189,10 @@ kontrast oranları açık temayla eşdeğer tutuldu, palet yeniden ayarlandı
 - Gradient yok.
 - Yumuşak gölge yok. Derinlik gölgeyle değil çizgiyle anlatılıyor.
 - Dolgulu rozet yok.
+- Renkli kalın sol kenar çubuğu yok. Kenar notu, üstünde ince bir çizgi ve sol
+  boşlukta bir işaretle ayrışır.
+- Marka vurgu rengi yok. Kroma ölçüme ayrılmıştır.
+- Unicode glifi ikon yerine geçmez.
+- Başlığın üstünde etiket (eyebrow) yok. Başlık kendi ağırlığını taşır.
 - Yuvarlaklık 2px — neredeyse keskin. Yuvarlak köşe bu belgenin dili değil.
 - Sayılar her yerde tabular; bir sütundaki rakamlar hizalanır.

@@ -22,8 +22,8 @@ export default async function AdminRunsPage() {
   return (
     <Shell breadcrumbs={[{ label: 'admin' }, { label: 'runs' }]}>
       <AdminNav />
-      <h1 className="font-display text-3xl leading-none">Runs</h1>
-      <p className="mt-3 max-w-[64ch] text-sm text-text-muted">
+      <h1 className="page-title">Runs</h1>
+      <p className="page-lede">
         Deleting a run removes its attempts, traces and evidence. A comparison that
         used it as a baseline then reports a missing baseline rather than passing.
       </p>
@@ -45,7 +45,7 @@ export default async function AdminRunsPage() {
               <span className="min-w-0">
                 <Link
                   href={`/runs/${run.id}`}
-                  className="font-mono text-xs no-underline hover:text-accent-quiet"
+                  className="case-id link"
                 >
                   {run.id}
                 </Link>

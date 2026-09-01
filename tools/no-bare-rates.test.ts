@@ -20,9 +20,12 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 
 /** Yüzdeye çevirmenin meşru olduğu dosyalar. */
 const ALLOWED = new Set([
-  // Biçimlendiricinin kendisi ve aralığın çizimi.
-  'packages/ui/src/measurement.tsx',
+  // Biçimlendiricilerin kendisi.
+  'packages/ui/src/format.ts',
   'packages/core/src/records.ts',
+  // Aralığın *geometrisi*: oranı yüzdeye çeviren tek şey `left`/`width`,
+  // yani metin değil konum. Sayı olarak hiçbir yerde yazılmıyor.
+  'packages/ui/src/measurement.tsx',
   // Karşılaştırma farkı bir oran değil, iki oran arasındaki puan farkı; metin
   // zaten güven aralığından söz ediyor.
   'packages/core/src/compare.ts',

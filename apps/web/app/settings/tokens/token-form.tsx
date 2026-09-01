@@ -19,7 +19,7 @@ export function TokenForm() {
             id="name"
             name="name"
             placeholder="laptop"
-            className="mt-2 w-64 border border-rule-strong bg-transparent px-3 py-2 font-mono text-sm text-text outline-none focus:border-accent-quiet"
+            className="field-input w-64"
           />
         </div>
         <Button type="submit">{pending ? 'Creating…' : 'Create token'}</Button>

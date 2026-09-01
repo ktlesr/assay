@@ -22,9 +22,9 @@ export default async function TokensPage() {
 
   return (
     <Shell breadcrumbs={[{ label: 'settings' }, { label: 'tokens' }]}>
-      <h1 className="font-display text-3xl leading-none">API tokens</h1>
-      <p className="mt-3 max-w-[64ch] text-sm text-text-muted">
-        <code className="font-mono text-xs">assay push</code> uploads a stored run with
+      <h1 className="page-title">API tokens</h1>
+      <p className="page-lede">
+        <code className="code">assay push</code> uploads a stored run with
         one of these. Only the hash is kept here, so a token can be revoked but never
         read back.
       </p>

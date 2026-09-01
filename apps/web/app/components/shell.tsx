@@ -6,8 +6,8 @@ import { UserMenu } from './user-menu'
 /**
  * Sayfa kabuğu.
  *
- * Sertifikanın antetli kâğıdı: marka, kırıntı yolu ve tema seçici. Altında
- * tek bir hairline; kutu ya da gölge yok.
+ * Sertifikanın antetli kâğıdı: marka, kırıntı yolu, oturum ve tema seçici.
+ * Altında tek bir hairline; kutu ya da gölge yok.
  */
 export function Shell({
   breadcrumbs = [],
@@ -18,36 +18,38 @@ export function Shell({
 }) {
   return (
     <div className="min-h-dvh">
-      <header className="border-b border-rule">
-        <div className="mx-auto flex max-w-[var(--page)] items-baseline justify-between gap-6 px-6 py-5">
-          <div className="flex min-w-0 items-baseline gap-3">
-            <Link href="/" className="font-display text-2xl leading-none no-underline">
+      <header className="page-head">
+        <div className="page-head-inner">
+          <div className="flex min-w-0 items-center gap-4">
+            <Link href="/" className="wordmark">
               Assay
             </Link>
-            <nav aria-label="Breadcrumb" className="min-w-0 truncate">
-              {breadcrumbs.map((crumb) => (
-                <span key={crumb.label} className="text-xs uppercase tracking-[0.09em]">
-                  <span aria-hidden="true" className="mx-2 text-text-faint">
-                    /
+            {breadcrumbs.length === 0 ? null : (
+              <nav aria-label="Breadcrumb" className="crumbs">
+                {breadcrumbs.map((crumb) => (
+                  <span key={crumb.label} className="flex min-w-0 items-center gap-2">
+                    <span aria-hidden="true" className="text-rule-strong">
+                      /
+                    </span>
+                    {crumb.href === undefined ? (
+                      <span className="truncate text-text-muted">{crumb.label}</span>
+                    ) : (
+                      <Link href={crumb.href} className="truncate">
+                        {crumb.label}
+                      </Link>
+                    )}
                   </span>
-                  {crumb.href === undefined ? (
-                    <span className="text-text-muted">{crumb.label}</span>
-                  ) : (
-                    <Link href={crumb.href} className="text-text-faint no-underline hover:text-text">
-                      {crumb.label}
-                    </Link>
-                  )}
-                </span>
-              ))}
-            </nav>
+                ))}
+              </nav>
+            )}
           </div>
-          <div className="flex items-baseline gap-5">
+          <div className="flex items-center gap-5">
             <UserMenu />
             <ThemeToggle />
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[var(--page)] px-6 py-12">{children}</main>
+      <main className="mx-auto max-w-[var(--page)] px-6 pb-24 pt-10">{children}</main>
     </div>
   )
 }

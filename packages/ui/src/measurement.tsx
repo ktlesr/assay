@@ -1,14 +1,28 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { IconAlert, IconFail, IconInfo, IconPass, IconUnknown } from './icons'
+import { countSentence, intervalGloss, pct, type Measurement } from './format'
+
+export type { Measurement }
 
 /**
  * Ölçüm bileşenleri.
  *
- * Bu dosyanın tek işi değişmez #4'ü **tip seviyesinde** zorlamak: bir oran,
- * gözlem sayısı ve güven aralığı olmadan render edilemez. `Measurement` tipi
- * üçünü birlikte taşır ve bileşenler yalnızca bu tipi kabul eder — çıplak bir
- * `number` geçirmenin yolu yok.
+ * İki iş yapıyorlar.
+ *
+ * Birincisi bir kısıtı **tip seviyesinde** zorlamak: bir oran, gözlem sayısı ve
+ * güven aralığı olmadan render edilemez. `Measurement` üçünü birlikte taşır ve
+ * bileşenler yalnızca bu tipi kabul eder — çıplak bir `number` geçirmenin yolu
+ * yok.
+ *
+ * İkincisi anlaşılır olmak. Bir oran burada üç kayıtta birden okunuyor ve sırası
+ * bilerek şu:
+ *   1. sayım, düz cümleyle — "20 denemenin 14'ünde"
+ *   2. yüzde, büyük ve tabular
+ *   3. aralık, çizilmiş, uçlarındaki sayılarla
+ * İstatistik bilmeyen okuyucu birinci satırda cevabı alıyor; bilen üçüncüde
+ * belirsizliğin genişliğini görüyor. Hiçbiri diğerinin yerine geçmiyor.
  *
  * `@assay/core`'daki `Proportion` bu tipe yapısal olarak uyar; paket bilerek
  * hiçbir Assay paketine bağlanmıyor (docs/stack.md), uyum
@@ -17,56 +31,38 @@ import type { ReactNode } from 'react'
 
 export type VerdictKind = 'pass' | 'fail' | 'unknown'
 
-/**
- * Bir oran ve belirsizliği.
- *
- * `rate` ve `ci` birlikte `null` olabilir — gözlem yoksa oran da yoktur.
- * İkisinden yalnızca birinin `null` olduğu bir durum temsil edilemez.
- */
-export interface Measurement {
-  successes: number
-  n: number
-  rate: number | null
-  ci: { low: number; high: number; level: 0.95 } | null
-}
-
-const pct = (value: number) => `${Math.round(value * 100)}%`
-
-/** Oranın tek meşru metin biçimi. */
-export function formatMeasurement(value: Measurement): string {
-  if (value.rate === null || value.ci === null) return 'no observations (N=0)'
-  return `${pct(value.rate)} (N=${value.n}, 95% CI ${pct(value.ci.low)}–${pct(value.ci.high)})`
-}
-
 // ---------------------------------------------------------------------------
-// Verdict rozeti — renk tek taşıyıcı değil
+// Verdict işareti — renk tek taşıyıcı değil
 // ---------------------------------------------------------------------------
 
-const VERDICT: Record<VerdictKind, { glyph: string; label: string; tone: string }> = {
-  pass: { glyph: '●', label: 'pass', tone: 'text-pass' },
-  fail: { glyph: '✕', label: 'fail', tone: 'text-fail' },
-  unknown: { glyph: '◐', label: 'unknown', tone: 'text-unknown' },
+const VERDICT: Record<
+  VerdictKind,
+  { Glyph: typeof IconPass; label: string; tone: string }
+> = {
+  pass: { Glyph: IconPass, label: 'pass', tone: 'text-pass' },
+  fail: { Glyph: IconFail, label: 'fail', tone: 'text-fail' },
+  unknown: { Glyph: IconUnknown, label: 'unknown', tone: 'text-unknown' },
 }
 
 /**
  * Verdict rozeti.
  *
- * Dolgu yok, zemin yok. İşaret + küçük kapital sözcük. Renk körlüğünde
- * ayrışması için glif de farklı: dolu daire, çarpı, yarım daire.
+ * Dolgu yok, zemin yok: çizilmiş işaret + küçük kapital sözcük. Aynı çemberin
+ * içi üç farklı biçimde dolu, yani renk körlüğünde de ayrışıyor.
  */
 export function Badge({
   verdict,
   showLabel = true,
+  size = 14,
 }: {
   verdict: VerdictKind
   showLabel?: boolean
+  size?: number
 }) {
   const mark = VERDICT[verdict]
   return (
     <span className={`mark ${mark.tone}`}>
-      <span className="mark-glyph" aria-hidden="true">
-        {mark.glyph}
-      </span>
+      <mark.Glyph size={size} />
       {showLabel ? (
         <span>{mark.label}</span>
       ) : (
@@ -76,63 +72,220 @@ export function Badge({
   )
 }
 
+/**
+ * Yalnızca yüzde — ama `Measurement` isteyerek.
+ *
+ * Yoğun satırlarda sayı sütununda tek başına yüzde duruyor; N ve aralık aynı
+ * satırın diğer sütunlarında (`countSentence` ve `IntervalRule`). Bileşen
+ * çıplak bir `number` kabul etmiyor: oranı N'den ve aralığından koparıp
+ * biçimlendirmenin yolu yok, çünkü tek girdi üçünü birlikte taşıyan tip.
+ */
+export function RateFigure({ value }: { value: Measurement }) {
+  return <>{value.rate === null ? '—' : pct(value.rate)}</>
+}
+
 // ---------------------------------------------------------------------------
-// Aralık çizimi
+// Aralık çizimi — bu arayüzün imzası
 // ---------------------------------------------------------------------------
+
+const clamp = (value: number) => Math.min(100, Math.max(0, value))
 
 /**
  * Güven aralığı — çizilmiş bir açıklık.
  *
  * İlerleme çubuğu değil: uçlarında serif olan bir aralık ve içinde ölçülen
- * değeri gösteren bir işaret. Gözlem yoksa yalnızca boş eksen çizilir; bir
- * değer çizmek yalan olurdu.
+ * değeri gösteren bir işaret. Yüklenirken **ölçülen noktadan dışa doğru**
+ * açılıyor — bir aletin ibresinin yerine oturması gibi. Tek yazılı hareket bu.
+ *
+ * Gözlem yoksa yalnızca boş eksen çizilir; bir değer çizmek yalan olurdu.
  */
 export function IntervalRule({
   value,
   tone = 'text-text-muted',
+  delayMs = 0,
+  showBounds = false,
 }: {
   value: Measurement
   tone?: string
+  /** Grup içinde sıraya göre küçük gecikme. Toplam gecikme sınırlı tutulur. */
+  delayMs?: number
+  /** Uç değerleri aralığın altında yaz. Yoğun listelerde kapalı. */
+  showBounds?: boolean
 }) {
   if (value.rate === null || value.ci === null) {
-    return <div className="interval" aria-hidden="true" />
+    return (
+      <div className="interval" aria-hidden="true">
+        <span className="interval-empty">not measured</span>
+      </div>
+    )
   }
-  const low = value.ci.low * 100
-  const high = value.ci.high * 100
+
+  const low = clamp(value.ci.low * 100)
+  const high = clamp(value.ci.high * 100)
+  const width = Math.max(high - low, 0.8)
+  const point = clamp(value.rate * 100)
+  // İşaretin aralık içindeki göreli yeri: açılma buradan başlıyor.
+  const origin = clamp(((point - low) / width) * 100)
+
   return (
-    <div className={`interval ${tone}`} aria-hidden="true">
+    <div className={`interval ${tone}`}>
       <span
         className="interval-span"
-        style={{ left: `${low}%`, width: `${Math.max(high - low, 0.6)}%` }}
+        style={{
+          left: `${low}%`,
+          width: `${width}%`,
+          ['--from-left' as string]: `${origin}%`,
+          ['--from-right' as string]: `${100 - origin}%`,
+          animationDelay: `${delayMs}ms`,
+        }}
+        aria-hidden="true"
       />
-      <span className="interval-point" style={{ left: `${value.rate * 100}%` }} />
+      <span
+        className="interval-point"
+        style={{ left: `${point}%`, animationDelay: `${delayMs + 90}ms` }}
+        aria-hidden="true"
+      />
+      {showBounds ? (
+        <>
+          <span
+            className="interval-bound interval-bound-start"
+            style={{ left: `${low}%` }}
+            aria-hidden="true"
+          >
+            {pct(value.ci.low)}
+          </span>
+          <span
+            className="interval-bound interval-bound-end"
+            style={{ left: `${high}%` }}
+            aria-hidden="true"
+          >
+            {pct(value.ci.high)}
+          </span>
+        </>
+      ) : null}
     </div>
   )
 }
 
 /**
- * Etiketli ölçüm satırı.
+ * Etiketli ölçüm satırı — yoğun listeler için.
  *
- * `value` zorunlu ve `Measurement` tipinde. Bileşen aralığı sayıdan önce
- * çizer: okuyucu belirsizliğin genişliğini sayıyı okumadan görsün.
+ * Bileşen aralığı sayıdan önce çizer: okuyucu belirsizliğin genişliğini sayıyı
+ * okumadan görsün.
  */
 export function MetricValue({
   label,
   value,
   tone,
+  delayMs = 0,
 }: {
   label: string
   value: Measurement
   tone?: string
+  delayMs?: number
 }) {
   return (
-    <div className="grid grid-cols-[9rem_1fr_auto] items-center gap-4 py-2">
+    <div className="metric-row">
       <span className="col-label">{label}</span>
-      <IntervalRule value={value} {...(tone === undefined ? {} : { tone })} />
-      <span className="whitespace-nowrap font-mono text-sm text-text-muted">
-        {formatMeasurement(value)}
+      <IntervalRule value={value} delayMs={delayMs} {...(tone === undefined ? {} : { tone })} />
+      <span className="metric-figure">
+        {value.rate === null ? (
+          <span className="text-unknown">not measured</span>
+        ) : (
+          <>
+            <span className="metric-pct">{pct(value.rate)}</span>
+            <span className="metric-detail">
+              {value.successes}/{value.n}
+            </span>
+          </>
+        )}
       </span>
     </div>
+  )
+}
+
+/**
+ * Ölçümün tam gösterimi — bir ekranda bir ya da iki tane.
+ *
+ * Sayım cümlesi, büyük yüzde, çizilmiş aralık ve aralığın ne dediği. Yüzdeyi
+ * tek başına gösteren bir panel, N=3 ile N=300'ü aynı gösterir; bu blok
+ * gösteremez.
+ */
+export function MeasurementBlock({
+  label,
+  value,
+  verb = 'held',
+  tone,
+  delayMs = 0,
+}: {
+  label: string
+  value: Measurement
+  /** Sayım cümlesindeki fiil: "fired", "held", "passed". */
+  verb?: string
+  tone?: string
+  delayMs?: number
+}) {
+  const gloss = intervalGloss(value)
+  return (
+    <section className="measure-block">
+      <p className="col-label">{label}</p>
+      <p className="measure-count">{countSentence(value, verb)}</p>
+      <div className="measure-figure">
+        <span className="measure-pct">
+          {value.rate === null ? '—' : pct(value.rate)}
+        </span>
+        <div className="measure-instrument">
+          <IntervalRule
+            value={value}
+            delayMs={delayMs}
+            showBounds
+            {...(tone === undefined ? {} : { tone })}
+          />
+        </div>
+      </div>
+      {gloss === null ? (
+        <p className="measure-gloss text-unknown">
+          No attempt produced a readable signal, so there is no rate to show.
+        </p>
+      ) : (
+        <p className="measure-gloss">
+          95% confidence between {pct(value.ci?.low ?? 0)} and {pct(value.ci?.high ?? 0)}.{' '}
+          {gloss}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Sertifikanın hüküm satırı.
+ *
+ * Ekranın en büyük öğesi ve ilk okunan şey: işaret, sözcük ve **düz bir
+ * cümle**. Bir kullanıcının bu sayfadan tek bir şey anlaması gerekiyorsa o
+ * şey burada yazıyor.
+ */
+export function Determination({
+  verdict,
+  subject,
+  sentence,
+  meta,
+}: {
+  verdict: VerdictKind
+  subject: string
+  sentence: string
+  meta?: ReactNode
+}) {
+  const mark = VERDICT[verdict]
+  return (
+    <section className={`determination ${mark.tone}`}>
+      <mark.Glyph size={34} className="determination-mark" />
+      <div className="determination-body">
+        <p className="determination-word">{mark.label}</p>
+        <h1 className="determination-subject">{subject}</h1>
+        <p className="determination-sentence">{sentence}</p>
+        {meta === undefined ? null : <div className="determination-meta">{meta}</div>}
+      </div>
+    </section>
   )
 }
 
@@ -156,10 +309,10 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="border border-rule px-8 py-12 text-center">
-      <p className="font-display text-xl">{title}</p>
-      <p className="mx-auto mt-3 max-w-[46ch] text-sm text-text-muted">{description}</p>
-      {action === undefined ? null : <div className="mt-6">{action}</div>}
+    <div className="state-panel">
+      <p className="state-title">{title}</p>
+      <p className="state-detail">{description}</p>
+      {action === undefined ? null : <div className="state-action">{action}</div>}
     </div>
   )
 }
@@ -180,36 +333,35 @@ export function ErrorState({
   action?: ReactNode
 }) {
   return (
-    <div className="border border-fail-rule px-8 py-10">
+    <div className="state-panel state-panel-error">
       <p className="mark text-fail">
-        <span className="mark-glyph" aria-hidden="true">
-          ✕
-        </span>
+        <IconAlert size={14} />
         <span>{title}</span>
       </p>
-      <p className="mt-3 max-w-[60ch] text-sm text-text-muted">{detail}</p>
-      {action === undefined ? null : <div className="mt-5">{action}</div>}
+      <p className="state-detail state-detail-left">{detail}</p>
+      {action === undefined ? null : <div className="state-action">{action}</div>}
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Uyarı kutusu
+// Kenar notu
 // ---------------------------------------------------------------------------
 
 const CALLOUT = {
-  info: { rule: 'border-rule', tone: 'text-text-muted', glyph: 'i' },
-  warning: { rule: 'border-unknown-rule', tone: 'text-unknown', glyph: '◐' },
-  danger: { rule: 'border-fail-rule', tone: 'text-fail', glyph: '✕' },
+  info: { tone: 'text-text-muted', Glyph: IconInfo },
+  warning: { tone: 'text-unknown', Glyph: IconUnknown },
+  danger: { tone: 'text-fail', Glyph: IconAlert },
 } as const
 
 export type CalloutTone = keyof typeof CALLOUT
 
 /**
- * Uyarı kutusu — info, warning, danger.
+ * Kenar notu — info, warning, danger.
  *
- * Zemini yok; sol kenarında kalın bir çizgi ve bir glif var. Dolgulu renkli
- * kutu bu belgenin dili değil.
+ * Renkli kalın bir sol kenar çubuğu yok: basılı bir belgenin kenar notu gibi,
+ * üstünde ince bir çizgi ve sol boşlukta bir işaret. Renk yalnızca işarette;
+ * metin her zaman okunabilir mürekkeple.
  */
 export function Callout({
   tone = 'info',
@@ -222,19 +374,14 @@ export function Callout({
 }) {
   const style = CALLOUT[tone]
   return (
-    <div
-      className={`border-l-2 ${style.rule} py-2 pl-4`}
-      role={tone === 'info' ? undefined : 'note'}
-    >
-      <p className={`mark ${style.tone}`}>
-        <span className="mark-glyph" aria-hidden="true">
-          {style.glyph}
-        </span>
-        <span>{title}</span>
-      </p>
-      {children === undefined ? null : (
-        <div className="mt-2 max-w-[64ch] text-sm text-text-muted">{children}</div>
-      )}
+    <div className="note" role={tone === 'info' ? undefined : 'note'}>
+      <span className={`note-mark ${style.tone}`}>
+        <style.Glyph size={14} />
+      </span>
+      <div className="note-body">
+        <p className={`mark ${style.tone}`}>{title}</p>
+        {children === undefined ? null : <div className="note-text">{children}</div>}
+      </div>
     </div>
   )
 }

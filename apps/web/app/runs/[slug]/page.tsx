@@ -1,5 +1,13 @@
-import { formatProportion, type Attempt, type CaseResult } from '@assay/core'
-import { Badge, Callout, MetricValue } from '@assay/ui'
+import { type Attempt, type CaseResult, type RunSummary } from '@assay/core'
+import {
+  Badge,
+  Callout,
+  Determination,
+  IntervalRule,
+  MeasurementBlock,
+  RateFigure,
+  countSentence,
+} from '@assay/ui'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Pins } from '../../components/run-meta'
@@ -7,10 +15,12 @@ import { Shell } from '../../components/shell'
 import { getRun, getSuite } from '../../../lib/runs'
 
 /**
- * Koşum detayı — skill karnesi. Ana ekran.
+ * Koşum detayı — skill karnesi. Ürünün ana ekranı.
  *
- * Sertifikanın kendisi: kimlik, ölçüm, belirsizlik, ölçülemeyenler ve maliyet.
- * Hiçbir oran çıplak değil; `unknown` gizlenmiyor, kendi bölümü var.
+ * Okuma sırası bilerek şu: önce **hüküm** (bir cümlelik düz cevap), sonra iki
+ * ölçüm (sayım cümlesi → yüzde → aralık), sonra vakalar, en sonda künye. Bir
+ * kullanıcı sayfadan tek bir şey anlayacaksa hükmü anlar; istatistiği okumak
+ * isteyen aşağı iner.
  */
 export default async function RunPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -21,12 +31,16 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
   const suite = await getSuite(run.skill)
   const previous = suite?.runs.find((r) => r.run.startedAt < run.startedAt)
 
-  const flaky = run.cases.filter(
-    (c) => c.passed > 0 && c.failed > 0,
-  )
-  const unknownAttempts = run.cases
-    .flatMap((c) => c.attempts.map((a) => ({ caseId: c.caseId, attempt: a })))
-    .filter(({ attempt }) => attempt.verdict === 'unknown')
+  const flaky = run.cases.filter((c) => c.passed > 0 && c.failed > 0)
+  const unmeasured = [
+    ...new Map(
+      run.cases
+        .flatMap((c) => c.attempts.map((a) => ({ caseId: c.caseId, attempt: a })))
+        .filter(({ attempt }) => attempt.verdict === 'unknown')
+        .map((entry) => [`${entry.caseId}:${entry.attempt.reason}`, entry]),
+    ).values(),
+  ]
+  const unmeasuredCount = run.cases.reduce((total, c) => total + c.unknown, 0)
 
   return (
     <Shell
@@ -35,48 +49,59 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
         { label: 'run' },
       ]}
     >
-      <div className="mb-10 flex flex-wrap items-baseline justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl leading-none">{run.skill}</h1>
-          <p className="mt-2 font-mono text-xs text-text-faint">{run.id}</p>
-        </div>
-        <div className="text-right">
-          <Badge verdict={run.verdict} />
-          <p className="mt-1 text-xs text-text-faint">
-            {run.host} · {run.runs} runs per case
-          </p>
-        </div>
+      <Determination
+        verdict={run.verdict}
+        subject={run.skill}
+        sentence={verdictSentence(run.verdict, summary)}
+        meta={
+          <>
+            <span>{run.startedAt.slice(0, 10)}</span>
+            <span>{run.pins.model}</span>
+            <span>{run.runs} attempts per case</span>
+            <span>{run.host}</span>
+            <span>{run.id}</span>
+          </>
+        }
+      />
+
+      <MeasurementBlock
+        label="Fired when it should have"
+        value={summary.trigger.recall}
+        verb="fired"
+        tone={summary.trigger.recall.rate === 1 ? 'text-pass' : 'text-fail'}
+      />
+
+      <div className="border-t border-rule">
+        <MeasurementBlock
+          label="Was right when it fired"
+          value={summary.trigger.precision}
+          verb="was right"
+          delayMs={70}
+          tone={summary.trigger.precision.rate === 1 ? 'text-pass' : 'text-fail'}
+        />
       </div>
 
-      <section className="mb-12">
-        <p className="rule-label mb-4">Trigger accuracy</p>
-        <MetricValue label="Precision" value={summary.trigger.precision} />
-        <MetricValue label="Recall" value={summary.trigger.recall} />
-        <div className="grid grid-cols-[9rem_1fr_auto] items-center gap-4 py-2">
-          <span className="col-label">F1</span>
-          <span />
-          <span className="font-mono text-sm text-text-muted">
-            {summary.trigger.f1 === null ? 'not measurable' : summary.trigger.f1.toFixed(2)}
-          </span>
+      {summary.trigger.unknown > 0 ? (
+        <div className="mb-12">
+          <Callout
+            tone="warning"
+            title={`${summary.trigger.unknown} observations could not be read`}
+          >
+            They are excluded from both rates above rather than counted as successes.
+          </Callout>
         </div>
-        <p className="mt-3 max-w-[64ch] text-xs text-text-faint">
-          Precision asks whether the skill was right when it fired. Recall asks whether it
-          fired when it should have. Both carry their observation count and interval —
-          twenty observations and two hundred say very different things.
-        </p>
-        {summary.trigger.unknown > 0 ? (
-          <p className="mt-3 text-sm text-unknown">
-            {summary.trigger.unknown} observation(s) could not be read and are excluded
-            from both rates.
-          </p>
-        ) : null}
-      </section>
+      ) : null}
 
-      <section className="mb-12">
-        <p className="rule-label mb-4">Cases</p>
+      <section className="mt-10 mb-12">
+        <p className="rule-label mb-2">Every case</p>
         <div className="ruled">
-          {run.cases.map((caseResult) => (
-            <CaseRow key={caseResult.caseId} slug={slug} caseResult={caseResult} />
+          {run.cases.map((caseResult, index) => (
+            <CaseRow
+              key={caseResult.caseId}
+              slug={slug}
+              caseResult={caseResult}
+              delayMs={Math.min(index * 45, 270)}
+            />
           ))}
         </div>
       </section>
@@ -84,13 +109,16 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
       {flaky.length > 0 ? (
         <section className="mb-12">
           <p className="rule-label mb-4">Instability</p>
-          <Callout tone="warning" title={`${flaky.length} case(s) produced both outcomes`}>
+          <Callout
+            tone="warning"
+            title={`${flaky.length} case${flaky.length === 1 ? '' : 's'} produced both outcomes`}
+          >
             The same prompt, the same model, different results. A single run of any of
-            these would have been a coin flip.
-            <ul className="mt-2 space-y-1">
+            these would have been a coin flip reported as a fact.
+            <ul className="mt-3 space-y-1">
               {flaky.map((c) => (
-                <li key={c.caseId} className="font-mono text-xs">
-                  {c.caseId} — {c.passed} pass / {c.failed} fail
+                <li key={c.caseId} className="code">
+                  {c.caseId} — {c.passed} passed, {c.failed} failed
                 </li>
               ))}
             </ul>
@@ -98,27 +126,20 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
         </section>
       ) : null}
 
-      {unknownAttempts.length > 0 ? (
+      {unmeasuredCount > 0 ? (
         <section className="mb-12">
           <p className="rule-label mb-4">Not measured</p>
           <Callout
             tone="warning"
-            title={`${unknownAttempts.length} attempt(s) produced no verdict`}
+            title={`${unmeasuredCount} attempt${unmeasuredCount === 1 ? '' : 's'} produced no verdict`}
           >
-            These are excluded from every rate above and counted here instead. An
-            unmeasured attempt is not a passing one.
+            An unmeasured attempt is not a passing one. These are excluded from every rate
+            on this page and counted here instead.
           </Callout>
-          <ul className="ruled mt-4">
-            {[
-              ...new Map(
-                unknownAttempts.map((item) => [
-                  `${item.caseId}:${item.attempt.reason}`,
-                  item,
-                ]),
-              ).values(),
-            ].map(({ caseId, attempt }) => (
+          <ul className="ruled mt-6">
+            {unmeasured.map(({ caseId, attempt }) => (
               <li key={`${caseId}-${attempt.index}`} className="py-3">
-                <p className="font-mono text-xs">{caseId}</p>
+                <p className="code">{caseId}</p>
                 <p className="mt-1 text-sm text-text-muted">{attempt.reason}</p>
               </li>
             ))}
@@ -127,18 +148,15 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
       ) : null}
 
       <section className="mb-12">
-        <p className="rule-label mb-4">Pins</p>
-        <p className="mb-4 max-w-[64ch] text-xs text-text-faint">
-          Two runs are comparable only when all of these are identical. A score that moved
-          because the model changed is not a regression.
+        <p className="rule-label mb-4">Conditions</p>
+        <p className="mb-6 max-w-[62ch] text-sm text-text-muted">
+          Two runs are comparable only when all six of these are identical. A score that
+          moved because the model changed is not a regression in the skill.
         </p>
         <Pins run={run} />
         {previous === undefined ? null : (
-          <p className="mt-6">
-            <Link
-              href={`/compare?a=${previous.slug}&b=${slug}`}
-              className="text-sm text-accent-quiet underline underline-offset-4"
-            >
+          <p className="mt-8">
+            <Link href={`/compare?a=${previous.slug}&b=${slug}`} className="link text-sm">
               Compare with the previous run
             </Link>
           </p>
@@ -146,70 +164,125 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
       </section>
 
       <section>
-        <p className="rule-label mb-4">Cost and latency</p>
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-2 sm:grid-cols-4">
+        <p className="rule-label mb-6">What it cost</p>
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
           <Stat label="Attempts" value={String(summary.totals.attempts)} />
           <Stat
             label="Tokens in / out"
-            value={`${summary.totals.inputTokens} / ${summary.totals.outputTokens}`}
+            value={`${summary.totals.inputTokens.toLocaleString('en')} / ${summary.totals.outputTokens.toLocaleString('en')}`}
           />
           <Stat
             label="Cost"
             value={
               summary.totals.usd === null
                 ? 'not reported'
-                : `$${summary.totals.usd.toFixed(4)}`
+                : `$${summary.totals.usd.toFixed(2)}`
             }
           />
           <Stat
-            label="Duration"
-            value={`${(summary.totals.durationMs / 1000).toFixed(1)} s`}
+            label="Agent time"
+            value={`${Math.round(summary.totals.durationMs / 60000)} min`}
           />
         </dl>
+        <p className="mt-6 max-w-[62ch] text-sm text-text-muted">
+          Combined trigger score (F1){' '}
+          {summary.trigger.f1 === null ? 'not measurable' : summary.trigger.f1.toFixed(2)}
+          {' · '}
+          {summary.trigger.truePositive + summary.trigger.trueNegative} of{' '}
+          {summary.trigger.truePositive +
+            summary.trigger.trueNegative +
+            summary.trigger.falsePositive +
+            summary.trigger.falseNegative}{' '}
+          trigger decisions were correct.
+        </p>
       </section>
     </Shell>
   )
+}
+
+/** Hükmün düz cümlesi. Sayfadan tek bir şey okunacaksa bu okunur. */
+function verdictSentence(verdict: string, summary: RunSummary): string {
+  const t = summary.trigger
+  if (verdict === 'unknown') {
+    return `${summary.counts.unknown} of ${summary.counts.pass + summary.counts.fail + summary.counts.unknown} attempts produced no readable signal, so this run measured nothing conclusive.`
+  }
+  if (verdict === 'pass') {
+    return 'It fired on every request it was supposed to, and stayed quiet on every request it was not.'
+  }
+  const missed = t.falseNegative
+  const overreached = t.falsePositive
+  if (missed > 0 && overreached > 0) {
+    return `It missed ${missed} request${missed === 1 ? '' : 's'} it should have handled and fired on ${overreached} it should have left alone.`
+  }
+  if (missed > 0) {
+    return `It missed ${missed} of ${missed + t.truePositive} requests it should have handled — the skill stayed silent and the model answered on its own.`
+  }
+  if (overreached > 0) {
+    return `It fired on ${overreached} request${overreached === 1 ? '' : 's'} it should have left to another skill.`
+  }
+  return 'A case failed on something other than triggering — open the cases below.'
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="col-label">{label}</dt>
-      <dd className="mt-1 font-mono text-sm">{value}</dd>
+      <dd className="mt-2 font-mono text-base text-text">{value}</dd>
     </div>
   )
 }
 
-function CaseRow({ slug, caseResult }: { slug: string; caseResult: CaseResult }) {
+function CaseRow({
+  slug,
+  caseResult,
+  delayMs,
+}: {
+  slug: string
+  caseResult: CaseResult
+  delayMs: number
+}) {
   const verdict =
     caseResult.failed > 0 ? 'fail' : caseResult.unknown > 0 ? 'unknown' : 'pass'
-  const firstInteresting: Attempt | undefined =
+  const target: Attempt | undefined =
     caseResult.attempts.find((a) => a.verdict !== 'pass') ?? caseResult.attempts[0]
+  const expectation =
+    caseResult.expectedTrigger === undefined
+      ? null
+      : caseResult.expectedTrigger
+        ? 'should fire'
+        : 'should stay quiet'
 
   return (
-    <div className="grid grid-cols-[1.5rem_1fr_auto] items-baseline gap-4 py-3">
-      <Badge verdict={verdict} showLabel={false} />
-      <div className="min-w-0">
-        <Link
-          href={
-            firstInteresting === undefined
-              ? '#'
-              : `/runs/${slug}/attempts/${encodeURIComponent(caseResult.caseId)}/${firstInteresting.index}`
-          }
-          className="font-mono text-xs no-underline hover:text-accent-quiet"
-        >
-          {caseResult.caseId}
-        </Link>
-        <p className="mt-1 text-sm text-text-muted">
-          {formatProportion(caseResult.passRate)}
-          {caseResult.unknown > 0 ? (
-            <span className="ml-3 text-unknown">{caseResult.unknown} not measured</span>
-          ) : null}
-        </p>
-      </div>
-      <span className="font-mono text-xs text-text-faint">
-        {caseResult.passed}/{caseResult.failed}/{caseResult.unknown}
+    <Link
+      href={
+        target === undefined
+          ? '#'
+          : `/runs/${slug}/attempts/${encodeURIComponent(caseResult.caseId)}/${target.index}`
+      }
+      className="row-link case-row"
+    >
+      <span className="case-mark">
+        <Badge verdict={verdict} showLabel={false} size={15} />
       </span>
-    </div>
+      <span className="case-body">
+        <span className="case-id">{caseResult.caseId}</span>
+        <span className="case-count">
+          {countSentence(caseResult.passRate, expectation === null ? 'held' : 'behaved')}
+          {expectation === null ? null : (
+            <span className="case-expect">{expectation}</span>
+          )}
+        </span>
+      </span>
+      <span className="case-instrument">
+        <IntervalRule
+          value={caseResult.passRate}
+          delayMs={delayMs}
+          tone={verdict === 'pass' ? 'text-pass' : verdict === 'fail' ? 'text-fail' : 'text-unknown'}
+        />
+      </span>
+      <span className="case-figure">
+        <RateFigure value={caseResult.passRate} />
+      </span>
+    </Link>
   )
 }
