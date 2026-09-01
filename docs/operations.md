@@ -130,13 +130,14 @@ Yapıldığında:
 
 ## Depo görünürlüğü
 
-`github.com/ktlesr/assay` şu an **özel**. İki sonucu var:
+`github.com/ktlesr/assay` **public** (2026-09-01'de açıldı). İki sonucu var:
 
-- **Provenance üretilemez.** npm provenance public kaynak deposu istiyor.
-- **Paket README'lerindeki depo bağlantıları npm ziyaretçisine 404 verir.**
-  Dört README ve dört `package.json` (`repository`, `homepage`, `bugs`)
-  `github.com/ktlesr/assay`'i gösteriyor.
+- **Provenance üretiliyor.** `release.yml` içinde `id-token: write` ve her
+  pakette `publishConfig.provenance: true`.
+- **Paket bağlantıları çalışıyor.** Dört README ve dört `package.json`
+  (`repository`, `homepage`, `bugs`) içindeki dokuz benzersiz URL 200 dönüyor;
+  yayından önce tek tek denendi.
 
-İkincisi yayından önce karara bağlanmalı: depo public yapılacaksa sorun kendi
-kendine çözülür. Özel kalacaksa bağlantıların kaldırılması gerekir — çalışmayan
-bağlantı, bağlantı olmamasından kötüdür.
+Depo tekrar özele alınırsa ikisi de bozulur: provenance hata verir ve yayın
+düşer, npm'deki bağlantılar 404'e döner. Görünürlük değişikliği yayın hattını
+ilgilendiren bir karardır.

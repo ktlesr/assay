@@ -12,8 +12,11 @@
 # izniyle en fazla 90 gün yaşıyor, yani bu secret düzenli olarak yenilenmek
 # zorunda — prosedür docs/operations.md'de. Kalıcı çözüm trusted publishing
 # (OIDC): paketler npm'de var olduktan sonra yapılandırılabiliyor ve secret'ı
-# tamamen ortadan kaldırıyor. Özel depoda da çalışıyor; yalnızca provenance
-# üretilmiyor (o public depo istiyor).
+# tamamen ortadan kaldırıyor.
+#
+# Depo public olduğu için provenance üretiliyor: yayımlanan her tarball'a,
+# hangi commit'ten hangi iş akışıyla derlendiğini söyleyen imzalı bir kanıt
+# ekleniyor. Kullanıcı npm sayfasında doğrulayabiliyor.
 
 name: Release
 
@@ -55,6 +58,7 @@ jobs:
     permissions:
       contents: write # sürüm PR'ı ve etiketi
       pull-requests: write
+      id-token: write # npm provenance: Sigstore'a OIDC ile kimlik kanıtı
     steps:
       - uses: actions/checkout@v4
         with:

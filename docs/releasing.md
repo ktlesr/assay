@@ -106,6 +106,27 @@ onu reddediyor. `npm config set` kullan.
 ister ve ücretsiz hesapta bu hata verir. Değer ayrıca her pakette
 `publishConfig` içinde de duruyor.
 
+**Elle yayında provenance üretilemez.** `publishConfig.provenance: true`
+yalnızca desteklenen bir CI'da (OIDC ile) çalışır; geliştirme makinesinde
+`pnpm release` bu yüzden düşer. Elle yayımlaman gerekiyorsa:
+
+```
+pnpm release --no-provenance
+```
+
+Bu bilinçli bir taviz: elle yayımlanan bir sürüm, kaynağını kanıtlayan
+imzayı taşımaz. Bu yüzden elle yayın bir kaçış yolu, tercih edilen yol değil.
+
+## Provenance
+
+Depo public olduğu için yayımlanan her tarball'a imzalı bir kaynak kanıtı
+ekleniyor: hangi commit'ten, hangi iş akışıyla, hangi koşumda derlendiği.
+npm paket sayfasında doğrulanabilir bir rozet olarak görünür.
+
+Gereken üç şey de yerinde: public depo, `permissions.id-token: write`, ve
+`publishConfig.provenance: true`. Üçünden biri eksikse npm sessizce
+provenance'sız yayımlamaz — hata verir, ki doğrusu budur.
+
 ## İlk yayından sonra
 
 `@ktlsr` scope'u npm'de mevcut değilse ilk `pnpm publish` onu otomatik
