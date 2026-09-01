@@ -233,9 +233,14 @@ pozitifi aynı koşumda 10/10 tetiklediği için "skill hiç tetiklenmiyor"
 açıklaması da elenmiş durumda.
 
 İki ters yönde negatif de temiz: "veritabanı şemasını tasarla" ve "logo
-tasarla" hiçbir denemede tetiklemedi. Yani skill **"design" sözcüğüne değil,
-işin frontend olmasına** tepki veriyor. Bu, ölçülmeden bilinemeyecek bir ayrım
-ve sonucu olumlu.
+tasarla" hiçbir denemede tetiklemedi.
+
+> **Düzeltme (ikinci koşum).** Bu paragrafın ilk hâli buradan "skill 'design'
+> sözcüğüne değil, işin frontend olmasına tepki veriyor" sonucunu çıkarıyordu.
+> Aynı suite ikinci kez koşulduğunda `logo` vakası 8/10'a düştü ve iddia
+> çürüdü. Ayrıntı ve düzeltilmiş yorum aşağıda: *"İkinci koşum aynı seti
+> çürüttü"*. Tek koşumdan çıkarılan bir sonucun nasıl çöktüğünün kaydı olarak
+> bırakıldı.
 
 ### Ama sonuç hâlâ ihtiyatlı okunmalı: negatiflerde açık dışlama cümlesi var
 
@@ -270,16 +275,111 @@ Gerçek kullanıcı o cümleleri yazmaz. "DataTable bileşeni yaz" der, "yeni re
 Beklenti: en az birinin kırılması. Kırılmazsa `frontend-design`'ın ayrım gücü
 gerçekten yüksektir ve bunu üç bağımsız set üzerinden söyleyebiliriz.
 
-### Bu koşumun asıl söylediği
+### İkinci koşum aynı seti çürüttü: `logo` sızdırıyor
 
-Ölçüm tarafında iki şey kanıtlandı: fixture disiplini bir vakayı gürültüden
-sinyale çevirdi, ve kontrol pozitifi sayesinde "her şey geçti" sonucu "araç
-ölçmüyor" ile karıştırılamadı.
+Aynı suite ikinci kez koşuldu (`run-2026-09-01T15-43-42-398Z-4dcd4874`,
+90 attempt, $6.32, 87.9 dk). **Sonuç aynı çıkmadı.**
 
-Skill tarafında ise sonuç **koşullu olumlu**: `frontend-design` yedi farklı
-frontend-bitişik görevde tetiklenmedi ve iki gerçek tasarım görevinde 20/20
-tetikledi. Ama negatiflerin çoğu ona açıkça "tasarım yapma" dediği için bu,
-ayrım gücünün üst sınırı değil alt sınırı.
+| Vaka | Koşum 1 | Koşum 2 |
+|---|---|---|
+| `reverse.logo` | 100% (N=10, 95% CI 72%–100%) | **80% (N=10, 95% CI 49%–94%)** |
+| diğer sekiz vaka | 100% | 100% |
+
+Yukarıdaki "logo hiçbir denemede tetiklemedi, yani skill sözcüğe değil işe
+tepki veriyor" cümlesi **tek koşuma dayanıyordu ve fazla ileri gidiyordu.**
+İkinci koşumda logo istemi iki denemede skill'i çağırdı.
+
+Birleşik tahmin, iki koşumun 20 denemesi üzerinden:
+
+    reverse.logo   90% (N=20, 95% CI 70%–97%)
+
+`assay compare` ile karşılaştırıldığında (dört pin de tutuyor) verdict
+`within_noise`:
+
+```
+within_noise  trigger.negative.reverse.logo
+  before 100% (N=10, 95% CI 72%–100%)
+  after  80% (N=10, 95% CI 49%–94%)
+  the drop of 20 points sits inside the confidence intervals,
+  so it cannot be told apart from noise
+```
+
+Yani araç "regresyon" demiyor ve **demememesi doğru**: N=10'da aralıklar
+kesişiyor. Ama iki koşumun toplamı, sızıntının gerçek olduğunu gösteriyor —
+tek koşumla "temiz" demek burada yanlış olurdu. Değişmez #3'ün ("tekrar
+varsayılanı asla 1 değil") bir üst basamağı: bazı vakalar için N=10 da az.
+
+### Sızıntının sebebi: tetikleyen şey alan değil, teslim edilebilirin biçimi
+
+İki başarısız denemenin ham izi sebebi doğrudan söylüyor:
+
+```
+Skill  {"skill":"frontend-design",
+        "args":"Design a logo for Ember & Oak coffee roastery.
+                Create an HTML/SVG mockup showing the logo concept..."}
+Write  ember-oak-logo.html
+```
+
+Sekiz denemede model istemi bir **açıklama görevi** olarak okudu ve düz metin
+cevap verdi — hiç araç çağırmadı, deneme başına $0.023. İki denemede ise
+**teslim edilebiliri HTML/SVG olarak yeniden çerçeveledi** ve skill tam o anda
+devreye girdi ($0.12–0.16).
+
+Bu, yukarıdaki "sözcüğe değil işe tepki veriyor" yorumunu düzeltiyor:
+
+- `database_schema` 20/20 temiz kaldı, çünkü çıktısı hiçbir okumada HTML olamaz.
+- `logo` sızdı, çünkü olabilir.
+
+**Sınır "design" sözcüğü de değil, "frontend" alanı da değil; üretilecek
+artefaktın web teknolojisi olup olmadığı.** Logo, poster, e-posta şablonu,
+sunum, sosyal medya görseli — hepsi HTML/SVG olarak teslim edilebilir ve
+hepsi aynı sızıntının adayı.
+
+Skill yazarına somut öneri: `frontend-design`'ın açıklamasında dışlama cümlesi
+**yok**. Bu raporun 2. bulgusu dışlama cümlelerinin işe yaradığını
+düşündürüyordu; buraya "Do NOT use for logos, print, or brand identity work"
+benzeri bir cümle eklemek bu %10'u kapatabilir — ve Assay bunu ölçebilir.
+Ürünün asıl vaadi tam olarak bu cümle.
+
+### Beş sınırda negatif iki koşumda da kırılmadı
+
+100 denemenin 100'ü doğru:
+
+    bes sinirda negatif, birlesik   100% (N=100, 95% CI 96%–100%)
+
+Bu, tek koşumdan çok daha güçlü bir sonuç. Ama yukarıdaki çekince aynen
+geçerli: beşinin de isteminde açık bir dışlama cümlesi var, yani ölçülen şey
+büyük ihtimalle "model açık olumsuz talimata uyuyor mu". Dışlama cümlesi
+olmayan üçüncü iterasyon hâlâ koşulmadı ve asıl soruyu o cevaplayacak.
+
+Nitekim setin **tek kırılan vakası, dışlama cümlesi olmayan tek negatifti.**
+Bu tesadüf olabilir, ama hipotezle tutarlı ve ucuza sınanabilir.
+
+### İki koşumun birlikte söylediği
+
+Ölçüm tarafında üç şey kanıtlandı. Fixture disiplini bir vakayı gürültüden
+sinyale çevirdi (`visual_overhaul`: %50 → %100). Kontrol pozitifi sayesinde
+"her şey geçti" sonucu "araç ölçmüyor" ile karıştırılamadı. Ve **aynı suite'in
+iki koşumu aynı sonucu vermedi** — tek koşumdan çıkarılmış bir iddia (`logo`
+temiz) ikinci koşumda çürüdü. Bu, ürünün tekrar sayısı ısrarının somut
+karşılığı; üstelik burada N=10 bile yetmedi.
+
+`assay compare` iki koşumu karşılaştırdı, dört pini de doğruladı ve düşüşe
+`within_noise` dedi. Doğru davranış: N=10'da %100 ile %80 ayırt edilemez.
+Sızıntının gerçek olduğunu söyleyen şey karşılaştırma değil, iki koşumun
+havuzlanmış 20 denemesi.
+
+Skill tarafında sonuç **koşullu olumlu, bir çekinceyle**:
+
+- İki gerçek tasarım görevinde 40/40 tetikledi.
+- Beş sınırda frontend görevinde 100/100 tetiklenmedi.
+- Ama `logo` vakasında 20 denemenin 2'sinde sızdı ve sebebi belli: tetikleyen
+  şey alan değil, teslim edilebilirin web teknolojisi olması.
+
+Ve asıl çekince duruyor: sınırda negatiflerin beşi de isteme açıkça "tasarım
+yapma" diyor. Bu yüzden 100/100, ayrım gücünün üst sınırı değil alt sınırı.
+Setin tek kırılan vakasının, dışlama cümlesi taşımayan tek negatif olması
+bu şüpheyi güçlendiriyor.
 
 ---
 
