@@ -166,6 +166,123 @@ sonuç bir şey söyler.
 
 ---
 
+## frontend-design — sınırda vaka seti (2026-09-01)
+
+İlk koşumda dört yakın komşunun dördü de 10/10 doğru davranmıştı ve bunu
+"vaka seti yeterince zor değil" diye kaydetmiştik. Bu koşum o iddiayı sınıyor.
+
+Değişenler: beş yeni negatif, hepsi **bileşen veya sayfa inşa eden ama tasarım
+kararı istemeyen** işler; iki **ters yönde** negatif ("design" sözcüğü var,
+frontend yok); mevcut koda atıf yapan her vakaya `setup.fixtures`.
+
+Koşum: `run-2026-09-01T15-10-01-791Z-211291f9`. Tablolar
+`node tools/dogfood-report.mjs frontend-design-borderline` ile kayıttan
+üretildi.
+
+| Skill | Verdict | Precision | Recall | F1 | Unknown | Maliyet | Süre |
+|---|---|---|---|---|---|---|---|
+| `frontend-design-borderline` | pass | 100% (N=20, 95% CI 84%–100%) | 100% (N=20, 95% CI 84%–100%) | 1.00 | 0 | $6.22 | 79.3 dk |
+
+| Vaka | Beklenen | Geçiş oranı | Pass | Fail | Unknown |
+|---|---|---|---|---|---|
+| `trigger.positive.control_new_page` | tetiklenmeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.positive.visual_overhaul_fixed` | tetiklenmeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.spec_bound_component` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.implement_given_design` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.headless_primitive` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.framework_port` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.a11y_only` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.reverse.database_schema` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.reverse.logo` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+
+**Toplam:** 90 attempt · 346 araç çağrısı · $6.22 · 79 dakika ajan süresi · 0 fail · 0 unknown
+
+### Fixture, ilk koşumun düşen vakasını tamamen açıkladı
+
+`visual_overhaul` ilk koşumda fixture'sız %50 tetikliyordu. Tek değişiklikle —
+çalışma dizinine gerçek bir Bootstrap dashboard'u koymak — **%100** oldu.
+
+| | Fixture yok | Fixture var |
+|---|---|---|
+| `visual_overhaul` | 50% (N=10, 95% CI 24%–76%) | **100% (N=10, 95% CI 72%–100%)** |
+
+Yani o %50, `frontend-design` hakkında hiçbir şey söylemiyordu; boş bir dizinde
+var olmayan bir dashboard'u arayan ajanı ölçüyordu. Bu, raporun "vaka yazma
+sürtünmesi" listesindeki 1. maddenin deneysel kanıtı: **mevcut koda atıf yapan
+istem fixture olmadan ölçüm değil, gürültü üretir.**
+
+### Yine hiçbir negatif kırılmadı — ve bu sefer sebebi farklı
+
+**Yedi negatifin yedisi de 10/10 doğru davrandı. Toplam 0 fail.**
+
+Bu sefer "iş hiç yapılmadı" açıklaması geçersiz. Kayıttaki yazım ve araç
+sayıları negatiflerde gerçek çalışma olduğunu gösteriyor:
+
+| Vaka | Ort. maliyet | Araç çağrısı | Dosya yazımı |
+|---|---|---|---|
+| `spec_bound_component` | $0.042 | 40 | 10 |
+| `implement_given_design` | $0.047 | 27 | 12 |
+| `headless_primitive` | $0.086 | 63 | 41 |
+| `framework_port` | $0.087 | 30 | 10 |
+| `a11y_only` | $0.045 | 42 | 10 |
+
+Ajan `DataTable`'ı yazdı, ayarlar sayfasını uyguladı, Dialog primitifini ve
+hook'u üretti (denemede ~4 dosya), sayfayı Tailwind'e çevirdi, checkout'u
+erişilebilir yaptı. **İşler yapıldı ve skill hiçbirinde çağrılmadı.** Kontrol
+pozitifi aynı koşumda 10/10 tetiklediği için "skill hiç tetiklenmiyor"
+açıklaması da elenmiş durumda.
+
+İki ters yönde negatif de temiz: "veritabanı şemasını tasarla" ve "logo
+tasarla" hiçbir denemede tetiklemedi. Yani skill **"design" sözcüğüne değil,
+işin frontend olmasına** tepki veriyor. Bu, ölçülmeden bilinemeyecek bir ayrım
+ve sonucu olumlu.
+
+### Ama sonuç hâlâ ihtiyatlı okunmalı: negatiflerde açık dışlama cümlesi var
+
+Kendi setimin zayıflığı şurada: **yedi negatifin beşinde istemin içine "tasarım
+yapma" anlamına gelen bir cümle koydum.**
+
+- "do not introduce any new colour, spacing, radius or font value"
+- "take no aesthetic decisions of your own"
+- "Ship zero styling — no CSS file, no inline styles"
+- "This is a mechanical port, not a redesign"
+- "Do not change how anything looks"
+
+Bu raporun 2. bulgusu zaten şunu söylüyordu: **açık dışlama cümleleri işe
+yarıyor.** Orada cümle skill'in açıklamasındaydı, burada istemin içinde — ama
+mekanizma aynı. Yani ölçtüğüm şey büyük ihtimalle "model açık bir olumsuz
+talimata uyuyor mu" oldu, "model tasarım işini tasarım olmayandan ayırt
+edebiliyor mu" değil. Birincisi kolay, ikincisi asıl soru.
+
+Gerçek kullanıcı o cümleleri yazmaz. "DataTable bileşeni yaz" der, "yeni renk
+üretme" demez.
+
+**Bir sonraki iterasyon:** aynı beş görev, dışlama cümleleri çıkarılmış hâlde.
+
+| Vaka | Sadeleştirilmiş istem |
+|---|---|
+| `spec_bound_component` | "`src/` içine bir `DataTable` bileşeni yaz. Mevcut `tokens.css`'i kullan." |
+| `implement_given_design` | "`settings-page.spec.json`'daki ayarlar sayfasını uygula." |
+| `headless_primitive` | "Erişilebilir bir `Dialog` primitifi ve `useDisclosure` hook'u yaz." |
+| `framework_port` | "`pricing.html`'i Bootstrap'tan Tailwind'e çevir." |
+| `a11y_only` | "`Checkout.jsx`'teki erişilebilirlik sorunlarını düzelt." |
+
+Beklenti: en az birinin kırılması. Kırılmazsa `frontend-design`'ın ayrım gücü
+gerçekten yüksektir ve bunu üç bağımsız set üzerinden söyleyebiliriz.
+
+### Bu koşumun asıl söylediği
+
+Ölçüm tarafında iki şey kanıtlandı: fixture disiplini bir vakayı gürültüden
+sinyale çevirdi, ve kontrol pozitifi sayesinde "her şey geçti" sonucu "araç
+ölçmüyor" ile karıştırılamadı.
+
+Skill tarafında ise sonuç **koşullu olumlu**: `frontend-design` yedi farklı
+frontend-bitişik görevde tetiklenmedi ve iki gerçek tasarım görevinde 20/20
+tetikledi. Ama negatiflerin çoğu ona açıkça "tasarım yapma" dediği için bu,
+ayrım gücünün üst sınırı değil alt sınırı.
+
+---
+
 ## Bulgu 1 — xlsx skill'i kendi tarif ettiği vakada tetiklenmiyor
 
 En önemli sonuç bu.
