@@ -44,10 +44,25 @@ git push
 ```
 
 `main`'e girdiğinde `release.yml` bir "Version Packages" PR'ı açar. PR
-sürümleri ve CHANGELOG'ları taşır. **Birleştirdiğin anda yayımlanır.**
+sürümleri ve CHANGELOG'ları taşır. Birleştirmek **yayımlamaz** — yalnızca
+sürüm numaralarını main'e alır.
 
-Sürüm yükseltmenin bir PR olması kasıtlı: npm yayını geri alınamaz, o yüzden
-yayımlanacak numara birleştirilmeden önce görünür olmalı.
+## Yayımlama
+
+Yayın ayrı ve elle bir adımdır:
+
+```
+gh workflow run release.yml -f confirm=yayimla
+```
+
+Ya da GitHub > Actions > Release > *Run workflow* > `confirm` alanına
+`yayimla`.
+
+Push ile yayının ayrılması kasıtlı. Alternatifi — "changeset kalmadıysa
+yayımla" — main'e atılan her commit'i bir yayın denemesine çevirirdi; belge
+düzelten bir commit bile. npm yayını geri alınamaz, o yüzden tetiği çekmek
+açık bir eylem olmalı. Onay metni de bunun için: yanlışlıkla açılan bir
+koşum yayımlamaz.
 
 ## Yayın öncesi hangi denetimler koşar
 

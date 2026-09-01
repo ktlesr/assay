@@ -1,12 +1,14 @@
-# Yayın hattı. İki aşama, ikisi de bu dosyada:
+# Yayın hattı. İki tetikleyici, iki farklı iş:
 #
-#   1. main'e bir changeset girdiğinde: sürümleri ve CHANGELOG'ları güncelleyen
-#      bir "Version Packages" PR'ı açılır veya tazelenir. Hiçbir şey yayımlanmaz.
-#   2. O PR birleştiğinde (veya depoda hiç changeset yokken): action publish
-#      moduna geçer ve `pnpm release` ile npm'de bulunmayan sürümleri gönderir.
+#   push (main)        → yalnızca sürüm hazırlığı. Changeset varsa "Version
+#                        Packages" PR'ı açılır veya tazelenir. HİÇBİR KOŞULDA
+#                        yayımlamaz.
+#   workflow_dispatch  → yayın. npm'de bulunmayan sürümleri gönderir.
 #
-# Sürüm yükseltmenin bir PR olması kasıtlı: npm yayını geri alınamaz, o yüzden
-# yayımlanacak sürüm numarası birleştirilmeden önce görünür olmalı.
+# Yayının ayrı ve elle bir tetikleyici olması kasıtlı. Alternatifi —
+# "changeset kalmadıysa yayımla" — main'e atılan HER commit'i bir yayın
+# denemesine çevirir; belge düzelten bir commit bile. npm yayını geri
+# alınamaz, o yüzden tetiği çekmek açık bir eylem olmalı.
 #
 # Kimlik doğrulama bugün NPM_TOKEN ile. npm granular access token'ları yazma
 # izniyle en fazla 90 gün yaşıyor, yani bu secret düzenli olarak yenilenmek
@@ -23,6 +25,12 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Yayımlamak için 'yayimla' yaz"
+        required: true
+        default: ''
 
 concurrency:
   group: release-${{ github.ref }}
@@ -39,7 +47,25 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has_token: ${{ steps.check.outputs.has_token }}
+      publishing: ${{ steps.mode.outputs.publishing }}
     steps:
+      # Yayın yalnızca elle tetiklendiğinde ve onay yazıldığında yapılır.
+      # Yanlış yazılan onay sessizce sürüm hazırlığına düşmesin diye burada
+      # durduruluyor.
+      - id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.confirm }}" != "yayimla" ]; then
+              echo "::error::Onay metni 'yayimla' değil — yayın yapılmadı."
+              exit 1
+            fi
+            echo "publishing=true" >> "$GITHUB_OUTPUT"
+            echo "mod: YAYIN"
+          else
+            echo "publishing=false" >> "$GITHUB_OUTPUT"
+            echo "mod: yalnızca sürüm hazırlığı (push)"
+          fi
+
       - id: check
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -106,7 +132,9 @@ jobs:
         id: changesets
         with:
           version: pnpm version-packages
-          publish: pnpm release
+          # Boş `publish`, action'ı yalnızca sürüm hazırlığı moduna sokar.
+          # Yayın komutu yalnızca elle tetiklenen koşumda doluyor.
+          publish: ${{ needs.guard.outputs.publishing == 'true' && 'pnpm release' || '' }}
           commit: 'chore(release): sürümleri yükselt'
           title: 'chore(release): sürümleri yükselt'
         env:
