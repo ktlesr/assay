@@ -78,6 +78,7 @@ Ayırt etmesi gereken iki komşu hata:
 | Hata | Anlamı | Çözüm |
 |---|---|---|
 | `E401 need auth` | Token yok, süresi dolmuş veya iptal edilmiş | Yukarıdaki yenileme |
+| `EOTP` | Hesap publish için 2FA istiyor; token bunu atlayamıyor | Aşağıya bak |
 | `E403 Forbidden` | Token geçerli ama o pakete yazma izni yok | Tokenın paket listesini ve Read/**write** iznini düzelt |
 | `E404 Not Found` (yayında) | Scoped paket private yayımlanmaya çalışılıyor | `--access public` — zaten `publishConfig`'te var |
 | `You cannot publish over the previously published versions` | Sürüm zaten npm'de | Hata değil; sürümü yükselt veya koşumu tekrarla |
@@ -88,6 +89,40 @@ yeşil görünür ama yayın yapılmamıştır. Yayın beklediğin bir push'ta R
 işinin *atlandığını* görürsen sebep budur.
 
 ---
+
+### `EOTP` — token 2FA'yı atlayamıyor
+
+```
+npm error code EOTP
+npm error This operation requires a one-time password from your authenticator.
+```
+
+npm'in varsayılan paket yayın ayarı şu: *"Require two-factor authentication
+**or** a granular access token with bypass 2fa enabled."* Sıradan bir granular
+access token bu şartı karşılamıyor — CI'da interaktif 2FA istemi
+cevaplanamayacağı için yayın düşüyor.
+
+**Bu hata 2026-09-01'de 0.1.0'ın ilk yayın denemesinde gerçekten alındı.**
+Bütün kapılar (token geçerliliği, `pnpm check`, `pack:check`) geçildi,
+provenance imzası bile üretildi; publish çağrısı registry tarafından
+reddedildi. Kısmi yayın olmadı: dört paketin hiçbiri gitmedi.
+
+İki çıkış yolu var:
+
+1. **Token'ı bypass-2FA yetkisiyle yeniden üret.** Granular access token
+   oluştururken 2FA atlama seçeneği işaretlenir. Provenance korunur, yayın
+   CI'da kalır. Uyarı: npm bu yetkiyi kullanımdan kaldırıyor — Ağustos
+   2026'dan beri kısıtlı ve yaklaşık Ocak 2027'de doğrudan yayın yetkisi
+   tamamen kalkacak. Tek seferlik bir kullanım olarak kabul edilebilir,
+   çünkü trusted publishing kurulunca token zaten siliniyor.
+2. **İlk sürümü elle yayımla.** `pnpm release --no-provenance --otp=<kod>`.
+   Bedeli: 0.1.0 kaynağını kanıtlayan imzayı taşımaz. Sonraki sürümler
+   trusted publishing ile provenance'lı çıkar.
+
+Kalıcı çözüm ikisi de değil, **trusted publishing**: OIDC ile kimlik
+doğrular, saklanan token yoktur, 2FA sorusu hiç sorulmaz. Ama bir paketin
+npm ayarlarından yapılandırıldığı için paketin önce var olması gerekiyor —
+yani ilk sürüm yukarıdaki iki yoldan biriyle çıkmak zorunda.
 
 ## Kısmi yayın
 

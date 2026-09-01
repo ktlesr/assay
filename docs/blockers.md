@@ -75,3 +75,17 @@ Açmak için: GitHub > repo > *Settings* > *Secrets and variables* > *Actions* >
 reddediyor. Secret tanımlanana kadar `release.yml` içindeki `guard` işi
 `release` işini hiç koşturmuyor ve loga `::warning::` yazıyor.
 Süreç: [releasing.md](releasing.md).
+
+## 2026-09-01 — 0.1.0 yayını 2FA (EOTP) nedeniyle durdu
+Ne gerekiyor: Ya bypass-2FA yetkili yeni bir `NPM_TOKEN`, ya da elle yayın
+için bir authenticator kodu. İkisi de kullanıcının npm hesabında.
+Ne yapıldı: Yayın `workflow_dispatch` ile tetiklendi (koşum `33500616977`).
+Token doğrulaması, `pnpm check`, `pack:check` ve provenance imzalama geçti;
+publish çağrısı `npm error code EOTP` ile reddedildi. Dört paketin hiçbiri
+yayımlanmadı — kısmi yayın yok, registry `npm view` ile doğrulandı.
+Neden izole edildi: Sır uydurulmaz ve 2FA kodu ancak kullanıcıda. Yayın
+dışındaki her şey hazır ve doğrulanmış durumda.
+Açmak için: Seçenekler ve bedelleri [operations.md](operations.md) içinde
+"`EOTP` — token 2FA'yı atlayamıyor" başlığı altında. Kalıcı çözüm trusted
+publishing ama o paketin var olmasını gerektiriyor, yani ilk sürüm bu iki
+yoldan biriyle çıkmalı.
