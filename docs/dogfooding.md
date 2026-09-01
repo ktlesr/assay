@@ -67,6 +67,105 @@ iki yakın komşu (kardeş formatlar), bir alakasız. Her vaka **10 tekrar**.
 
 ---
 
+## frontend-design — otomatik tetiklenme ölçümü (2026-09-01)
+
+Ayrı bir koşum: `anthropics/skills` `frontend-design`. Öncekilerden iki farkı
+var. Birincisi, **hiçbir istemde skill adı geçmiyor ve `/frontend-design`
+yazılmıyor** — ölçülen şey modelin istemden skill'i kendi seçmesi, komut
+çalıştırması değil. İkincisi, yakın komşular başka bir skill değil: aynı alanın
+(frontend) tasarım kararı içermeyen işleri.
+
+Koşum: `run-2026-09-01T13-26-03-631Z-b018d5fc`. Tablolar
+`node tools/dogfood-report.mjs frontend-design` ile kayıttan üretildi;
+bu bölümde de elle yazılmış ölçüm yok.
+
+| Skill | Verdict | Precision | Recall | F1 | Unknown | Maliyet | Süre |
+|---|---|---|---|---|---|---|---|
+| `frontend-design` | fail | 100% (N=25, 95% CI 87%–100%) | 83% (N=30, 95% CI 66%–93%) | 0.91 | 0 | $5.32 | 67.6 dk |
+
+| Vaka | Beklenen | Geçiş oranı | Pass | Fail | Unknown |
+|---|---|---|---|---|---|
+| `trigger.positive.new_page` | tetiklenmeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.positive.visual_overhaul` | tetiklenmeli | 50% (N=10, 95% CI 24%–76%) | 5 | 5 | 0 |
+| `trigger.positive.new_screen` | tetiklenmeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.style_tweak` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.library_setup` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.component_test` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.near_neighbor.refactor` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.unrelated_db` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+| `trigger.negative.unrelated_concept` | tetiklenmemeli | 100% (N=10, 95% CI 72%–100%) | 10 | 0 | 0 |
+
+**Toplam:** 90 attempt · 360 araç çağrısı · $5.32 · 68 dakika ajan süresi · 5 fail · 0 unknown
+
+### Bulgu — düşen vaka skill'i değil, benim vaka kurgumu ölçtü
+
+`visual_overhaul` 10 denemenin 5'inde tetiklenmedi. Ham ize bakınca sebep
+skill'de değil çıktı:
+
+```
+assistant  "I'll help you give that dashboard a polished visual identity.
+            First, let me explore the project to find the dashboard code..."
+Glob  **/*dashboard*      -> bos
+Glob  **/*analytics*      -> bos
+Glob  **/*.{html,jsx,tsx} -> bos
+Bash  ls -la              -> bos
+assistant  "I see the repository is empty. To help redesign your analytics
+            dashboard, I need to know: Do you have existing dashboard code?"
+```
+
+İstem "bizim analytics dashboard'umuz" diyor, yani var olan bir artefakta atıf
+yapıyor. İzole çalışma dizininde öyle bir şey yok. Ajan dosyaları arıyor,
+bulamıyor ve yarı yarıya bir olasılıkla tasarım işine hiç geçmeden soru sorup
+duruyor — skill de bu yüzden tetiklenmiyor.
+
+Ayırt edici kanıt maliyette: başarısız denemeler $0.032–0.053, başarılı olanlar
+$0.033–0.224. Düşenler işi hiç yapmamış.
+
+Bu, bu raporun kendi "vaka yazma sürtünmesi" listesindeki 1. maddenin canlı
+tekrarı: **dosyaya veya mevcut koda atıf yapan istem fixture ister.** Uyarıyı
+yazmıştık ve aynı tuzağa düştük. Doğru okuma şu: bu vakanın ölçtüğü şey
+`frontend-design`'ın tetiklenme doğruluğu değil, boş bir dizinde var olmayan
+bir dashboard'u aramanın sonucu. **%50, skill hakkında bir bulgu değildir.**
+
+Düzeltmesi: vakaya bir `setup.fixtures` eklenip basit ve çirkin bir dashboard
+bileşeni konmalı; ölçüm ancak o zaman skill'i ölçer. Diğer iki pozitif
+(`new_page`, `new_screen`) sıfırdan üretim istediği için bu sorundan etkilenmedi
+ve ikisi de 10/10.
+
+### Yakın komşular yeterince zor değildi
+
+**Dördü de 10/10 doğru davrandı. Bu iyi bir sonuç değil, zayıf bir vaka seti
+işareti.** Değişmez #5'in varlık sebebi ayrım gücünü ölçmek; hiçbiri
+kırılmayan bir negatif kümesi, ayrım gücünü ölçmemiş demektir. Ölçtüğümüz tek
+şey, modelin "tek bir padding değerini değiştir" ile "sıfırdan pricing sayfası
+tasarla" arasındaki farkı görebildiği oldu — ki bu zaten bekleniyordu.
+
+Sebep kurguda: dördü de **yapmak** değil, mevcut bir şeyi düzeltmek, test
+etmek, kurmak veya yeniden düzenlemek istiyor. Skill'in açıklaması ise "build
+web components, pages, or applications" diyor. Yani negatiflerim, skill'in
+tetiklenme cümlesinin dışında kalıyordu — komşu değil, uzak akraba.
+
+Gerçek sınır şurada: **bileşen veya sayfa İNŞA eden ama tasarım kararı
+istemeyen** istekler. Önerilen daha sınırda set:
+
+| Vaka | İstem çekirdeği | Neden zor |
+|---|---|---|
+| `spec_bound_component` | "`<DataTable>` bileşenini yaz. `tokens.css`'teki mevcut değerleri birebir kullan, yeni renk/boşluk/tipografi üretme." | "Bileşen yaz" tetikleyici cümlenin tam ortasında; yasak olan yalnızca estetik karar |
+| `implement_given_design` | "Figma çıktısı ekte. Bu ayarlar sayfasını spec'teki değerlerle birebir uygula, hiçbir estetik seçim yapma." | Sayfa inşa ediliyor ama tasarım zaten verilmiş |
+| `headless_primitive` | "Erişilebilir, tamamen stilsiz bir `<Dialog>` primitifi ve `useDisclosure` hook'u yaz. Hiç CSS yok." | Bileşen inşası + sıfır görsel karar |
+| `framework_port` | "Bu pricing sayfasını Bootstrap sınıflarından Tailwind utility'lerine çevir. Piksel çıktısı birebir aynı kalacak." | Sayfa üzerinde çalışılıyor, görünüm değişmeyecek |
+| `a11y_only` | "Mevcut checkout akışına ARIA etiketleri ve odak yönetimi ekle. Görsel hiçbir şey değişmeyecek." | Arayüz işi, görsel karar yok |
+
+Ters yönde bir negatif de eksik: **"design" sözcüğü geçen ama frontend olmayan**
+istekler ("veritabanı şemasını tasarla", "logo tasarla"). Mevcut sette skill'in
+sözcüğe mi işe mi tepki verdiği ayrılamıyor.
+
+Bu set koşulmadı; öneri olarak duruyor. Koşulursa beklenti, en az birinin
+kırılması — kırılmazsa skill'in ayrım gücü gerçekten yüksek demektir ve o zaman
+sonuç bir şey söyler.
+
+---
+
 ## Bulgu 1 — xlsx skill'i kendi tarif ettiği vakada tetiklenmiyor
 
 En önemli sonuç bu.

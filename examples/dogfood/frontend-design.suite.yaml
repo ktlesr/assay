@@ -1,0 +1,94 @@
+# Dogfooding — anthropics/skills frontend-design.
+#
+# Skill repoda vendor'lanmıyor (proprietary lisans); yerel kurulumdan
+# `.assay/dogfood/frontend-design` altına kopyalanıyor. Bkz. docs/dogfooding.md.
+#
+# ÖLÇÜLEN ŞEY: otomatik tetiklenme. Hiçbir istemde skill adı geçmiyor ve
+# `/frontend-design` yazılmıyor — komut çalıştırmayı değil, modelin istemden
+# skill'i kendi seçmesini ölçüyoruz.
+#
+# Yakın komşular kasıtlı olarak zor: dördü de gerçek frontend işi ama hiçbiri
+# tasarım kararı istemiyor. Skill'in açıklaması "build web components, pages,
+# or applications" diyor; ayrım gücü tam burada sınanıyor.
+
+version: 1
+
+target:
+  skill: frontend-design
+  source: anthropics/skills@local-install
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [frontend-design]
+
+runs: 10
+
+cases:
+  # --- POZİTİF: tasarım kararı gerektiren yeni arayüz işi ---
+
+  - id: trigger.positive.new_page
+    prompt: |
+      Build a pricing page for a developer tools company. Three tiers —
+      Hobby, Team, Enterprise — with a monthly/annual toggle and a comparison
+      table underneath. It should feel confident and memorable, not like every
+      other SaaS pricing page.
+    expect: { triggered: true }
+
+  - id: trigger.positive.visual_overhaul
+    prompt: |
+      Our analytics dashboard looks like unstyled Bootstrap: grey cards, default
+      blue buttons, no personality. Give it a real visual identity — typography,
+      colour, spacing, the whole look. Same data and layout, new appearance.
+    expect: { triggered: true }
+
+  - id: trigger.positive.new_screen
+    prompt: |
+      We need an onboarding screen for a mobile-first habit tracking app. Three
+      steps, a progress indicator, and a final celebration state. Make the
+      visual direction distinctive.
+    expect: { triggered: true }
+
+  # --- YAKIN KOMŞU NEGATİFLERİ: frontend işi, tasarım kararı yok ---
+
+  - id: trigger.negative.near_neighbor.style_tweak
+    prompt: |
+      In `Button.tsx` the submit button uses `padding: 8px 16px`. Our spacing
+      scale says it should be `12px 20px`. Change that one declaration and
+      leave everything else exactly as it is.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.library_setup
+    prompt: |
+      Add react-hook-form to the project and wire the existing signup form up
+      to it. Keep the current markup and classes unchanged — this is a state
+      management change, not a visual one.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.component_test
+    prompt: |
+      Write unit tests for the existing `Button` component with Vitest and
+      Testing Library. Cover the disabled state, the loading state, and that
+      onClick fires once per click.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.refactor
+    prompt: |
+      `ProductCard.tsx` has a 200-line render function with four levels of
+      nested conditionals. Split it into smaller components and extract the
+      conditional logic. The rendered output must stay byte-for-byte identical.
+    expect: { triggered: false }
+
+  # --- ALAKASIZ NEGATİFLER ---
+
+  - id: trigger.negative.unrelated_db
+    prompt: |
+      Our Postgres query that joins orders to customers takes 40 seconds on
+      2 million rows. Here is the EXPLAIN ANALYZE output — where should I add
+      an index?
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated_concept
+    prompt: What is the difference between a semaphore and a mutex?
+    expect: { triggered: false }
