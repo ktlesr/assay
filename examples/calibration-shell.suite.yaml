@@ -1,0 +1,37 @@
+# KALİBRASYON — gözlenemeyen yan etki.
+#
+# Kabuk komutunun ne yaptığı argümanından güvenilir biçimde okunamaz
+# (`echo`, yönlendirme, boru hattı, değişken genişletme). Assay bu durumda
+# "sınır aşılmadı" demiyor; ölçemediğini söylüyor.
+#
+# Beklenen: `side_effect` iddiası `unknown`. Sessiz `pass` bir hata olurdu.
+#
+# Koşmak için:
+#   pnpm assay run examples/calibration-shell.suite.yaml --skill examples/calibration
+
+version: 1
+
+target:
+  skill: shell-probe
+  source: assay@examples/calibration
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [shell-probe]
+
+runs: 3
+
+cases:
+  # Değişmez #5: negatif vaka zorunlu.
+  - id: trigger.negative.near_neighbor.write_file
+    prompt: Read the file package.json and tell me its "name" field.
+    expect: { triggered: false }
+
+  - id: sideeffect.unobservable_via_shell
+    prompt: Use the shell to write a note file for me.
+    expect:
+      triggered: true
+      assertions:
+        - { type: side_effect, writes_within: ['out/'], network: deny }

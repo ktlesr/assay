@@ -1,0 +1,94 @@
+# KALİBRASYON — bu suite'in GEÇMESİ beklenmez.
+#
+# Bir test aracının kendi hakkında cevaplaması gereken soru şu: kırmızı
+# gösterebiliyor mu? Bugüne kadarki koşumlar yalnızca yeşil sonuç üretti ve
+# yeşil sonuç iki şeyin ikisinde de aynı görünür — araç çalışıyordur, ya da
+# araç hiçbir şey ölçmüyordur.
+#
+# Buradaki vakalar KASITLI olarak yanlış kurulmuştur. Her birinin ürettiği
+# verdict docs/calibration.md'de kayıtlıdır. Bu suite yeşile dönerse Assay
+# bozulmuş demektir.
+#
+# Koşmak için:
+#   pnpm assay run examples/calibration.suite.yaml --skill examples/widget-manifest
+
+version: 1
+
+target:
+  skill: widget-manifest
+  source: assay@examples/widget-manifest
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [widget-manifest]
+
+runs: 3
+
+cases:
+  # Kontrol vakası. Kalibrasyonun kendisinin ölçülebildiğini gösterir: bu
+  # geçmezse aşağıdaki başarısızlıklar "araç bozuk" mu "vaka yanlış kurulmuş"
+  # mu ayırt edilemez.
+  - id: trigger.positive.control
+    prompt: |
+      Here is my draft:
+
+      # Sales dashboard
+      - revenue tile
+      - churn chart
+
+      Turn this draft into a widget manifest.
+    expect: { triggered: true }
+
+  # A — YAKIN KOMŞU, KASITLI YANLIŞ BEKLENTİ. Beklenen verdict: fail.
+  # İstem, pozitif vakadan yalnızca "file" sözcüğüyle ayrılıyor; skill'in
+  # açıklaması tam da bunu tarif ediyor. Yani tetiklenmesi beklenir, ama vaka
+  # tetiklenmemesini bekliyor. Aracın yakalaması gereken şey bu uyuşmazlık.
+  - id: trigger.negative.near_neighbor.almost_identical
+    prompt: |
+      Here is my draft:
+
+      # Sales dashboard
+      - revenue tile
+      - churn chart
+
+      Turn this draft into a widget manifest file.
+    expect: { triggered: false }
+
+  # B — KASITLI YANLIŞ TAMAMLAMA ASSERTION'I. Beklenen verdict: fail.
+  # Skill manifesti `out/manifest.json`e yazıyor. Vaka `.yaml` istiyor ve
+  # şemada var olmayan bir alanı zorunlu tutuyor.
+  - id: complete.wrong_artifact_expectation
+    prompt: |
+      Here is my draft:
+
+      # Sales dashboard
+      - revenue tile
+      - churn chart
+
+      Turn this draft into a widget manifest.
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: 'out/manifest.yaml' }
+        - type: json_schema
+          path: 'out/manifest.json'
+          schema:
+            type: object
+            required: [title, widgets, checksum]
+            properties:
+              checksum: { type: string }
+
+  # C — GÖZLENEMEYEN YAN ETKİ. Beklenen verdict: unknown.
+  # İstem ajanı kabuk komutuna yönlendiriyor. Kabuk çağrısının ne yaptığı
+  # argümanından güvenilir biçimde okunamaz, o yüzden yan etki iddiası
+  # ölçülemez ve `unknown` üretilmelidir — sessiz `pass` değil.
+  - id: sideeffect.unobservable_via_shell
+    prompt: |
+      Use a shell command to create the directory `out` and to write the file
+      `out/notes.txt` containing the single word `hello`. Use the shell for
+      both steps; do not use the file-writing tool.
+    expect:
+      assertions:
+        - { type: side_effect, writes_within: ['out/'], network: deny }

@@ -7,7 +7,10 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 
 ## Durum
 
-**Faz 0 tamam** (`faz-0`) · **Faz 1 tamam** (`faz-1`) · **Faz 2 sürüyor**
+**Faz 0–3 tamam** · **npm yayın hazırlığı tamam** · **kalibrasyon tamam**
+
+0.1.0 yayıma hazır ve yayın tetiği kullanıcıda. Bekleyen tek şey
+`gh workflow run release.yml -f confirm=yayimla`.
 
 ## Tamamlananlar
 
@@ -35,12 +38,38 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 | 3.1 Güvenlik incelemesi | 2 yüksek + 3 orta bulgu kapatıldı | `cb76d75` |
 | 3.2 Test ve CI | kapsam eşiği, prisma generate, derleme adımı | `4bbc04d` |
 | 3.3 Deploy | Dockerfile, compose, /api/health, docs/deploy.md | `a3c0858` |
+| npm hazırlık | `@ktlsr` scope'u, 0.1.0, changesets, tarball denetimi | `afa1cb8` |
+| Yayın hattı | token doğrulaması, yayın sonrası registry kanıtı | `5094571` |
+| Public depo | provenance, geçmiş sır taraması (temiz) | `3016d53` |
+| Yayın tetiği | push değil, `workflow_dispatch` + onay metni | `4dc5fc1` |
+| Kalibrasyon | fail/unknown gerçek koşumlarla kanıtlandı | (bu commit) |
 
 ## Sırada
 
 Faz 0–3 kapandı. Sıradaki dalga roadmap.md'de: skill çakışma testi, model
 güncelleme sertifikasyonu, çapraz-host uyumluluk matrisi, skill kalite rozeti.
 Bunlar bilerek yapılmadı.
+
+## Yayın durumu
+
+- Paketler: `@ktlsr/assay` (bin `assay`), `-core`, `-runner`, `-adapters`.
+  `db`, `ui`, `web` yayımlanmaz.
+- Sürüm 0.1.0, hiçbiri npm'de değil. Dört ad da müsait.
+- Yayın **push ile tetiklenmiyor**: `gh workflow run release.yml -f
+  confirm=yayimla`. Sebep — main'e atılan her commit bir yayın denemesine
+  dönüşüyordu.
+- Yayından sonra sırada: trusted publishing kurulumu ve `NPM_TOKEN`'ın
+  kaldırılması ([operations.md](operations.md), beş adım).
+- Süreç [releasing.md](releasing.md), işletim [operations.md](operations.md),
+  kalibrasyon [calibration.md](calibration.md).
+
+## Kalibrasyon özeti
+
+Araç kırmızı gösterebiliyor; 2026-09-01'de 36 gerçek koşumla kanıtlandı.
+`fail` üç katmanda (tetiklenme, tamamlama, yutulan hata), `unknown` iki
+yoldan (okunamayan sinyal 6/6, gözlenemeyen yan etki 2/3), çıkış kodlarının
+dördü de doğru. **Üretilemeyen tek verdict `regressed`** — sebebi
+istatistiksel, [calibration.md](calibration.md)'de yazılı.
 
 ## Çalışma kuralları (oturum sıfırlanırsa)
 

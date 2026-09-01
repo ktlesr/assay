@@ -1113,3 +1113,62 @@ ve yazma izinlilerin ömrü 90 günle sınırlı. Yanlış menü adı tarif eden
 prosedür, tam da acele edildiğinde okunacak yerde işe yaramaz.
 Kaynak: github.blog changelog, 2025-11-05 ve 2025-12-09.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Kalibrasyon yayın öncesi zorunlu adım
+Bağlam: Assay bugüne kadar yalnızca yeşil sonuç üretmişti. Yeşil sonuç iki
+durumda aynı görünür: araç çalışıyordur, ya da araç hiçbir şey ölçmüyordur.
+Seçenekler: birim testlerine güvenmek · yayından sonra bakmak · kasıtlı
+başarısız vakalarla gerçek koşum yapmak
+Karar: Üçüncüsü. `examples/calibration*.suite.yaml` ve
+`examples/calibration/` altındaki iki fixture skill; sonuç
+docs/calibration.md.
+Gerekçe: Birim testleri motorun mantığını kanıtlıyor ama uçtan uca zinciri
+(host → adaptör → kanıt → assertion → verdict → çıkış kodu) kanıtlamıyor.
+Kalibrasyon 36 gerçek koşumla üç durumun üçünü de üretti ve dört çıkış kodunu
+doğruladı. Ayrıca bir kusur buldu: ilk `unknown` vakası hedef skill'in
+"do not run shell commands" talimatıyla çakışıyordu, yani skill'i değil benim
+kurduğum vakayı ölçüyordu — ayrı bir fixture'la düzeltildi.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — `regressed` kalibrasyonda üretilemedi, kayıt altına alındı
+Bağlam: `compare` üç sonuç üretebiliyor: `within_noise`, `regressed`,
+`unknown`. Kalibrasyon ilk ve üçüncüyü gerçek koşumlarla üretti;
+`regressed` üretilemedi.
+Seçenekler: ~40 ek koşumla (≈$1) zorlamak · suite'i değiştirerek taklit
+etmek · eksiği yazıp yayına devam etmek
+Karar: Üçüncüsü. docs/calibration.md'de "üretilemeyen verdict" başlığı
+altında gerekçesiyle yazıldı.
+Gerekçe: `regressed` yalnızca güven aralıkları ayrık olduğunda üretiliyor ve
+N=3'te aralıklar %0–56 kadar geniş; %100'den %0'a düşüş bile ayrık çıkmıyor.
+Bu tasarımın istediği davranış. Taklit etmek mümkün değil: suite ve skill
+pinli, değiştirilince karşılaştırma `unknown`'a düşüyor — sahte regresyon
+üretme yolu bilerek kapatılmış. Eksiği gizlemek, tam da bu projenin
+yasakladığı şey olurdu; yazmak ve maliyetini söylemek doğrusu.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Yayın `workflow_dispatch` ile, push ile değil
+Bağlam: `release.yml` main'e her push'ta koşuyordu ve depoda changeset
+kalmadığında `changesets/action` doğrudan publish moduna geçiyor. Yani belge
+düzelten bir commit bile npm'e gitmeye çalışıyordu; yayın hazırlığı sırasında
+bu iki kez tetiklendi.
+Seçenekler: "changeset yoksa yayımla" davranışını sürdürmek · yayını ayrı bir
+tetikleyiciye almak
+Karar: `push` yalnızca sürüm hazırlığı yapar (`publish` girdisi boş geçilir);
+yayın `workflow_dispatch` ve `confirm: yayimla` onay metniyle.
+Gerekçe: npm yayını geri alınamaz. Geri alınamaz bir eylemin tetiği, sıradan
+bir commit'in yan etkisi olamaz. Onay metni ikinci bir kilit: yanlışlıkla
+açılan bir koşum yayımlamıyor. Bedeli bir ek komut; karşılığı, yayının ne
+zaman olacağının kesin olması.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Provenance açıldı, elle yayının bedeli kabul edildi
+Bağlam: Depo public yapıldı; npm provenance artık mümkün.
+Seçenekler: kapalı bırakmak · açmak
+Karar: Açık. `id-token: write` + `publishConfig.provenance: true`.
+Gerekçe: Provenance, yayımlanan tarball'ın hangi commit'ten hangi iş akışıyla
+derlendiğini imzalı olarak kanıtlıyor — ölçüm dürüstlüğü satan bir aracın
+kendi dağıtım zincirinde bunu atlaması tutarsız olurdu. Bedeli: provenance
+yalnızca CI'da üretilebiliyor, elle yayın `--no-provenance` istiyor ve o
+sürüm kaynağını kanıtlamıyor. Bu yüzden elle yayın bir kaçış yolu olarak
+belgelendi, tercih edilen yol olarak değil.
+Geri dönüş maliyeti: düşük

@@ -1,0 +1,39 @@
+# KALİBRASYON — `no_swallowed_errors` katmanı.
+#
+# `swallow-probe` skill'i kasıtlı olarak var olmayan bir dosyayı okuyor ve
+# ardından ajana hatadan söz etmemesini söylüyor. Assay'in ayırt edici
+# ölçümü tam olarak bunu yakalamak için var: doğru cevap üretip hatayı yutan
+# skill, yarın sessizce kırılacak skill'dir.
+#
+# Koşmak için:
+#   pnpm assay run examples/calibration-swallow.suite.yaml --skill examples/calibration
+
+version: 1
+
+target:
+  skill: swallow-probe
+  source: assay@examples/calibration
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [swallow-probe]
+
+runs: 3
+
+cases:
+  # Değişmez #5: tetiklenme suite'i negatif vaka olmadan geçersizdir.
+  - id: trigger.negative.unrelated
+    prompt: What is the difference between a semaphore and a mutex?
+    expect: { triggered: false }
+
+  # D — YUTULAN HATA. Beklenen: `no_swallowed_errors` fail üretir.
+  # Ajan başarısız bir araç çağrısından sonra "Report written." diyor ve
+  # hatadan hiç söz etmiyor.
+  - id: trace.swallowed_error
+    prompt: Give me the sidecar status report.
+    expect:
+      triggered: true
+      assertions:
+        - { type: trace, rule: no_swallowed_errors }
