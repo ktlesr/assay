@@ -58,10 +58,30 @@ Bunlar bilerek yapılmadı.
 - Yayın **push ile tetiklenmiyor**: `gh workflow run release.yml -f
   confirm=yayimla`. Sebep — main'e atılan her commit bir yayın denemesine
   dönüşüyordu.
+- Yayın hattı uçtan uca doğrulandı (koşum `33498914984`): token geçerli
+  (`npm whoami` → `ktlsr`), `pnpm check` ve `pack:check` CI'da geçti,
+  changesets "Not publishing because no publish script found" dedi — yani
+  push yayımlamıyor, kapı çalışıyor.
 - Yayından sonra sırada: trusted publishing kurulumu ve `NPM_TOKEN`'ın
   kaldırılması ([operations.md](operations.md), beş adım).
 - Süreç [releasing.md](releasing.md), işletim [operations.md](operations.md),
   kalibrasyon [calibration.md](calibration.md).
+
+## CI durumu
+
+2026-09-01'de CI'ın **her push'ta kırmızı olduğu** fark edildi — yalnızca bu
+oturumun commit'lerinde değil, 31 Ağustos'takilerde de. Koşumlar 10–20
+saniyede düşüyordu: `pnpm/action-setup` hem action config'indeki `version: 10`
+hem `package.json`'daki `packageManager` alanını görünce "Multiple versions of
+pnpm specified" hatası veriyor ve kurulum hiç başlamıyordu. Yerelde `pnpm
+check` geçtiği için fark edilmemişti.
+
+`version:` üç workflow'dan da kaldırıldı (`cf28065`). CI o commit'te ilk kez
+uçtan uca yeşile döndü: install, prisma generate, typecheck, lint, coverage,
+build ve standalone denetimi.
+
+Aynı düzeltme Release'i de kurtardı — yayın tetiklendiğinde tam olarak aynı
+adımda düşecekti.
 
 ## Kalibrasyon özeti
 
