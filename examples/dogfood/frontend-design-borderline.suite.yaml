@@ -1,0 +1,131 @@
+# Dogfooding — frontend-design, SINIRDA vaka seti.
+#
+# İlk koşumda (frontend-design.suite.yaml) dört yakın komşunun dördü de 10/10
+# doğru davrandı. Bu iyi bir sonuç değil, zayıf bir negatif kümesi işaretiydi:
+# hiçbiri kırılmayan bir set ayrım gücünü ölçmemiş demektir.
+#
+# Sebep kurguda: o negatiflerin dördü de "yapmak" değil, mevcut bir şeyi
+# düzeltmek/test etmek/kurmak/refactor etmek istiyordu. Skill'in tetiklenme
+# cümlesi ise "build web components, pages, or applications" — yani negatifler
+# komşu değil, uzak akrabaydı.
+#
+# Bu set gerçek sınırı hedefliyor: BİLEŞEN VEYA SAYFA İNŞA EDEN ama tasarım
+# kararı istemeyen istekler. Tetikleyici fiil ("build", "implement", "write")
+# istemin içinde; yasak olan yalnızca estetik karar.
+#
+# Ayrıca iki TERS YÖNDE negatif var: "design" sözcüğü geçen ama frontend
+# olmayan istekler. Skill'in sözcüğe mi işe mi tepki verdiğini ayırıyorlar.
+#
+# Fixture disiplini: ilk koşumda `visual_overhaul` %50 düştü ve ham iz sebebin
+# skill olmadığını gösterdi — istem var olmayan bir dashboard'a atıf yapıyordu,
+# ajan boş dizinde dosya arayıp soru sorarak duruyordu. Mevcut koda atıf yapan
+# her vaka burada `setup.fixtures` taşıyor.
+#
+# Koşmak için:
+#   assay run examples/dogfood/frontend-design-borderline.suite.yaml \
+#     --skill .assay/dogfood/frontend-design
+
+version: 1
+
+target:
+  skill: frontend-design
+  source: anthropics/skills@local-install
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [frontend-design]
+
+runs: 10
+
+cases:
+  # --- KONTROL POZİTİFİ ---
+  # Olmazsa "her negatif geçti" sonucu ile "skill hiç tetiklenmiyor" sonucu
+  # ayırt edilemez. İlk koşumda bu vaka 10/10 tetiklemişti.
+
+  - id: trigger.positive.control_new_page
+    prompt: |
+      Build a pricing page for a developer tools company. Three tiers —
+      Hobby, Team, Enterprise — with a monthly/annual toggle and a comparison
+      table underneath. It should feel confident and memorable, not like every
+      other SaaS pricing page.
+    expect: { triggered: true }
+
+  # --- DÜZELTİLEN POZİTİF ---
+  # İlk koşumda fixture'sız koştu ve %50 düştü; ölçtüğü şey skill değil, boş
+  # dizindi. Artık gerçekten çirkin bir Bootstrap dashboard'u var.
+
+  - id: trigger.positive.visual_overhaul_fixed
+    prompt: |
+      Our analytics dashboard looks like unstyled Bootstrap: grey cards, default
+      blue buttons, no personality. Give it a real visual identity — typography,
+      colour, spacing, the whole look. Same data and layout, new appearance.
+    setup: { fixtures: ./fixtures/dashboard }
+    expect: { triggered: true }
+
+  # --- SINIRDA YAKIN KOMŞULAR: inşa var, tasarım kararı yok ---
+
+  - id: trigger.negative.near_neighbor.spec_bound_component
+    prompt: |
+      Build a `DataTable` component in `src/`. It must use the existing values
+      in `src/tokens.css` exactly — do not introduce any new colour, spacing,
+      radius or font value, and do not change the tokens file. Match the visual
+      language of `src/DataList.tsx`: same surface, same border, same row
+      rhythm. Columns are configurable, rows are plain text.
+    setup: { fixtures: ./fixtures/tokens-app }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.implement_given_design
+    prompt: |
+      `settings-page.spec.json` is the finished design spec handed over by our
+      designer. Implement that settings page as HTML and CSS. Every size,
+      weight, colour and radius comes from the spec — take no aesthetic
+      decisions of your own and add nothing that is not in the file.
+    setup: { fixtures: ./fixtures/design-spec }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.headless_primitive
+    prompt: |
+      Write a headless `Dialog` primitive and a `useDisclosure` hook in React.
+      Correct ARIA roles, focus trap, Escape to close, focus restored on close.
+      Ship zero styling — no CSS file, no inline styles, no class names beyond
+      what consumers pass in. Consumers bring their own appearance.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.framework_port
+    prompt: |
+      Convert `pricing.html` from Bootstrap classes to Tailwind utility classes.
+      Drop the Bootstrap stylesheet link. The rendered result must look
+      identical — same spacing, same colours, same type scale. This is a
+      mechanical port, not a redesign.
+    setup: { fixtures: ./fixtures/bootstrap-page }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.a11y_only
+    prompt: |
+      `Checkout.jsx` is inaccessible: clickable divs, inputs with no labels, an
+      error message no screen reader announces. Fix the accessibility — real
+      buttons, associated labels, a live region for the error, sensible focus
+      order. Do not change how anything looks.
+    setup: { fixtures: ./fixtures/checkout }
+    expect: { triggered: false }
+
+  # --- TERS YÖNDE NEGATİFLER ---
+  # "design" sözcüğü var, frontend işi yok. Skill sözcüğe mi tepki veriyor,
+  # işin kendisine mi?
+
+  - id: trigger.negative.reverse.database_schema
+    prompt: |
+      Design the database schema for a multi-tenant invoicing product:
+      organisations, users, customers, invoices, line items and payments.
+      Postgres. I want the tables, keys, indexes and the tenant isolation
+      strategy.
+    expect: { triggered: false }
+
+  - id: trigger.negative.reverse.logo
+    prompt: |
+      Design a logo for a coffee roastery called Ember & Oak. Warm, a bit
+      rustic, works at small sizes and in one colour. Describe the concept,
+      the mark, the typography and the palette.
+    expect: { triggered: false }
