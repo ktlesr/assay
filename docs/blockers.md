@@ -50,11 +50,15 @@ eşikleriyle test, derleme).
 Neden izole edildi: `gh` kimlik doğrulaması yok; sır uydurulmaz.
 Açmak için: `gh auth login` sonrası `gh run list`.
 
-## 2026-09-01 — npm yayını için NPM_TOKEN yok
-Ne gerekiyor: npmjs.com üzerinde **Automation** türü bir access token
-(`npm_` ile başlayan 36 karakterlik değer). Alınışı: npmjs.com > *Access
-Tokens* > *Generate New Token* > *Classic Token* > **Automation**. Automation
-türü 2FA istemediği için CI'da çalışan tür budur.
+## 2026-09-01 — npm yayını için NPM_TOKEN yok — ÇÖZÜLDÜ (2026-09-01)
+Çözüm: Token üretildi ve `NPM_TOKEN` adıyla GitHub repo secret'ı olarak
+eklendi. Tür **Granular Access Token** — klasik ("Automation") tokenlar Kasım
+2025'te iptal edildiği için tek seçenek bu, ve yazma izinliler en fazla 90 gün
+yaşıyor. Bu yüzden düzenli yenileme gerektiriyor: prosedür
+[operations.md](operations.md). Aşağısı, engel açıkken yazılmış kayıttır.
+
+Ne gerekiyordu: `@ktlsr/assay*` paketlerine yazma izni olan bir npm access
+token.
 Ne yapıldı: Yayın hazırlığının tamamı token olmadan bitirildi ve doğrulandı —
 paket adları `@ktlsr/*` olarak değiştirildi, sürümler 0.1.0'a çekildi,
 changesets kuruldu, `tsconfig.build.json` ile testler ve map'ler tarball'dan

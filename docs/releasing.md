@@ -73,7 +73,18 @@ map'i hiç üretmemek hem tarball'ı küçültüyor hem kırık map bırakmıyor
 
 Denetimin gerçekten yakaladığı ölçüldü: geliştirme build'iyle paketlenen
 `@ktlsr/assay-core` 84 dosya ve 65.7 KB, `pack:check` reddediyor. Yayın
-build'iyle 26 dosya ve 32.2 KB, geçiyor.
+build'iyle 27 dosya ve 32.3 KB, geçiyor.
+
+## Kimlik doğrulama
+
+CI `NPM_TOKEN` repo secret'ını kullanıyor. Token bir **granular access token**
+ve yazma izinli olduğu için **en fazla 90 gün** yaşıyor; yenileme prosedürü,
+süresi dolduğunda görülecek hata ve tokendan tamamen kurtulma yolu
+(trusted publishing) [operations.md](operations.md)'de.
+
+İş akışı, pahalı adımlardan önce `npm whoami` ile tokenın geçerliliğini
+sınıyor. Sebebi kısmi yayın riski: kimlik hatası yayının ortasında çıkarsa
+dört paketin bir kısmı gitmiş olabilir.
 
 ## Elle yayın
 
@@ -102,3 +113,7 @@ oluşturur; ayrıca org açmak gerekmez.
 
 Yayımlanan bir sürüm silinemez. 72 saat içinde `npm unpublish` mümkün ama aynı
 sürüm numarası bir daha kullanılamaz — düzeltme yolu yeni bir yama sürümüdür.
+
+Yayın yarıda kalırsa panik gerekmiyor: `pnpm publish` registry'de zaten olan
+sürümleri atlar, yani iş akışını yeniden koşturmak eksikleri tamamlar. Ayrıntı
+ve yayın sonrası doğrulama: [operations.md](operations.md).

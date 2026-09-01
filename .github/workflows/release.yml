@@ -2,11 +2,18 @@
 #
 #   1. main'e bir changeset girdiğinde: sürümleri ve CHANGELOG'ları güncelleyen
 #      bir "Version Packages" PR'ı açılır veya tazelenir. Hiçbir şey yayımlanmaz.
-#   2. O PR birleştiğinde: changeset kalmadığı için action publish moduna geçer
-#      ve `pnpm release` ile npm'e gönderir.
+#   2. O PR birleştiğinde (veya depoda hiç changeset yokken): action publish
+#      moduna geçer ve `pnpm release` ile npm'de bulunmayan sürümleri gönderir.
 #
 # Sürüm yükseltmenin bir PR olması kasıtlı: npm yayını geri alınamaz, o yüzden
 # yayımlanacak sürüm numarası birleştirilmeden önce görünür olmalı.
+#
+# Kimlik doğrulama bugün NPM_TOKEN ile. npm granular access token'ları yazma
+# izniyle en fazla 90 gün yaşıyor, yani bu secret düzenli olarak yenilenmek
+# zorunda — prosedür docs/operations.md'de. Kalıcı çözüm trusted publishing
+# (OIDC): paketler npm'de var olduktan sonra yapılandırılabiliyor ve secret'ı
+# tamamen ortadan kaldırıyor. Özel depoda da çalışıyor; yalnızca provenance
+# üretilmiyor (o public depo istiyor).
 
 name: Release
 
@@ -38,7 +45,7 @@ jobs:
             echo "has_token=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_token=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::NPM_TOKEN secret'ı tanımlı değil — yayın adımı atlandı. docs/blockers.md"
+            echo "::warning::NPM_TOKEN secret'ı tanımlı değil — yayın adımı atlandı. docs/operations.md"
           fi
 
   release:
@@ -63,6 +70,21 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
+      # Token'ın GEÇERLİ olduğu, pahalı adımlardan ÖNCE sınanıyor. `guard` yalnızca
+      # secret'ın var olduğunu biliyor; süresi dolmuş bir token da doludur. Bu
+      # kontrol olmasaydı hata ancak `pnpm check` ve `pack:check` koştuktan sonra,
+      # yayının tam ortasında çıkardı — dört paketin bir kısmı gitmiş olabilirdi.
+      - name: npm kimlik doğrulaması geçerli mi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if ! user=$(npm whoami 2>&1); then
+            echo "::error::NPM_TOKEN geçersiz veya süresi dolmuş. npm yazma izinli granular access token'ları en fazla 90 gün yaşar. Yenileme prosedürü: docs/operations.md"
+            echo "npm yanıtı: $user"
+            exit 1
+          fi
+          echo "npm kullanıcısı: $user"
+
       - run: pnpm install --frozen-lockfile
 
       # Prisma istemcisi repoda tutulmuyor (üretilen kod); typecheck ona bağlı.
@@ -77,6 +99,7 @@ jobs:
       - run: pnpm pack:check
 
       - uses: changesets/action@v1
+        id: changesets
         with:
           version: pnpm version-packages
           publish: pnpm release
@@ -85,3 +108,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Aracın "yayımladım" demesi bir iddia; registry'den okumak kanıt. Bu
+      # projenin adaptörü de host'un başarı bildirimine aynı sebeple güvenmiyor.
+      - name: yayımlanan sürümler registry'de görünüyor mu
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+        run: node tools/verify-published.mjs

@@ -128,6 +128,7 @@ Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 - [docs/adapter-validation.md](docs/adapter-validation.md) — Claude Code adaptörünün canlı doğrulaması
 - [docs/sandbox-security.md](docs/sandbox-security.md) — sandbox güvenlik incelemesi ve kabul edilen riskler
 - [docs/releasing.md](docs/releasing.md) — npm yayın süreci ve denetimleri
+- [docs/operations.md](docs/operations.md) — token yenileme, kısmi yayın, işletim
 - [docs/blockers.md](docs/blockers.md) — izole edilen engeller ve açma koşulları
 - [docs/dogfooding.md](docs/dogfooding.md) — üç gerçek skill üzerinde 150 koşumluk ölçüm raporu
 - [docs/design.md](docs/design.md) — tasarım dili: tahlil sertifikası

@@ -1048,3 +1048,68 @@ guard bir iş olmak zorunda. Kırmızı bir CI, sebebi "henüz token yok" olan
 bir durumda yanlış sinyal — ekip kırmızıyı görmezden gelmeyi öğrenir. Sessiz
 atlama ise daha kötü: yayımlandı sanılır. Uyarı ikisinin arası ve doğru olanı.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Token geçerliliği yayından önce sınanıyor, `guard` yetmiyor
+Bağlam: `guard` işi yalnızca `NPM_TOKEN` secret'ının var olup olmadığını
+biliyor. npm granular access tokenları yazma izniyle en fazla 90 gün yaşıyor;
+süresi dolmuş bir token da "dolu"dur ve guard'dan geçer.
+Seçenekler: guard'ı yeterli saymak · publish hatasına bırakmak · pahalı
+adımlardan önce `npm whoami` ile sınamak
+Karar: Üçüncüsü. `setup-node`'dan hemen sonra `npm whoami`; başarısızsa
+`::error::` ve docs/operations.md'ye yönlendirme.
+Gerekçe: Kontrol olmasaydı hata `pnpm check` ve `pack:check` koştuktan sonra,
+yayının tam ortasında çıkardı. Asıl risk kaybedilen dakikalar değil, **kısmi
+yayın**: dört paket sırayla gönderiliyor ve kimlik hatası ortada patlarsa bir
+kısmı npm'de kalır. Onarılabilir bir durum (pnpm var olan sürümü atlar) ama
+hiç girmemek daha ucuz. Ayrıca hata mesajı sebebi söylüyor: `E401`
+görüldüğünde kodda aranmıyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Yayın sonrası registry'den doğrulanıyor
+Bağlam: changesets'in `published: true` çıktısı aracın kendi beyanı.
+Seçenekler: beyana güvenmek · registry'den okumak
+Karar: `tools/verify-published.mjs` — `publishedPackages` listesindeki her
+sürümü `npm view` ile registry'den okuyor, eksik varsa exit 1.
+Gerekçe: Bu projenin adaptörü host'un `subtype: "success"` bildirimine tam da
+bu sebeple güvenmiyor ve çapraz kontrol yapıyor; kendi yayın hattımızda daha
+gevşek bir standart tutmak tutarsız olurdu. Doğrulayıcının kendisi iki yönde
+sınandı: yayımlanmamış bir sürüm için exit 1, gerçekten yayımlanmış iki paket
+için exit 0. Windows'ta `npm` bir `.cmd` olduğu için kabuk gerekiyor
+(CVE-2024-27980) — pozitif test bunu yakaladı, aksi hâlde araç yalnızca
+CI'da çalışırdı ve yerelde hep "bulunamadı" derdi.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Trusted publishing ertelendi, kurulmadı
+Bağlam: 90 günlük token yenileme döngüsünün kalıcı çözümü trusted publishing
+(OIDC): saklanan secret yok, dolayısıyla yenilenecek bir şey de yok.
+Seçenekler: şimdi kurmak · 0.1.0'dan sonra kurmak
+Karar: Sonra. Prosedür docs/operations.md'de adım adım yazılı.
+Gerekçe: Trusted publishing bir paketin npm ayarlarından yapılandırılıyor,
+yani paketin önce var olması gerekiyor. Yayımlanmamış bir paket için
+kurulamaz — teknik bir sıra zorunluluğu, tercih değil. Özel depoda çalıştığı
+doğrulandı; yalnızca provenance üretilmiyor ve o zaten bu depo için mümkün
+değil.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Token dört pakete kapsamlı, scope'un tamamına değil
+Bağlam: Granular access token ya bütün bir scope'a ya seçilen paketlere yetki
+veriyor.
+Seçenekler: `@ktlsr` scope'unun tamamına yazma · dört paketi tek tek seçmek
+Karar: Dört paket tek tek. docs/operations.md'de yenileme adımı olarak yazılı.
+Gerekçe: Token sızarsa yazılabilecek yer bu dördüyle sınırlı kalır. Scope
+yetkisi, `@ktlsr` altına ileride eklenecek ilgisiz her paketi de kapsardı —
+üstelik sessizce, çünkü token'ı yeniden üretmek gerekmez. Bedeli: yeni bir
+paket eklendiğinde tokenın güncellenmesi gerekiyor. Unutulursa `E403` veriyor
+ve o hata operations.md'deki tabloda tanımlı.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-01 — Klasik npm tokenları artık yok; belgeler düzeltildi
+Bağlam: Yayın hazırlığında `.env.example` ve docs "Classic Token >
+Automation" diyordu.
+Karar: Belgeler granular access token'a göre düzeltildi.
+Gerekçe: npm Kasım 2025'te klasik token üretimini kapattı ve mevcut olanları
+iptal etti; Şubat 2026'da hepsi öldü. Bugün tek seçenek granular access token
+ve yazma izinlilerin ömrü 90 günle sınırlı. Yanlış menü adı tarif eden bir
+prosedür, tam da acele edildiğinde okunacak yerde işe yaramaz.
+Kaynak: github.blog changelog, 2025-11-05 ve 2025-12-09.
+Geri dönüş maliyeti: düşük
