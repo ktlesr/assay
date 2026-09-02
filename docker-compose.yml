@@ -34,6 +34,13 @@ services:
       AUTH_URL: ${AUTH_URL:?set AUTH_URL in .env}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
       AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      # Yayın modu: `true` iken dashboard, admin, ayarlar ve giriş kapanır
+      # (apps/web/middleware.ts). Buradan geçirilmezse ayar konteynere hiç
+      # ulaşmaz ve mod sessizce açılmaz — dağıtımdan önce fark edilmesi zor
+      # bir hata olurdu.
+      ASSAY_PUBLIC_SITE: ${ASSAY_PUBLIC_SITE:-}
+      # Üretimde boş kalır. Yalnızca PGlite soketiyle koşarken 1 olmalı.
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-}
     ports:
       - '3000:3000'
 
