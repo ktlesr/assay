@@ -4,6 +4,7 @@ import { AuthError } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { auth, googleEnabled, signIn } from '../../lib/auth'
 import { Shell } from '../components/shell'
+import { CredentialsForm } from './credentials-form'
 
 /**
  * Giriş.
@@ -55,11 +56,12 @@ export default async function SignInPage({
 
   return (
     <Shell breadcrumbs={[{ label: 'sign in' }]}>
-      <div className="mx-auto mt-8 max-w-md">
+      <div className="mx-auto mt-10 w-full max-w-sm">
+        <p className="rule-label mb-4">Account</p>
         <h1 className="page-title">Sign in</h1>
-        <p className="mt-4 text-base text-text-muted">
+        <p className="mt-3 text-sm text-text-muted">
           Runs measured by the CLI are yours before they are anyone else&rsquo;s. An
-          account is only needed to keep their history in one place.
+          account only keeps their history in one place.
         </p>
 
         {error === undefined ? null : (
@@ -71,59 +73,26 @@ export default async function SignInPage({
           </div>
         )}
 
-        <form action={signInWithPassword} className="mt-8 space-y-5">
-          <Field label="Email" name="email" type="email" autoComplete="email" />
-          <Field
-            label="Password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-          />
-          <button type="submit" className="btn">
-            Sign in
-          </button>
-        </form>
+        <div className="auth-panel mt-6">
+          <CredentialsForm action={signInWithPassword} />
 
-        {googleEnabled ? (
-          <form action={signInWithGoogle} className="mt-6">
-            <button type="submit" className="btn">
-              Continue with Google
-            </button>
-          </form>
-        ) : (
-          <p className="mt-6 text-xs text-text-faint">
-            Google sign-in is not configured on this instance.
-          </p>
-        )}
+          {googleEnabled ? (
+            <>
+              <p className="auth-divider">or</p>
+              <form action={signInWithGoogle}>
+                <button type="submit" className="btn btn-block">
+                  Continue with Google
+                </button>
+              </form>
+            </>
+          ) : null}
+        </div>
+
+        <p className="field-hint mt-5">
+          There is no sign-up form. The first administrator is created during
+          installation, and further accounts are opened from the admin panel.
+        </p>
       </div>
     </Shell>
-  )
-}
-
-function Field({
-  label,
-  name,
-  type,
-  autoComplete,
-}: {
-  label: string
-  name: string
-  type: string
-  autoComplete: string
-}) {
-  return (
-    <div>
-      <label htmlFor={name} className="col-label">
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        autoComplete={autoComplete}
-        required
-        className="field-input"
-      />
-    </div>
   )
 }

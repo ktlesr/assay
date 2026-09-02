@@ -1247,3 +1247,35 @@ eşleşmezse 401, zaten bir ADMIN varsa 409. Değişken açık unutulsa bile
 ikinci bir yönetici açılamıyor. Uç ayrıca yayın modunda middleware ile
 kapatılıyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-02 — Yayın modunda giriş kapatılmıyor, kimlik doğrulama arkasında kalıyor
+Bağlam: İlk kurulumda `/signin`, `/admin` ve `/settings` yayın modunda 404
+dönüyordu. Sonucu şu oldu: siteyi yönetmek için yayın modunu kapat, dağıt,
+işini yap, aç, tekrar dağıt — her yönetim işi iki fazladan dağıtım.
+Seçenekler: kapalı tutmak · kimlik doğrulama arkasında açık bırakmak ·
+tahmin edilmesi zor gizli bir yol
+Karar: İkincisi. Yayın modunda yalnızca `/dev`, `/compare` ve
+`/api/bootstrap` kapalı.
+Gerekçe: İlk talep zaten "kapat **veya** kimlik doğrulama arkasına al"
+diyordu. `/admin` ve `/settings` `requireAdmin`/`requireUser` ile korunuyor
+(apps/web/lib/guard.ts); yetkisiz ziyaretçi yalnızca giriş ekranını görür.
+Kapalı olan üçü ise gerçekten ziyaretçiye yarım uygulama gösteriyor:
+`/dev/components` bir bileşen kataloğu, `/compare` kimlik doğrulama bile
+istemeyen ve koşum kimliği olmadan boş bir form, `/api/bootstrap` işini
+bitirmiş bir kurulum ucu. Gizli yol seçeneği karanlıkta güvenlik olurdu.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-02 — Ekran görüntüsü aracı (playwright) eklendi
+Bağlam: docs/workflow.md arayüzü etkileyen her adımdan sonra iki temada
+ekran görüntüsü istiyor. Depoda tarayıcı otomasyonu yoktu ve görsel
+doğrulama bugüne kadar yapısal kontrole (CSS'te iki tema seçicisi var mı,
+viewport meta yerinde mi) indirgeniyordu.
+Seçenekler: yapısal kontrolle yetinmek · playwright eklemek
+Karar: `playwright` devDependency + `tools/shoot.mjs`.
+Gerekçe: Giriş ekranı tasarımı istendiğinde yapısal kontrol yetmez oldu —
+"düğmeler birbirinin aynı görünüyor" gibi bir kusur ancak bakınca görülür.
+Araç her yol için üç kare alıyor (açık, koyu, 375px mobil) ve yatay taşmayı
+ölçüp raporluyor; taşma sessizce kaçan bir hata türü.
+Tema `data-theme` ile zorlanıyor, sistem tercihine bırakılmıyor: aksi hâlde
+sonuç koşumu çalıştıran makineye bağlı olurdu.
+Geri dönüş maliyeti: düşük

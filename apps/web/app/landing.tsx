@@ -36,8 +36,9 @@ export async function Landing() {
       ? null
       : await compare(previous.slug, failing.latest.slug)
 
-  // Yayın modunda giriş kapalı (middleware.ts); ziyaretçiyi 404'e götüren
-  // bir düğme göstermek yerine paketi gösteriyoruz.
+  // Yayın modunda hero'nun birincil eylemi paketi gösteriyor: buraya gelen
+  // kişi hesap açmaya değil, aracın ne olduğunu anlamaya geliyor. Giriş
+  // bağlantısı başlıkta duruyor, orada aranıyor zaten.
   const publicSite = process.env['ASSAY_PUBLIC_SITE'] === 'true'
 
   return (

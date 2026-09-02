@@ -9,10 +9,6 @@ import { auth, signOut } from '../../lib/auth'
  * yetkisiyle iş yapmayı azaltıyor.
  */
 export async function UserMenu() {
-  // Yayın modunda giriş rotası kapalı (middleware.ts). Ziyaretçiye 404'e
-  // götüren bir bağlantı göstermek, kapatmanın amacını boşa çıkarırdı.
-  if (process.env['ASSAY_PUBLIC_SITE'] === 'true') return null
-
   const session = await auth()
   if (session === null) {
     return (

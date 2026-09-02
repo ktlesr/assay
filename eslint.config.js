@@ -134,4 +134,15 @@ export default tseslint.config(
       globals: { process: 'readonly', console: 'readonly', URL: 'readonly' },
     },
   },
+  {
+    /*
+     * Ekran görüntüsü aracının bir kısmı tarayıcıda koşuyor: `addInitScript`
+     * ve `evaluate` gövdeleri sayfaya enjekte ediliyor, Node'da değil. Bu
+     * yüzden `document` ve `localStorage` burada gerçekten tanımlı.
+     */
+    files: ['tools/shoot.mjs'],
+    languageOptions: {
+      globals: { document: 'readonly', localStorage: 'readonly' },
+    },
+  },
 )

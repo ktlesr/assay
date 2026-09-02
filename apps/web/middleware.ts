@@ -15,18 +15,23 @@ import type { NextRequest } from 'next/server'
  * bilerek layout katmanında). Yol eşleşmesi hiçbir şeye bağlı değil, bu yüzden
  * sessizce bozulamaz.
  *
- * `/api/runs` KAPALI DEĞİL: token ile korunuyor ve kapatılırsa siteye yeni
- * ölçüm yüklenemez. `/runs` ve `/suites` de açık, ama sorgu katmanı oturumsuz
+ * `/signin`, `/admin` ve `/settings` KAPATILMIYOR: üçü de zaten kimlik
+ * doğrulama arkasında (`requireUser` / `requireAdmin`, apps/web/lib/guard.ts).
+ * Yetkisiz ziyaretçi yalnızca giriş ekranını görür, ötesini göremez.
+ * Kapatılsalardı sitenin yönetimi iki fazladan dağıtım isterdi: yayın modunu
+ * kapat, dağıt, işini yap, aç, tekrar dağıt.
+ *
+ * `/api/runs` da kapalı değil: token ile korunuyor ve kapatılırsa siteye yeni
+ * ölçüm yüklenemez. `/runs` ve `/suites` açık, ama sorgu katmanı oturumsuz
  * ziyaretçiye yalnızca `public: true` vaka setlerini veriyor (RunScope).
  */
 const CLOSED_IN_PUBLIC_MODE = [
-  /^\/admin(\/|$)/,
-  /^\/settings(\/|$)/,
-  /^\/signin(\/|$)/,
-  /^\/compare(\/|$)/,
+  // Bileşen kataloğu ve karşılaştırma ekranı: ikisi de ziyaretçiye yarım
+  // kalmış bir uygulama gibi görünür. `/compare` kimlik doğrulama da
+  // istemiyor ve koşum kimliği olmadan boş bir form.
   /^\/dev(\/|$)/,
-  /^\/api\/auth(\/|$)/,
-  // Kurulum ucu: yayın modunda hiç var olmamalı.
+  /^\/compare(\/|$)/,
+  // Kurulum ucu: işini bitirdi, yayın modunda hiç var olmamalı.
   /^\/api\/bootstrap(\/|$)/,
 ]
 

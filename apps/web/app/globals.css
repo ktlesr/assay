@@ -1186,3 +1186,98 @@ body {
   text-transform: uppercase;
   color: var(--unknown);
 }
+
+/* --- Giriş ekranı -------------------------------------------------------- */
+
+/*
+ * Birincil eylem dolu, ikincil çizgili. Önceden ikisi de `.btn` idi ve
+ * "parola ile gir" ile "Google ile devam et" görsel olarak eşitti; kullanıcı
+ * hangisinin asıl yol olduğunu okuyamıyordu.
+ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-6);
+  border: var(--hairline) solid var(--text);
+  background: var(--text);
+  color: var(--surface);
+  font-size: var(--text-xs);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    opacity var(--tick) linear,
+    background var(--tick) linear;
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.86;
+}
+.btn-primary:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Kimlik panelinin çerçevesi: kutu değil, tek saç teli. */
+.auth-panel {
+  border: var(--hairline) solid var(--rule);
+  padding: var(--space-8) var(--space-6);
+  background: var(--surface-raised);
+}
+
+/*
+ * İki giriş yolu arasındaki ayraç. Çizgi ortadan geçiyor, etiket üstüne
+ * oturuyor — "ya o ya bu" ilişkisini tek bakışta veriyor.
+ */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: var(--hairline);
+  background: var(--rule);
+}
+
+/* Parola alanı + göster/gizle düğmesi aynı çerçeveyi paylaşıyor. */
+.field-with-action {
+  position: relative;
+}
+.field-action {
+  position: absolute;
+  right: var(--space-2);
+  bottom: 0;
+  height: 100%;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.field-action:hover {
+  color: var(--text);
+}
+
+.field-hint {
+  margin-top: var(--space-2);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}

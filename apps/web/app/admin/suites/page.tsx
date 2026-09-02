@@ -14,7 +14,18 @@ import { DangerAction } from '../danger-action'
 export default async function AdminSuitesPage() {
   const suites = await prisma().suite.findMany({
     orderBy: [{ skill: 'asc' }, { version: 'asc' }],
-    include: { owner: { select: { email: true } }, _count: { select: { runs: true } } },
+    include: {
+      owner: { select: { email: true } },
+      _count: { select: { runs: true } },
+      // Aynı skill'in iki vaka seti aynı ada ve sürüme sahip olabilir; ayıran
+      // şey içerik hash'i. Kullanıcıya hash yerine önce insanca bir işaret
+      // vermek için son koşumun tarihi ve vaka sayısı okunuyor.
+      runs: {
+        orderBy: { startedAt: 'desc' },
+        take: 1,
+        select: { startedAt: true, _count: { select: { cases: true } } },
+      },
+    },
   })
 
   return (
@@ -43,13 +54,24 @@ export default async function AdminSuitesPage() {
             >
               <span className="min-w-0">
                 <span className="font-mono text-sm">{suite.skill}</span>
+                {/*
+                  Parmak izi: `sha256:` öneki her satırda aynı olduğu için
+                  kısaltmanın başı hiçbir şey ayırt etmiyordu. Öneki atıp
+                  yalnızca ayırt eden sekiz karakteri gösteriyoruz.
+                */}
+                <span className="ml-3 font-mono text-xs text-text-muted">
+                  {fingerprint(suite.hash)}
+                </span>
                 <span className="ml-3 text-xs uppercase tracking-[0.09em] text-text">
                   {suite.public ? 'public' : 'private'}
                 </span>
                 <span className="mt-1 block text-xs text-text-faint">
                   version {suite.version} · {suite._count.runs} run
-                  {suite._count.runs === 1 ? '' : 's'} · {suite.hash.slice(0, 23)}… ·{' '}
-                  {suite.owner?.email ?? 'no owner'}
+                  {suite._count.runs === 1 ? '' : 's'}
+                  {suite.runs[0] === undefined
+                    ? ''
+                    : ` · ${suite.runs[0]._count.cases} cases · last measured ${suite.runs[0].startedAt.toISOString().slice(0, 10)}`}{' '}
+                  · {suite.owner?.email ?? 'no owner'}
                 </span>
               </span>
               <DangerAction
@@ -57,8 +79,8 @@ export default async function AdminSuitesPage() {
                 label={suite.public ? 'Make private' : 'Publish'}
                 title={
                   suite.public
-                    ? `Make ${suite.skill} v${suite.version} private`
-                    : `Publish ${suite.skill} v${suite.version}`
+                    ? `Make ${suite.skill} ${fingerprint(suite.hash)} private`
+                    : `Publish ${suite.skill} ${fingerprint(suite.hash)}`
                 }
                 description={
                   suite.public
@@ -77,4 +99,16 @@ export default async function AdminSuitesPage() {
       )}
     </Shell>
   )
+}
+
+/**
+ * Vaka setinin ayırt edici parmak izi.
+ *
+ * `sha256:` öneki her sette aynı; ilk sekiz onaltılık karakter ise iki seti
+ * ayırmaya fazlasıyla yetiyor. Aynı skill'in iki farklı vaka seti listede
+ * yan yana durduğunda kullanıcının hangisini yayımladığını bilmesi buna
+ * bağlı — onay kutusunda da aynı işaret gösteriliyor.
+ */
+function fingerprint(hash: string): string {
+  return hash.replace(/^sha256:/, '').slice(0, 8)
 }
