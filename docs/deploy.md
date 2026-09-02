@@ -79,20 +79,23 @@ yarım şemayla açılan bir örnek, ölçüm kaydını sessizce yarım saklard�
    HTTPS'e bağlanmadan yayına alınmamalı.
 4. **Kalıcı hacim**: `pgdata`. Yeniden kurulumda silinmemeli.
 5. **Sağlık kontrolü**: `/api/health`, 200 bekleniyor.
-6. İlk dağıtımdan sonra ilk yöneticiyi aç:
+6. İlk yöneticiyi aç — tek seferlik uç:
 
 ```
-docker compose exec web node tools/create-user.mjs <e-posta> <parola> ADMIN
+# a) ASSAY_BOOTSTRAP_TOKEN'ı kur (openssl rand -hex 32), yeniden dağıt
+# b) bir kez çağır:
+curl -X POST https://assayctl.dev/api/bootstrap   -H "Authorization: Bearer <ASSAY_BOOTSTRAP_TOKEN>"   -H "Content-Type: application/json"   -d '{"email":"sen@ornek.com","password":"en-az-12-karakter"}'
+# c) ASSAY_BOOTSTRAP_TOKEN'ı sil, yeniden dağıt
 ```
 
-Kayıt ekranı yok (bkz. docs/decisions.md); ilk yönetici bu komutla doğar.
+Kayıt ekranı yok (bkz. docs/decisions.md). Üç kilit var: değişken yoksa uç
+**404** döner (varlığı sızmaz), token eşleşmezse **401**, zaten bir yönetici
+varsa **409**. Yani değişken açık unutulsa bile ikinci bir yönetici
+açılamaz. Uç ayrıca yayın modunda middleware ile kapalı.
 
-`tools/create-user.mjs` bu iş için imaja **açıkça kopyalanıyor**. Araç
-workspace paketlerini (`@ktlsr/assay-db`, argon2) import ediyor ve bunlar
-standalone çıktısında yalnızca `apps/web` onları izlediği için bulunuyor —
-sessizce değişebilecek bir varsayım. Bu yüzden `Dockerfile` derleme sırasında
-ikisini de gerçekten import edip çözüldüklerini kanıtlıyor; çözülemezse
-derleme orada durur, konteyner çalışırken değil.
+`tools/create-user.mjs` yalnızca **geliştirme** aracıdır. Üretim imajında yok
+ve oraya kopyalansa da `@ktlsr/assay-db` standalone çıktısından çözülemiyor;
+ikisi de dağıtımda denendi ve kanıtlandı.
 
 ## Yedekleme
 
