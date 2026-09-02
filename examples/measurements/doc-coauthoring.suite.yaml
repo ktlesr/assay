@@ -1,0 +1,109 @@
+# anthropics/skills — doc-coauthoring.
+#
+# NEDEN BU SKILL: iddia ettiği iş ("belge yaz") ajanın zaten skill'siz yaptığı
+# şey. Sınır bir konuda değil, bir *çalışma biçiminde*: yapılandırılmış, çok
+# aşamalı bir birlikte yazma oturumu mu, yoksa tek seferlik bir metin üretimi
+# mi? Yakın komşuların hepsi kelimesi kelimesine "belge yazma" işi.
+#
+# Hiçbir istemde "doc-coauthoring" geçmiyor.
+
+version: 1
+
+target:
+  skill: doc-coauthoring
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [doc-coauthoring]
+
+runs: 10
+
+cases:
+  # --- POZİTİF: sıfırdan, yapılandırılmış, birlikte yazılacak belge ---
+
+  - id: trigger.positive.design_doc
+    prompt: |
+      We are replacing our job queue and I need to write the design doc for
+      it. All the context is in my head and none of it is on paper yet — the
+      constraints, the two options we considered, why we rejected one. Help me
+      get it written properly.
+    expect: { triggered: true }
+
+  - id: trigger.positive.proposal
+    prompt: |
+      I want to put together a proposal for moving the team from long-lived
+      feature branches to trunk-based development. It has to convince
+      engineering leadership and take the obvious objections seriously. Let's
+      work on it.
+    expect: { triggered: true }
+
+  - id: trigger.positive.tech_spec
+    prompt: |
+      We need a technical spec for the new billing webhook system before
+      anyone writes code — endpoints, retry semantics, idempotency keys,
+      failure modes, what the consumer is allowed to assume. Start me off and
+      we will go through it section by section.
+    expect: { triggered: true }
+
+  # --- YAKIN KOMŞU: harfiyen "belge yazma" ama birlikte yazma oturumu değil ---
+
+  - id: trigger.negative.near_neighbor.readme
+    prompt: |
+      Generate a README for this package. Install instructions, a quick-start
+      snippet, and an API table built from the exported functions in
+      `src/index.js`. Keep it under eighty lines.
+    setup: { fixtures: ./fixtures/doc-package }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.edit_prose
+    prompt: |
+      `onboarding.md` is our new-hire guide. It rambles — roughly two thousand
+      words of it. Cut it to about nine hundred and tighten the sentences.
+      Do not change any of the facts or add anything new.
+    setup: { fixtures: ./fixtures/doc-prose }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.release_notes
+    prompt: |
+      Turn these commit subjects into user-facing release notes grouped under
+      Added, Changed and Fixed:
+
+      feat(api): cursor pagination on /orders
+      fix(auth): refresh token rotated on every use
+      feat(cli): --json flag on every read command
+      fix(billing): proration rounded to the cent
+      chore(deps): bump undici to 6.21.0
+      fix(ui): date picker no longer shifts by a day in UTC+13
+      feat(webhooks): signature header now includes a timestamp
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.docstrings
+    prompt: |
+      Add docstrings to every public method in `src/scheduler.py` in Google
+      style — args, returns, raises. Document the cancel token semantics
+      properly, that is the part people get wrong.
+    setup: { fixtures: ./fixtures/doc-code }
+    expect: { triggered: false }
+
+  # --- ALAKASIZ ---
+
+  - id: trigger.negative.unrelated.regex
+    prompt: |
+      This password rule rejects something I think is valid:
+      `^(?=.*\d)(?=.*[a-z]).{8,}$` against `abcdefg1`. Why?
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated.docker
+    prompt: |
+      Convert this to a multi-stage build so the final image does not ship the
+      Go toolchain:
+
+      FROM golang:1.23
+      WORKDIR /src
+      COPY . .
+      RUN go build -o /bin/app ./cmd/app
+      CMD ["/bin/app"]
+    expect: { triggered: false }

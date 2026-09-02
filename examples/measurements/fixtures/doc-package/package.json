@@ -1,0 +1,7 @@
+{
+  "name": "@acme/retry",
+  "version": "2.1.0",
+  "description": "Retry helpers with jittered backoff.",
+  "main": "src/index.js",
+  "license": "MIT"
+}

@@ -1,0 +1,101 @@
+# anthropics/skills — webapp-testing.
+#
+# NEDEN BU SKILL: "test" yazılımdaki en aşırı yüklü fiil. Skill'in iddiası dar
+# (çalışan bir yerel web uygulamasını Playwright ile tarayıcıda sürmek) ama
+# çevresindeki alan geniş: birim testi, API testi, statik kod incelemesi,
+# Playwright yapılandırması. Ayrım gücü tam burada sınanır.
+#
+# Hiçbir istemde "webapp-testing" geçmiyor.
+
+version: 1
+
+target:
+  skill: webapp-testing
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [webapp-testing]
+
+runs: 10
+
+cases:
+  # --- POZİTİF: çalışan bir uygulamayı tarayıcıda sürmeyi gerektiren işler ---
+
+  - id: trigger.positive.console_debug
+    prompt: |
+      Serve the `public/` folder on a local port and open the sign-up page.
+      When I fill in the form and press Submit nothing happens at all — no
+      error, no message, nothing. Find out what the browser is actually doing
+      when that button is pressed, and tell me the real cause.
+    setup: { fixtures: ./fixtures/webapp-live }
+    expect: { triggered: true }
+
+  - id: trigger.positive.screenshot
+    prompt: |
+      Serve `public/` locally, go to the shop page, add the Widget and the
+      Gadget to the cart, and capture a PNG of the page with the checkout
+      total visible. Save the image so I can attach it to a ticket.
+    setup: { fixtures: ./fixtures/webapp-live }
+    expect: { triggered: true }
+
+  - id: trigger.positive.flow_walkthrough
+    prompt: |
+      Serve `public/` and go through the whole password reset journey the way
+      a real user would: enter an email, send the code, verify it, set a new
+      password. Tell me exactly which step a user gets stuck on.
+    setup: { fixtures: ./fixtures/webapp-live }
+    expect: { triggered: true }
+
+  # --- YAKIN KOMŞU: gerçek test/frontend işi, tarayıcı gerektirmiyor ---
+
+  - id: trigger.negative.near_neighbor.unit_test
+    prompt: |
+      `src/format.ts` exports `formatCurrency`. It gets negative amounts and
+      the cents padding wrong. Write unit tests that pin down the correct
+      behaviour for negatives, zero, and amounts under one dollar, then fix
+      the function. Pure function, no DOM involved.
+    setup: { fixtures: ./fixtures/webapp-code }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.static_read
+    prompt: |
+      Read `src/LoginForm.tsx`. After a failed login the error banner appears,
+      but when the user corrects the password and the next attempt succeeds
+      the banner stays on screen. Explain why, from the code.
+    setup: { fixtures: ./fixtures/webapp-code }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.playwright_config
+    prompt: |
+      Our end-to-end suite in `e2e/` runs serially and takes 14 minutes in CI.
+      Change `playwright.config.ts` to shard across four workers with one
+      retry, and update `.github/workflows/e2e.yml` to a matrix that runs the
+      shards in parallel. Do not run the suite, just make the changes.
+    setup: { fixtures: ./fixtures/webapp-code }
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.api_probe
+    prompt: |
+      `payloads.json` holds three order bodies. Write a script that POSTs each
+      one to http://localhost:3000/api/orders and prints the status code and
+      response body for each, so I can see which payload trips the 500.
+    setup: { fixtures: ./fixtures/webapp-api }
+    expect: { triggered: false }
+
+  # --- ALAKASIZ ---
+
+  - id: trigger.negative.unrelated.types
+    prompt: |
+      Why does `type F<T> = T extends string ? A : B` distribute over a union
+      when I pass `string | number`, and how do I stop it from distributing?
+
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated.shell
+    prompt: |
+      Give me a one-liner that finds the ten largest files under /var/log and
+      prints their sizes in megabytes, largest first.
+    expect: { triggered: false }

@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8"><title>Acme — Reset password</title>
+<link rel="stylesheet" href="app.css">
+<nav><a href="index.html">Sign up</a> · <a href="shop.html">Shop</a> · <a href="reset.html">Reset password</a></nav>
+<h1>Reset your password</h1>
+<div id="step1"><label>Email <input id="email" type="email"></label><button id="send">Send code</button></div>
+<div id="step2" hidden><label>Code <input id="code"></label><button id="verify">Verify</button></div>
+<div id="step3" hidden><label>New password <input id="pw" type="password"></label><button id="save">Save</button></div>
+<p id="msg"></p>
+<script>
+document.getElementById('send').onclick = function () {
+  document.getElementById('step1').hidden = true
+  document.getElementById('step2').hidden = false
+}
+document.getElementById('verify').onclick = function () {
+  // step 3 is never revealed: the flow dead-ends here
+  document.getElementById('msg').textContent = 'Code accepted.'
+}
+document.getElementById('save').onclick = function () {
+  document.getElementById('msg').textContent = 'Password changed.'
+}
+</script>

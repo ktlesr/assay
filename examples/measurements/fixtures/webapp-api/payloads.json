@@ -1,0 +1,5 @@
+[
+  { "sku": "WID-1", "qty": 2, "coupon": null },
+  { "sku": "GAD-9", "qty": 0, "coupon": "SUMMER" },
+  { "sku": "", "qty": 1, "coupon": "SUMMER" }
+]

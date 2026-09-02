@@ -6,7 +6,7 @@ import { parseSuite } from '../packages/core/src/suite.js'
  * examples/ altındaki suite dosyaları biçim referansıdır. Şema değişip de
  * örnekler güncellenmezse burası kırmızıya döner.
  */
-const files = globSync('examples/*.suite.yaml')
+const files = globSync('examples/**/*.suite.yaml')
 
 describe('örnek vaka setleri', () => {
   it('en az bir örnek var', () => {

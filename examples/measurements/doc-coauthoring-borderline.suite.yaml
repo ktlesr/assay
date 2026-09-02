@@ -1,0 +1,100 @@
+# anthropics/skills — doc-coauthoring, SINIRDA sürüm.
+#
+# İlk set 90/90 geçti; hiçbir negatif sızmadı, yani yeterince zor değildi.
+# İzler ayrımın nerede yapıldığını gösterdi: üç pozitifte ajanın İLK eylemi
+# Skill çağrısı, dört negatifte hiç düşünmeden işe başlıyor. Ayırt edici
+# özellik konu değil, **içeriğin nerede durduğu**: ilk sette bütün negatifler
+# ortada duran bir kaynağı (kod, düzyazı, commit listesi) dönüştürüyordu.
+#
+# Bu set o değişkeni sabitliyor: dört yakın komşunun da içeriği yalnızca
+# kullanıcının kafasında, sıfırdan yazılacak ve yapılandırılmış. Değişen tek
+# şey **belge olup olmadıkları**. Sızma olacaksa burada olur.
+
+version: 1
+
+target:
+  skill: doc-coauthoring
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [doc-coauthoring]
+
+runs: 10
+
+cases:
+  # --- POZİTİF: kafadaki içerik, sıfırdan, yapılandırılmış, BELGE ---
+
+  - id: trigger.positive.runbook
+    prompt: |
+      I go on leave in two weeks and nobody else knows how our on-call
+      rotation actually works — the escalation path, the exceptions, what to
+      do when the pager owner is unreachable. It is all in my head. I need it
+      written down properly before I go.
+    expect: { triggered: true }
+
+  - id: trigger.positive.adr
+    prompt: |
+      We picked Postgres over DynamoDB last month and the reasoning is only in
+      my head and a few Slack threads. Write up the architecture decision
+      record — context, options, decision, consequences.
+    expect: { triggered: true }
+
+  - id: trigger.positive.one_pager
+    prompt: |
+      I need a one-pager on the platform migration that a VP can read in five
+      minutes: why now, what changes, what it costs, what breaks if we wait.
+      I know all of it, none of it is written down.
+    expect: { triggered: true }
+
+  # --- YAKIN KOMŞU: kafadaki içerik, sıfırdan, yapılandırılmış — ama BELGE DEĞİL ---
+
+  - id: trigger.negative.near_neighbor.customer_email
+    prompt: |
+      I have to email a customer about why last month's invoice overcharged
+      them. I know exactly what happened and what we are doing about it, but I
+      keep writing it in a way that sounds defensive. Help me word it.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.talk_abstract
+    prompt: |
+      I am submitting a conference talk proposal about our queue migration.
+      Two hundred words, has to hook a reviewer who sees fifty of these. The
+      whole story is in my head, I just cannot compress it.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.self_review
+    prompt: |
+      Performance review season. I need to write my self-assessment: impact,
+      scope, collaboration, growth areas, with concrete examples. I remember
+      what I did this year, I just cannot make it sound like anything.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.job_description
+    prompt: |
+      We are opening a staff engineer role on the platform team. I know what
+      we actually need from the person — the scope, the bar, the things the
+      last two hires struggled with. Turn that into the job posting.
+    expect: { triggered: false }
+
+  # --- ALAKASIZ ---
+
+  - id: trigger.negative.unrelated.regex
+    prompt: |
+      This password rule rejects something I think is valid:
+      `^(?=.*\d)(?=.*[a-z]).{8,}$` against `abcdefg1`. Why?
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated.docker
+    prompt: |
+      Convert this to a multi-stage build so the final image does not ship the
+      Go toolchain:
+
+      FROM golang:1.23
+      WORKDIR /src
+      COPY . .
+      RUN go build -o /bin/app ./cmd/app
+      CMD ["/bin/app"]
+    expect: { triggered: false }

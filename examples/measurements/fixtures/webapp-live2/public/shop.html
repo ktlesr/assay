@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8"><title>Acme — Shop</title>
+<link rel="stylesheet" href="app.css">
+<nav><a href="index.html">Sign up</a> · <a href="shop.html">Shop</a> · <a href="reset.html">Reset password</a></nav>
+<h1>Shop</h1>
+<ul>
+  <li>Widget — $12 <button class="add" data-name="Widget" data-price="12">Add to cart</button></li>
+  <li>Gadget — $30 <button class="add" data-name="Gadget" data-price="30">Add to cart</button></li>
+  <li>Doohickey — $7 <button class="add" data-name="Doohickey" data-price="7">Add to cart</button></li>
+</ul>
+<div class="cart"><h2>Checkout</h2><ul id="cart"></ul><p id="total">Total: $0</p></div>
+<script>
+var items = []
+document.querySelectorAll('.add').forEach(function (b) {
+  b.addEventListener('click', function () {
+    items.push({ name: b.dataset.name, price: Number(b.dataset.price) })
+    document.getElementById('cart').innerHTML = items.map(function (i) {
+      return '<li>' + i.name + ' — $' + i.price + '</li>'
+    }).join('')
+    document.getElementById('total').textContent =
+      'Total: $' + items.slice(0, -1).reduce(function (s, i) { return s + i.price }, 0)
+  })
+})
+</script>
+<div class="promo">Free shipping this week — use code SHIP0</div>

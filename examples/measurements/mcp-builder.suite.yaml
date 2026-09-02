@@ -1,0 +1,97 @@
+# anthropics/skills — mcp-builder.
+#
+# NEDEN BU SKILL: iddiası çok dar ("MCP sunucusu inşa et"), çevresindeki alan
+# çok kalabalık: var olan bir MCP sunucusunu yapılandırmak, bir MCP sunucusunu
+# kullanmak, Anthropic API için araç tanımı yazmak, sıradan bir REST servisi
+# yazmak. Dördü de "LLM'e dış servis bağlamak" gibi görünüyor.
+#
+# Hiçbir istemde "mcp-builder" geçmiyor. "MCP" alan sözcüğü, skill adı değil.
+
+version: 1
+
+target:
+  skill: mcp-builder
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [mcp-builder]
+
+runs: 10
+
+cases:
+  # --- POZİTİF: MCP sunucusu inşası ---
+
+  - id: trigger.positive.typescript_server
+    prompt: |
+      Our internal ticketing system has a REST API at
+      https://tickets.internal/api with bearer auth. I want Claude to be able
+      to search tickets, read one by id, and post a comment. Build the MCP
+      server for it in TypeScript, with proper tool descriptions and input
+      schemas.
+    expect: { triggered: true }
+
+  - id: trigger.positive.python_server
+    prompt: |
+      Write a Python MCP server that wraps the Stripe API. Three tools: list
+      charges with a date filter, fetch one charge by id, and issue a refund.
+      Read the key from STRIPE_API_KEY and handle rate limiting.
+    expect: { triggered: true }
+
+  - id: trigger.positive.implicit_no_acronym
+    prompt: |
+      I want Claude Desktop to query our Postgres analytics warehouse
+      directly. Build the connector process it talks to over stdio — it should
+      advertise a handful of read-only query tools and refuse anything that
+      writes.
+    expect: { triggered: true }
+
+  # --- YAKIN KOMŞU: MCP'ye komşu ama sunucu inşası değil ---
+
+  - id: trigger.negative.near_neighbor.configure
+    prompt: |
+      Add the GitHub MCP server to this project's `.mcp.json` so it is only
+      available in this repo, reads its token from an environment variable,
+      and does not get committed with the token inline. Show me the file.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.consume
+    prompt: |
+      The Sentry MCP server is already connected. Pull the last twenty
+      unresolved issues for the `web-frontend` project, group them by error
+      type, and tell me which one to fix first.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.api_tools
+    prompt: |
+      I am calling the Messages API directly with the Python SDK. Define three
+      tools — `get_weather`, `get_forecast`, `search_locations` — with proper
+      JSON Schema input definitions, and write the tool-use loop that
+      dispatches the calls and feeds results back to the model.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.plain_service
+    prompt: |
+      Build a FastAPI service that wraps our inventory database:
+      `GET /items`, `GET /items/{id}`, and `POST /items/{id}/reserve`.
+      Pydantic models for request and response, proper error handling, and a
+      health endpoint.
+    expect: { triggered: false }
+
+  # --- ALAKASIZ ---
+
+  - id: trigger.negative.unrelated.git
+    prompt: |
+      My rebase stopped with "CONFLICT (content): Merge conflict in
+      package-lock.json". What is the safest way out of this without losing
+      the commits I already replayed?
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated.css
+    prompt: |
+      For a three-column dashboard that has to reflow to one column on mobile,
+      is `grid-template-areas` or nested flexbox the better call? Explain the
+      trade-off.
+    expect: { triggered: false }

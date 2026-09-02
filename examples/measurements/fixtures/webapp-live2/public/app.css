@@ -1,0 +1,14 @@
+body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; }
+nav { margin-bottom: 2rem; }
+label { display: block; margin: .5rem 0; }
+button { padding: .5rem 1rem; }
+.cart { border: 1px solid #ccc; padding: 1rem; margin-top: 1rem; }
+
+/* Promo ribbon: at narrow widths it sits on top of the shop controls. */
+.promo {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: #222; color: #fff;
+  padding: 1.25rem; text-align: center;
+}
+@media (min-width: 700px) { .promo { position: static; } }

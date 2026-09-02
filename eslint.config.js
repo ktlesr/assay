@@ -114,6 +114,8 @@ export default tseslint.config(
       '**/.next/**',
       '**/node_modules/**',
       'tools/fixtures/**',
+      // Ölçüm fixture'ları: kasten bozuk, tarayıcıda koşuyor; bizim kurallarımıza tabi değil.
+      'examples/**/fixtures/**',
       // Prisma'nın ürettiği istemci: bizim yazmadığımız kod, bizim kurallarımıza tabi değil.
       'packages/db/generated/**',
       '**/.assay/**',

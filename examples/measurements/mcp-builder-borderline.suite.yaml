@@ -1,0 +1,97 @@
+# anthropics/skills — mcp-builder, SINIRDA sürüm.
+#
+# İlk set 90/90 geçti. İlk setin negatifleri "MCP" sözcüğünü paylaşıyordu ama
+# **işin şeklini** paylaşmıyordu: yapılandırma, tüketim, düz REST. doc-coauthoring
+# deneyi ayrımın sözcükte değil işin şeklinde yapıldığını gösterdi.
+#
+# Bu set o dersi uyguluyor: dört yakın komşunun da işi "bir dış servisi, iyi
+# tasarlanmış araçlar üzerinden bir LLM'e açmak" — skill açıklamasındaki
+# cümlenin harfiyen kendisi. Değişen tek şey protokolün MCP olmaması.
+
+version: 1
+
+target:
+  skill: mcp-builder
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [mcp-builder]
+
+runs: 10
+
+cases:
+  # --- POZİTİF ---
+
+  - id: trigger.positive.explicit_anchor
+    prompt: |
+      Write a Python MCP server that wraps our incident management API. Tools
+      to list open incidents, acknowledge one, and post a status update. Read
+      the token from PAGER_API_KEY.
+    expect: { triggered: true }
+
+  - id: trigger.positive.implicit_stdio
+    prompt: |
+      I want Claude Desktop to query our Postgres analytics warehouse
+      directly. Build the connector process it talks to over stdio — it should
+      advertise a handful of read-only query tools and refuse anything that
+      writes.
+    expect: { triggered: true }
+
+  - id: trigger.positive.implicit_portable
+    prompt: |
+      We want our internal wiki available to Claude Code, Claude Desktop and
+      Cursor without writing three separate integrations. Build the one server
+      all of them can connect to, exposing search, read-page and list-spaces.
+    expect: { triggered: true }
+
+  # --- YAKIN KOMŞU: "dış servisi araçlarla LLM'e aç" ama MCP değil ---
+
+  - id: trigger.negative.near_neighbor.openai_functions
+    prompt: |
+      Wire our shipping-rates API into an OpenAI function-calling setup.
+      Three functions — quote, book, track — with descriptions good enough
+      that the model picks the right one without hand-holding, plus the
+      dispatch loop.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.langchain_tools
+    prompt: |
+      Wrap our internal document search API as LangChain tools so an agent can
+      use it. The agent keeps picking the wrong one between full-text and
+      semantic search, so the tool descriptions and argument schemas need to
+      be genuinely discriminating.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.claude_code_plugin
+    prompt: |
+      Build a Claude Code plugin for our deploy system: slash commands to list
+      releases, promote a build to production, and roll back. Include the
+      plugin manifest and the command definitions.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.agent_cli
+    prompt: |
+      Write a CLI that an agent will drive rather than a human: subcommands
+      for search, read and comment against our ticketing API, a --json flag on
+      every read, and --help output self-describing enough that the agent
+      needs no other documentation.
+    expect: { triggered: false }
+
+  # --- ALAKASIZ ---
+
+  - id: trigger.negative.unrelated.git
+    prompt: |
+      My rebase stopped with "CONFLICT (content): Merge conflict in
+      package-lock.json". What is the safest way out of this without losing
+      the commits I already replayed?
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated.css
+    prompt: |
+      For a three-column dashboard that has to reflow to one column on mobile,
+      is `grid-template-areas` or nested flexbox the better call? Explain the
+      trade-off.
+    expect: { triggered: false }

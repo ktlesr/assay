@@ -1279,3 +1279,65 @@ Araç her yol için üç kare alıyor (açık, koyu, 375px mobil) ve yatay taşm
 Tema `data-theme` ile zorlanıyor, sistem tercihine bırakılmıyor: aksi hâlde
 sonuç koşumu çalıştıran makineye bağlı olurdu.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Kırılmayan vaka seti için ikinci, sınırda set koşuldu
+
+Bağlam: Üç skill ölçüldü; `doc-coauthoring` ve `mcp-builder` setleri 90/90
+geçti. Sözleşme "hiçbir negatif kırılmadıysa daha sınırda bir set öner"
+diyor.
+Seçenekler: yalnızca öneriyi yazmak · ikinci seti yazıp koşmak
+Karar: İkincisi. `*-borderline.suite.yaml` setleri yazıldı ve koşuldu.
+Gerekçe: Öneri bir iddiadır, koşum bir ölçümdür — ve bu projenin tamamı bu
+ayrımın üstünde duruyor. Karşılığı da alındı: `doc-coauthoring` aynı skill,
+aynı model ve aynı pinlerle %100 ve %51 precision verdi. Farkın tamamı vaka
+setinden geliyordu. Bu, tek başına en değerli bulgu oldu ve yalnızca
+"önerseydim" görünmezdi. `mcp-builder` ikinci sette de kırılmadı; bu da
+ölçülmüş bir sonuç, tahmin değil.
+Bedeli: iki ek koşum, ~$16 ve ~3 saat.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Yakın komşu tek eksende ayrılmalı
+
+Bağlam: `doc-coauthoring`'in ilk seti kusursuz göründü. İzler sebebi
+gösterdi: dört negatifin dördünde de ajanın önünde dönüştürülecek bir kaynak
+(kod, düzyazı, commit listesi) vardı; üç pozitifte içerik yalnızca
+kullanıcının kafasındaydı. Set, ölçmek istediğim özelliği değil bu ikinci
+değişkeni ölçüyordu.
+Seçenekler: sonucu olduğu gibi raporlamak · değişkeni sabitleyip yeniden
+ölçmek ve yöntemi kayda geçirmek
+Karar: İkincisi. Değişmez #5'e pratikte bir ek şart: negatif, pozitiften
+**yalnızca ölçülmek istenen özellikte** ayrılmalı; başka hiçbir şeyde değil.
+Gerekçe: Negatifin var olması yetmiyor. Yanlış eksende uzak duran bir negatif
+suite'i geçirir ve skill'i ölçülmüş gösterir — değişmez #5'in tam olarak
+engellemek istediği yanlış güvenlik hissi, bir adım ötede yeniden üretiliyor.
+İkinci set bunu kanıtladı: eksen sabitlenince precision %100'den %51'e düştü.
+Sonuç: 90/90 geçen bir tetiklenme suite'i bir başarı değil, bir uyarıdır.
+Araç bugün bunu söylemiyor; docs/measurements.md'ye eksik olarak yazıldı.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — `examples.test.ts` alt dizinleri de kapsıyor
+
+Bağlam: Test yalnızca `examples/*.suite.yaml` glob'unu kullanıyordu; alt
+dizinlerdeki suite'ler (`examples/dogfood/`, yeni `examples/measurements/`)
+şema değişikliğine karşı korumasızdı.
+Seçenekler: olduğu gibi bırakmak · glob'u `examples/**/*.suite.yaml` yapmak
+Karar: İkincisi. Kapsam 6 dosyadan 18'e çıktı.
+Gerekçe: Testin varlık sebebi "şema değişip de örnekler güncellenmezse burası
+kırmızıya döner". Örneklerin üçte ikisi kapsam dışıydı, yani test amacının
+üçte birini yapıyordu. Tek karakterlik düzeltme.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Ölçüm fixture'ları lint kapsamı dışında
+
+Bağlam: `examples/measurements/fixtures/` altındaki dosyalar kasten bozuk
+(tanımsız `validator`, yanlış toplam hesabı) ve tarayıcıda koşuyor; ESLint
+`no-undef` ile 9 hata verdi.
+Seçenekler: fixture'lara `eslint-disable` serpiştirmek · tarayıcı globals'ı
+tanımlamak · dizini ignore listesine almak
+Karar: `examples/**/fixtures/**` ignore.
+Gerekçe: `no-undef` hatası burada bir kusur değil, **ölçülen şeyin kendisi**:
+`validator is not defined` tam da ajanın tarayıcıda bulması beklenen hata.
+Onu susturmak fixture'ı bozar. Globals tanımlamak da yanlış olurdu —
+bu dosyalar bizim kaynak kodumuz değil, ölçüm girdisi. `tools/fixtures/**`
+zaten aynı gerekçeyle muaftı.
+Geri dönüş maliyeti: düşük

@@ -1,0 +1,5 @@
+body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; }
+nav { margin-bottom: 2rem; }
+label { display: block; margin: .5rem 0; }
+button { padding: .5rem 1rem; }
+.cart { border: 1px solid #ccc; padding: 1rem; margin-top: 1rem; }

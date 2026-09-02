@@ -1,0 +1,103 @@
+# anthropics/skills — webapp-testing, SINIRDA sürüm.
+#
+# İlk sette dört negatifin dördü de tuttu; kıran tek şey bir pozitifti
+# (ajan hatayı kaynaktan görüp tarayıcıyı hiç açmadı). Yani negatif tarafın
+# zorluğu ölçülmemiş kaldı: hepsi "tarayıcı gerekmiyor" ekseninde uzaktı.
+#
+# Bu set o ekseni sabitliyor. Dört yakın komşunun ikisi gerçekten tarayıcı
+# istiyor ama yerel bir web uygulamasını test etmiyor; ikisi yerel bir
+# uygulamayı test ediyor ama tarayıcı istemiyor. Skill'in iddiası ikisinin
+# KESİŞİMİ; set tam olarak kesişimin dışındaki dört hücreyi yokluyor.
+#
+# Pozitifler de sertleşti: üçünün de cevabı kaynağa bakarak alınamıyor.
+
+version: 1
+
+target:
+  skill: webapp-testing
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [webapp-testing]
+
+runs: 10
+
+cases:
+  # --- POZİTİF: cevabı ancak render edilmiş sayfada olan işler ---
+
+  - id: trigger.positive.console_debug
+    prompt: |
+      Serve the `public/` folder on a local port and open the sign-up page.
+      When I fill in the form and press Submit nothing happens at all — no
+      error, no message, nothing. Find out what the browser is actually doing
+      when that button is pressed, and tell me the real cause.
+    setup: { fixtures: ./fixtures/webapp-live2 }
+    expect: { triggered: true }
+
+  - id: trigger.positive.rendered_value
+    prompt: |
+      Serve `public/` and open the shop page. Add the Widget and the Gadget to
+      the cart, then tell me the exact number the checkout total shows on
+      screen. A customer says it disagrees with the prices listed above it and
+      I want to know what they are actually seeing.
+    setup: { fixtures: ./fixtures/webapp-live2 }
+    expect: { triggered: true }
+
+  - id: trigger.positive.responsive_overlap
+    prompt: |
+      Serve `public/` and look at the shop page in a 375-pixel-wide viewport.
+      Users on phones say the last "Add to cart" button cannot be tapped.
+      Confirm whether it is reachable at that width and tell me what is in
+      the way.
+    setup: { fixtures: ./fixtures/webapp-live2 }
+    expect: { triggered: true }
+
+  # --- YAKIN KOMŞU A: tarayıcı gerekiyor, ama yerel uygulama testi değil ---
+
+  - id: trigger.negative.near_neighbor.public_scrape
+    prompt: |
+      Open https://example.com/pricing in a browser, wait for the tier cards
+      to render, and pull the three plan names and monthly prices out into
+      JSON. It is a client-rendered page so fetching the HTML is not enough.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.pdf_render
+    prompt: |
+      I need `invoice.html` turned into an A4 PDF with the print stylesheet
+      applied and the page breaks in the right places. Render it and give me
+      the file.
+    expect: { triggered: false }
+
+  # --- YAKIN KOMŞU B: yerel uygulama testi, ama tarayıcı gerekmiyor ---
+
+  - id: trigger.negative.near_neighbor.load_test
+    prompt: |
+      Our app on localhost:3000 starts returning 502s somewhere above fifty
+      concurrent users. Run a load test against it, ramp the concurrency, and
+      tell me where the breaking point is and what the latency curve looks
+      like on the way there.
+    expect: { triggered: false }
+
+  - id: trigger.negative.near_neighbor.grpc_service
+    prompt: |
+      Our gRPC service is running locally on port 50051. Exercise the
+      `GetAccount` and `TransferFunds` methods against it, including the
+      insufficient-funds path, and tell me which status codes come back.
+    expect: { triggered: false }
+
+  # --- ALAKASIZ ---
+
+  - id: trigger.negative.unrelated.types
+    prompt: |
+      Why does `type F<T> = T extends string ? A : B` distribute over a union
+      when I pass `string | number`, and how do I stop it from distributing?
+    expect: { triggered: false }
+
+  - id: trigger.negative.unrelated.shell
+    prompt: |
+      Give me a one-liner that finds the ten largest files under /var/log and
+      prints their sizes in megabytes, largest first.
+    expect: { triggered: false }
