@@ -131,6 +131,22 @@ konteyner hiç ayağa kalkamadı.
 npm ile kuruyor. Sürüm manifestodan okunuyor: burada sabitlemek aynı sürümü
 iki yerde tutmak olurdu.
 
+Kurulum **nötr bir dizinde** (`/tmp/prisma-cli`) yapılıp `node_modules`
+taşınıyor. İlk denemede `npm install` doğrudan `packages/db` içinde
+koşturuldu ve düştü:
+
+```
+npm error code EUNSUPPORTEDPROTOCOL
+npm error Unsupported URL Type "workspace:": workspace:*
+```
+
+npm o dizindeki `package.json`'ın tamamını okuyor ve içindeki
+`"@ktlsr/assay-core": "workspace:*"` belirtecini tanımıyor. Sürümü oradan
+okuyup kurulumu başka yerde yapmak iki gereksinimi de karşılıyor.
+
+Adımın sonunda `test -f .../prisma/build/index.js` var: dosya oluşmadıysa
+derleme orada durur, konteyner çalışma zamanında değil.
+
 ### Bunun alan adına etkisi
 
 Konteyner ayağa kalkmadığı için Traefik'in yönlendireceği bir arka uç yoktu

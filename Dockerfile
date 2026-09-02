@@ -74,7 +74,18 @@ COPY --from=build --chown=assay:assay /app/packages/db/package.json ./packages/d
 #
 # Sürüm `packages/db/package.json`dan okunuyor — burada sabitlemek, aynı
 # sürümü iki yerde tutmak ve birini unutmak demek olurdu.
-RUN cd packages/db  && npm install --no-save --no-audit --no-fund       "prisma@$(node -p "require('./package.json').dependencies.prisma")"  && chown -R assay:assay node_modules
+# Kurulum NÖTR bir dizinde yapılıyor, `packages/db` içinde değil: npm o
+# dizindeki package.json'ın tamamını okuyor ve içindeki `workspace:*`
+# belirtecini tanımıyor ("EUNSUPPORTEDPROTOCOL"). Sürümü oradan okuyup
+# kurulumu başka yerde yapmak, iki gereksinimi de karşılıyor.
+RUN PRISMA_VERSION="$(node -p "require('/app/packages/db/package.json').dependencies.prisma")" \
+ && mkdir -p /tmp/prisma-cli \
+ && cd /tmp/prisma-cli \
+ && npm install --no-save --no-audit --no-fund "prisma@$PRISMA_VERSION" \
+ && mv /tmp/prisma-cli/node_modules /app/packages/db/node_modules \
+ && rm -rf /tmp/prisma-cli \
+ && chown -R assay:assay /app/packages/db/node_modules \
+ && test -f /app/packages/db/node_modules/prisma/build/index.js
 COPY --chown=assay:assay docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
