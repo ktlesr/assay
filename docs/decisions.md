@@ -1205,3 +1205,26 @@ aracın bir beyanına bağlanmıştı. Paketler yayımlandı, doğrulama sessizc
 atlandı ve bunu ancak elle bakınca fark ettim — ölçüm aracının kendi hattında
 kabul edilemez. Manifestolar yayımlanan sürümün tek doğruluk kaynağı zaten.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-02 — İlk yönetici ortam değişkeninden, CLI script'inden değil
+Bağlam: `tools/create-user.mjs` üretim imajında yok — Dockerfile yalnızca
+standalone çıktısını ve Prisma şemasını taşıyor. Script ayrıca
+`@ktlsr/assay-db` ve argon2'yi workspace üzerinden import ediyor; konteynerde
+çözülemez. docs/deploy.md'deki komut ilk dağıtımda çalışmayacaktı.
+Seçenekler: `tools/`i imaja kopyalamak · kayıt ekranı açmak · sunucunun
+kendi sürecinde ortam değişkeninden bootstrap
+Karar: Üçüncüsü. `apps/web/lib/bootstrap-admin.ts`, `instrumentation.ts`
+içinden çağrılıyor. `ASSAY_BOOTSTRAP_ADMIN_EMAIL` ve `..._PASSWORD` doluysa
+ve o e-posta yoksa ADMIN açılıyor.
+Gerekçe: `tools/`i kopyalamak modül çözümünü şansa bırakırdı ve yerelde
+doğrulanamıyordu (Windows'ta standalone derlemesi kırık). Bootstrap
+sunucunun kendi sürecinde koşuyor, yani `@ktlsr/assay-db` ve argon2 zaten
+çözülü. Kayıt ekranı açmak, "ilk kayıt olan yönetici olur" yarışını geri
+getirirdi — 2026-08-31'de bilerek reddedilmişti.
+Davranış dar tutuldu: var olan kullanıcıya dokunulmuyor ve parola
+sıfırlanmıyor, çünkü her yeniden başlatmada parolayı ezmek kullanıcının
+kendi değiştirdiği parolayı sessizce geri alırdı. Bootstrap kendi hatasını
+yutuyor; veritabanı bir an ulaşılamazsa sunucu yine ayağa kalkıyor.
+Dört yol da gerçek veritabanına karşı sınandı: değişken yok, kısa parola,
+ilk açılış, farklı parolayla ikinci açılış.
+Geri dönüş maliyeti: düşük

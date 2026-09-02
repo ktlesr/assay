@@ -21,7 +21,7 @@ const REQUIRED = [
   ['AUTH_URL', 'sitenin dış adresi, örn. https://assayctl.dev'],
 ] as const
 
-export function register(): void {
+export async function register(): Promise<void> {
   // Kenar çalışma zamanında ortam değişkenleri farklı taşınıyor; kontrol
   // yalnızca sunucu sürecinde anlamlı.
   if (process.env['NEXT_RUNTIME'] !== 'nodejs') return
@@ -53,4 +53,9 @@ export function register(): void {
         `Uygulama HSTS gönderiyor; HTTPS olmayan bir dış adres oturum çerezini kırar.`,
     )
   }
+
+  // Ortam doğrulamasından SONRA: veritabanı adresi geçerli değilse zaten
+  // buraya gelinmiyor. Bootstrap kendi hatasını yutuyor, sunucuyu düşürmüyor.
+  const { bootstrapAdmin } = await import('./lib/bootstrap-admin')
+  await bootstrapAdmin()
 }
