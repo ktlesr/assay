@@ -41,8 +41,16 @@ services:
       ASSAY_PUBLIC_SITE: ${ASSAY_PUBLIC_SITE:-}
       # Üretimde boş kalır. Yalnızca PGlite soketiyle koşarken 1 olmalı.
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-}
-    ports:
-      - '3000:3000'
+    # Host portu YAYINLANMIYOR. Dokploy'un Traefik'i konteynere Docker ağı
+    # üzerinden ulaşıyor; `ports:` ile 3000'i host'a bağlamak hem gereksiz hem
+    # çakışma kaynağı. İlk dağıtım tam bu yüzden düştü:
+    # "Bind for 0.0.0.0:3000 failed: port is already allocated".
+    #
+    # Compose'u Dokploy'suz, tek başına koşturacaksan bu satırları aç:
+    #   ports:
+    #     - '3000:3000'
+    expose:
+      - '3000'
 
 volumes:
   pgdata:

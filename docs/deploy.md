@@ -113,9 +113,32 @@ docker compose exec db pg_dump -U assay assay | gzip > assay-$(date +%F).sql.gz
 - [ ] Google OAuth geri dönüş adresi konsola eklendi:
       `https://<alan adı>/api/auth/callback/google`
 
-## Doğrulanmamış olan
+## Port: host'a yayınlanmıyor
 
-Konteyner imajı bu makinede **derlenmedi**: Docker Desktop kapalı ve
-standalone çıktısı Windows'ta sembolik bağ yetkisi istiyor (EPERM). CI ubuntu
-üzerinde `NEXT_STANDALONE=1` ile derliyor; imajın kendisi ilk dağıtımda
-doğrulanacak. Kayıt: docs/blockers.md.
+`web` servisi 3000'i **host'a bağlamıyor**, yalnızca `expose` ediyor.
+Dokploy'un Traefik'i konteynere Docker ağı üzerinden ulaşıyor; host portu hem
+gereksiz hem çakışma kaynağı.
+
+İlk dağıtım tam bu yüzden düştü:
+
+```
+Bind for 0.0.0.0:3000 failed: port is already allocated
+```
+
+Sunucuda 3000'i tutan başka bir şey vardı. Alan adını Dokploy'da bağlarken
+yine `web` servisi ve port `3000` seçilir — bu, konteynerin içindeki port.
+
+Compose'u Dokploy'suz tek başına koşturacaksan `docker-compose.yml` içindeki
+yorumlu `ports:` satırlarını aç.
+
+## Doğrulanmış olan
+
+**Konteyner imajı derlendi** (2026-09-01, ilk dağıtım denemesi). Prisma
+istemcisi üretildi, altı paket derlendi, Next standalone çıktısı ve middleware
+(34.4 kB) oluştu, imaj katmanları dışa aktarıldı. Derleme tarafında açık kalan
+bir bilinmez yok.
+
+Aynı koşumda bir uyarı görüldü ve kapatıldı: Prisma OpenSSL sürümünü tespit
+edemiyor ve tahmine düşüyordu. `Dockerfile` artık `openssl` ve
+`ca-certificates` kuruyor — açılışta `migrate deploy` aynı motoru kullandığı
+için bunu tahmine bırakmak doğru değildi.

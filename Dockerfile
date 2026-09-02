@@ -11,6 +11,11 @@
 FROM node:22.20.0-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+# Prisma OpenSSL'i bulamazsa sürümü tahmin ediyor ve bunu uyarı olarak yazıyor:
+# "failed to detect the libssl/openssl version ... Defaulting to openssl-1.1.x".
+# İlk dağıtımda bu uyarı görüldü. Derleme geçti ama açılışta `migrate deploy`
+# aynı motoru kullanıyor; tahmine bırakmak yerine paketi kuruyoruz.
+RUN apt-get update  && apt-get install -y --no-install-recommends openssl ca-certificates  && rm -rf /var/lib/apt/lists/*
 RUN corepack enable
 WORKDIR /app
 

@@ -30,7 +30,12 @@ sokmayan bir akış demek.
 Açmak için: SMTP bilgileri geldiğinde Auth.js'in `Nodemailer` sağlayıcısı ve bir
 parola sıfırlama akışı eklenir.
 
-## 2026-09-01 — Konteyner imajı bu makinede derlenmedi
+## 2026-09-01 — Konteyner imajı bu makinede derlenmedi — ÇÖZÜLDÜ (aynı gün)
+Çözüm: İmaj ilk dağıtım denemesinde sunucuda başarıyla derlendi. Prisma
+istemcisi üretildi, altı paket derlendi, Next standalone çıktısı ve middleware
+oluştu. Aynı koşumda görülen Prisma OpenSSL uyarısı `Dockerfile`'a `openssl`
+eklenerek kapatıldı. Dağıtım ayrı bir sebeple düştü (host portu 3000 doluydu);
+`docker-compose.yml` artık portu host'a yayınlamıyor.
 Ne gerekiyor: çalışan bir Docker daemon'ı.
 Ne yapıldı: `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh` ve
 `docs/deploy.md` yazıldı; `/api/health` uygulandı ve yerelde 200 dönüyor.
