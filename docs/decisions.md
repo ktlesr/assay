@@ -1206,25 +1206,23 @@ atlandı ve bunu ancak elle bakınca fark ettim — ölçüm aracının kendi ha
 kabul edilemez. Manifestolar yayımlanan sürümün tek doğruluk kaynağı zaten.
 Geri dönüş maliyeti: düşük
 
-## 2026-09-02 — İlk yönetici ortam değişkeninden, CLI script'inden değil
-Bağlam: `tools/create-user.mjs` üretim imajında yok — Dockerfile yalnızca
-standalone çıktısını ve Prisma şemasını taşıyor. Script ayrıca
-`@ktlsr/assay-db` ve argon2'yi workspace üzerinden import ediyor; konteynerde
-çözülemez. docs/deploy.md'deki komut ilk dağıtımda çalışmayacaktı.
-Seçenekler: `tools/`i imaja kopyalamak · kayıt ekranı açmak · sunucunun
-kendi sürecinde ortam değişkeninden bootstrap
-Karar: Üçüncüsü. `apps/web/lib/bootstrap-admin.ts`, `instrumentation.ts`
-içinden çağrılıyor. `ASSAY_BOOTSTRAP_ADMIN_EMAIL` ve `..._PASSWORD` doluysa
-ve o e-posta yoksa ADMIN açılıyor.
-Gerekçe: `tools/`i kopyalamak modül çözümünü şansa bırakırdı ve yerelde
-doğrulanamıyordu (Windows'ta standalone derlemesi kırık). Bootstrap
-sunucunun kendi sürecinde koşuyor, yani `@ktlsr/assay-db` ve argon2 zaten
-çözülü. Kayıt ekranı açmak, "ilk kayıt olan yönetici olur" yarışını geri
-getirirdi — 2026-08-31'de bilerek reddedilmişti.
-Davranış dar tutuldu: var olan kullanıcıya dokunulmuyor ve parola
-sıfırlanmıyor, çünkü her yeniden başlatmada parolayı ezmek kullanıcının
-kendi değiştirdiği parolayı sessizce geri alırdı. Bootstrap kendi hatasını
-yutuyor; veritabanı bir an ulaşılamazsa sunucu yine ayağa kalkıyor.
-Dört yol da gerçek veritabanına karşı sınandı: değişken yok, kısa parola,
-ilk açılış, farklı parolayla ikinci açılış.
+## 2026-09-02 — İlk yönetici aracı imaja kopyalanıyor, instrumentation'a taşınmadı
+Bağlam: `docs/deploy.md` `docker compose exec web node tools/create-user.mjs`
+diyordu ama `tools/` üretim imajında yoktu; komut çalışmayacaktı.
+Seçenekler: bootstrap'ı `instrumentation.ts` üzerinden sunucu sürecinde
+koşturmak · `tools/`u imaja kopyalamak · kayıt ekranı açmak
+Karar: İkincisi. `Dockerfile` yalnızca `tools/create-user.mjs`yi kopyalıyor.
+Gerekçe: Önce birincisi denendi ve **derlemeyi kırdı**. `middleware.ts` var
+olduğu için Next `instrumentation.ts`yi edge çalışma zamanı için de derliyor;
+oradan `packages/db` → `@prisma/adapter-pg` → `pg` zinciri `fs`, `path` ve
+`stream` istiyor ve edge'de bunlar yok. Dosya içindeki `NEXT_RUNTIME`
+kontrolü çalışma zamanında; webpack yine de bundle'a alıyor. Commit geri
+alındı (9bd7e18 → revert).
+Kopyalama yaklaşımının kendi riski var: araç workspace paketlerini import
+ediyor ve bunlar standalone çıktısında yalnızca `apps/web` onları izlediği
+için bulunuyor. Bu varsayım sessizce değişebilir — auth bir gün argon2'yi
+bırakırsa araç çalışma zamanında kırılır. Bu yüzden Dockerfile derleme
+sırasında ikisini de gerçekten import ediyor: çözülemezse derleme durur.
+Bu turdaki üç dağıtım hatasının ortak dersi bu — hata çalışma zamanında
+değil, derlemede görünmeli.
 Geri dönüş maliyeti: düşük

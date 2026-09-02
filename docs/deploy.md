@@ -79,23 +79,20 @@ yarım şemayla açılan bir örnek, ölçüm kaydını sessizce yarım saklard�
    HTTPS'e bağlanmadan yayına alınmamalı.
 4. **Kalıcı hacim**: `pgdata`. Yeniden kurulumda silinmemeli.
 5. **Sağlık kontrolü**: `/api/health`, 200 bekleniyor.
-6. İlk yöneticiyi aç: ortam değişkenlerine ekle ve yeniden dağıt.
+6. İlk dağıtımdan sonra ilk yöneticiyi aç:
 
 ```
-ASSAY_BOOTSTRAP_ADMIN_EMAIL=sen@ornek.com
-ASSAY_BOOTSTRAP_ADMIN_PASSWORD=<12+ karakter>
+docker compose exec web node tools/create-user.mjs <e-posta> <parola> ADMIN
 ```
 
-Sunucu açılışta hesabı oluşturur ve loga yazar. Hesap açıldıktan sonra
-**iki değişkeni de sil**; var olan bir kullanıcıya dokunulmaz, parola
-sıfırlanmaz, yani unutulursa da zarar vermez — ama sırrın orada durmasının
-bir sebebi yok.
+Kayıt ekranı yok (bkz. docs/decisions.md); ilk yönetici bu komutla doğar.
 
-Kayıt ekranı yok (bkz. docs/decisions.md); ilk yönetici bu şekilde doğar.
-
-`tools/create-user.mjs` **üretim imajında yok** ve workspace paketlerini
-import ettiği için konteynerde çözülemez; yalnızca geliştirme aracıdır.
-İlk dağıtımda bu fark edildi.
+`tools/create-user.mjs` bu iş için imaja **açıkça kopyalanıyor**. Araç
+workspace paketlerini (`@ktlsr/assay-db`, argon2) import ediyor ve bunlar
+standalone çıktısında yalnızca `apps/web` onları izlediği için bulunuyor —
+sessizce değişebilecek bir varsayım. Bu yüzden `Dockerfile` derleme sırasında
+ikisini de gerçekten import edip çözüldüklerini kanıtlıyor; çözülemezse
+derleme orada durur, konteyner çalışırken değil.
 
 ## Yedekleme
 

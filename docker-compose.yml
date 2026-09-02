@@ -46,10 +46,6 @@ services:
       ASSAY_PUBLIC_SITE: ${ASSAY_PUBLIC_SITE:-}
       # Üretimde boş kalır. Yalnızca PGlite soketiyle koşarken 1 olmalı.
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-}
-      # İlk yöneticiyi açar. Hesap oluştuktan sonra ikisi de silinmeli;
-      # var olan bir kullanıcıya dokunulmaz, parola sıfırlanmaz.
-      ASSAY_BOOTSTRAP_ADMIN_EMAIL: ${ASSAY_BOOTSTRAP_ADMIN_EMAIL:-}
-      ASSAY_BOOTSTRAP_ADMIN_PASSWORD: ${ASSAY_BOOTSTRAP_ADMIN_PASSWORD:-}
     # Host portu YAYINLANMIYOR. Dokploy'un Traefik'i konteynere Docker ağı
     # üzerinden ulaşıyor; `ports:` ile 3000'i host'a bağlamak hem gereksiz hem
     # çakışma kaynağı. İlk dağıtım tam bu yüzden düştü:
