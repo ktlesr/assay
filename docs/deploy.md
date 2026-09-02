@@ -93,6 +93,18 @@ Kayıt ekranı yok (bkz. docs/decisions.md). Üç kilit var: değişken yoksa u�
 varsa **409**. Yani değişken açık unutulsa bile ikinci bir yönetici
 açılamaz. Uç ayrıca yayın modunda middleware ile kapalı.
 
+Yanlış bir hesap açtıysan aynı uçtan geri al:
+
+```
+curl -X DELETE https://assayctl.dev/api/bootstrap   -H "Authorization: Bearer <ASSAY_BOOTSTRAP_TOKEN>"   -H "Content-Type: application/json"   -d '{"email":"yanlis@ornek.com"}'
+```
+
+Yalnızca **tek yönetici varken** çalışır: bu ucun işi kurulumu geri almak,
+çalışan bir ekipten yönetici budamak değil. Birden çok yönetici varsa `409`
+döner ve admin paneli kullanılır. Silme gereğinin sebebi somut: panel
+kullanıcı silemiyor ve son yöneticiyi askıya almayı da reddediyor, yani
+yanlış açılmış bir ilk hesap oradan düzeltilemiyor.
+
 `tools/create-user.mjs` yalnızca **geliştirme** aracıdır. Üretim imajında yok
 ve oraya kopyalansa da `@ktlsr/assay-db` standalone çıktısından çözülemiyor;
 ikisi de dağıtımda denendi ve kanıtlandı.

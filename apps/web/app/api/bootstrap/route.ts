@@ -30,23 +30,32 @@ import { hash } from '@node-rs/argon2'
  * Üç kilit birden: değişken yoksa rota **yok** (404), token eşleşmezse 401,
  * ve zaten bir ADMIN varsa 409. Yani açık unutulsa bile ikinci bir yönetici
  * açılamıyor.
+ *
+ * `DELETE` aynı ucu geri alıyor: yanlış açılmış ilk yöneticiyi siler, ama
+ * yalnızca tek yönetici varken. Admin paneli kullanıcı silemiyor ve son
+ * yöneticiyi askıya almayı da reddediyor, yani yanlış bir ilk hesap oradan
+ * düzeltilemiyordu.
  */
-export async function POST(request: Request): Promise<Response> {
+/** Ortak kapı: token yoksa uç yok, eşleşmezse yetkisiz. */
+function authorize(request: Request): Response | null {
   const secret = process.env['ASSAY_BOOTSTRAP_TOKEN']
 
   // Değişken yoksa uç hiç yokmuş gibi davranır: varlığını sızdırmıyoruz.
   if (secret === undefined || secret.trim() === '') {
     return new Response('Not found', { status: 404 })
   }
-
-  const header = request.headers.get('authorization') ?? ''
-  if (header !== `Bearer ${secret}`) {
+  if ((request.headers.get('authorization') ?? '') !== `Bearer ${secret}`) {
     return Response.json({ error: 'unauthorized' }, { status: 401 })
   }
-
   if (!isConfigured()) {
     return Response.json({ error: 'database is not configured' }, { status: 503 })
   }
+  return null
+}
+
+export async function POST(request: Request): Promise<Response> {
+  const denied = authorize(request)
+  if (denied !== null) return denied
 
   let body: unknown
   try {
@@ -87,4 +96,50 @@ export async function POST(request: Request): Promise<Response> {
   })
 
   return Response.json({ email: user.email, role: user.role }, { status: 201 })
+}
+
+/**
+ * Bootstrap'ı geri alır: yanlış açılmış ilk yöneticiyi siler.
+ *
+ * Kapsam bilerek dar — yalnızca **tek yönetici varken** çalışır. Sebep:
+ * bu ucun işi kurulumu geri almak, çalışan bir ekipten yönetici budamak
+ * değil. Birden çok yönetici varsa admin paneli kullanılır.
+ *
+ *   curl -X DELETE https://<alan>/api/bootstrap \
+ *     -H "Authorization: Bearer $ASSAY_BOOTSTRAP_TOKEN" \
+ *     -H "Content-Type: application/json" \
+ *     -d '{"email":"yanlis@ornek.com"}'
+ */
+export async function DELETE(request: Request): Promise<Response> {
+  const denied = authorize(request)
+  if (denied !== null) return denied
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return Response.json({ error: 'body must be JSON' }, { status: 400 })
+  }
+
+  const { email } = (body ?? {}) as { email?: unknown }
+  if (typeof email !== 'string' || email.trim() === '') {
+    return Response.json({ error: 'email is required' }, { status: 400 })
+  }
+
+  const db = prisma()
+  const target = await db.user.findUnique({ where: { email: email.trim().toLowerCase() } })
+  if (target === null) {
+    return Response.json({ error: 'no such user' }, { status: 404 })
+  }
+
+  const admins = await db.user.count({ where: { role: 'ADMIN' } })
+  if (admins > 1) {
+    return Response.json(
+      { error: 'more than one admin exists; use the admin panel' },
+      { status: 409 },
+    )
+  }
+
+  await db.user.delete({ where: { id: target.id } })
+  return Response.json({ deleted: target.email }, { status: 200 })
 }
