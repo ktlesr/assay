@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Assay</title>
+  <!--
+    Marka işareti: güven aralığı.
+
+    İki uç tırnak, bir açıklık, ve merkezde OLMAYAN bir nokta. Kaydırma
+    keyfi değil — Wilson aralığında nokta tahmini ortada durmaz, ve ürünün
+    tüm iddiası bu asimetride. Simetrik bir nokta çizmek, gösterdiğimiz
+    matematiği yanlış anlatmak olurdu.
+
+    Uç tırnaklar açıklıktan uzun: bu bir ölçek, ilerleme çubuğu değil.
+    Yuvarlak uç yok, çünkü ölçüm aleti yuvarlanmaz.
+
+    Renk tarayıcı temasına uyuyor — favicon koyu sekmede kaybolmasın.
+  -->
+  <style>
+    .ink { fill: #0b0d0e; }
+    @media (prefers-color-scheme: dark) {
+      .ink { fill: #e8eaea; }
+    }
+  </style>
+  <g class="ink">
+    <!-- sol uç tırnak -->
+    <rect x="4" y="8" width="2.6" height="16" />
+    <!-- sağ uç tırnak -->
+    <rect x="25.4" y="8" width="2.6" height="16" />
+    <!-- açıklık -->
+    <rect x="4" y="14.7" width="24" height="2.6" />
+    <!-- nokta tahmini: merkezin sağında -->
+    <circle cx="18.6" cy="16" r="4.6" />
+  </g>
+</svg>

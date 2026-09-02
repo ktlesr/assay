@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { Mark } from './mark'
 import { ThemeToggle } from './theme-toggle'
 import { UserMenu } from './user-menu'
 
@@ -22,7 +23,8 @@ export function Shell({
         <div className="page-head-inner">
           <div className="flex min-w-0 items-center gap-4">
             <Link href="/" className="wordmark">
-              Assay
+              <Mark size={18} />
+              <span>Assay</span>
             </Link>
             {breadcrumbs.length === 0 ? null : (
               <nav aria-label="Breadcrumb" className="crumbs">

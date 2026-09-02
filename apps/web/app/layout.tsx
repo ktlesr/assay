@@ -69,6 +69,34 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
   robots: { index: true, follow: true },
+  // Kanonik adres: aynı sayfaya www'li ve www'siz gelen bağlantılar tek
+  // kayıtta toplansın. `metadataBase` üzerinden çözülüyor.
+  ...(siteUrl === undefined || siteUrl === '' ? {} : { alternates: { canonical: '/' } }),
+}
+
+/**
+ * Yapısal veri.
+ *
+ * Yalnızca doğrulanabilir alanlar: ad, açıklama, kategori, lisans, ücretsiz
+ * teklif ve paket adresi. `aggregateRating` **bilerek yok** — bu örnekte
+ * değerlendirme diye bir şey yok ve uydurma bir yıldız ortalaması, tam da
+ * bu ürünün varlık sebebi olan şeyin ihlali olurdu (veri gerçekliği
+ * sözleşmesi). Arama sonucunda yıldız göstermenin cazibesi gerçek değil.
+ */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Assay',
+  description: DESCRIPTION,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Linux, macOS, Windows',
+  license: 'https://www.apache.org/licenses/LICENSE-2.0',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  sameAs: [
+    'https://github.com/ktlesr/assay',
+    'https://www.npmjs.com/package/@ktlsr/assay',
+  ],
+  ...(siteUrl === undefined || siteUrl === '' ? {} : { url: siteUrl }),
 }
 
 export const viewport: Viewport = {
@@ -87,6 +115,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         {/* Tema, boyamadan önce yazılır: yanlış temada tek kare bile görünmez. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body>{children}</body>
     </html>
