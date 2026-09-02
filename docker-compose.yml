@@ -4,6 +4,16 @@
 # Traefik'inde çözülür, bu yüzden burada 80/443 yok.
 #
 # Sırlar buraya yazılmaz: `.env` dosyasından gelir (bkz. .env.example).
+#
+# AĞ: `web` iki ağda birden. Compose kendi izole ağını kuruyor ve Traefik o
+# ağda değil — `dokploy-network`'te. Konteyner yalnızca kendi ağındayken
+# Traefik ona ulaşamıyor ve alan adı 404 dönüyor. İlk dağıtımda tam olarak bu
+# oldu. `db` bilerek yalnızca iç ağda: dışarıdan erişilebilir olmasının bir
+# sebebi yok.
+#
+# Dokploy'suz, tek başına `docker compose up` yapacaksan `dokploy-network`
+# sunucuda bulunmadığı için `external: true` hata verir; o durumda alttaki
+# `networks:` bloğunu ve `web`in `dokploy-network` satırını kaldır.
 
 services:
   db:
@@ -51,6 +61,19 @@ services:
     #     - '3000:3000'
     expose:
       - '3000'
+    networks:
+      # `default` db'ye ulaşmak için, `dokploy-network` Traefik'in buraya
+      # ulaşması için. İkisi de gerekli.
+      - default
+      - dokploy-network
+    labels:
+      # Konteyner birden çok ağdayken Traefik hangisini kullanacağını
+      # bilemiyor; açıkça söylüyoruz.
+      - traefik.docker.network=dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
   pgdata:

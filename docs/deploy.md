@@ -113,6 +113,28 @@ docker compose exec db pg_dump -U assay assay | gzip > assay-$(date +%F).sql.gz
 - [ ] Google OAuth geri dönüş adresi konsola eklendi:
       `https://<alan adı>/api/auth/callback/google`
 
+## Ağ: `web` Traefik'in ağında olmak zorunda
+
+Dokploy'un Traefik'i `dokploy-network` üzerinde koşuyor. Compose kendi izole
+ağını kurduğu için, `web` yalnızca o ağdayken **Traefik ona ulaşamıyor** ve
+alan adı Traefik'in kendi 404'ünü döndürüyor — uygulama ayakta olsa bile.
+
+İlk dağıtımda tam olarak bu oldu. Belirti şuydu: yanıt `Content-Length: 19`
+ile geliyordu (Traefik'in "404 page not found" metni) ve uygulamanın kendi
+güvenlik başlıkları (`Content-Security-Policy`, `Strict-Transport-Security`)
+yanıtta hiç yoktu. İstek uygulamaya ulaşmıyorsa o başlıklar gelmez; teşhis
+bu ayrıma dayanıyor.
+
+`docker-compose.yml` bu yüzden `web`i iki ağa birden bağlıyor: `default`
+(veritabanına ulaşmak için) ve `dokploy-network` (Traefik için). Ayrıca
+`traefik.docker.network=dokploy-network` etiketi var, çünkü konteyner birden
+çok ağdayken Traefik hangisini kullanacağını bilemiyor.
+
+`db` bilerek yalnızca iç ağda kalıyor.
+
+Domain ayarını değiştirdikten sonra **compose yeniden dağıtılmalı** — Dokploy
+Traefik etiketlerini ancak dağıtımda uyguluyor, arayüzde kaydetmek yetmiyor.
+
 ## Port: host'a yayınlanmıyor
 
 `web` servisi 3000'i **host'a bağlamıyor**, yalnızca `expose` ediyor.
