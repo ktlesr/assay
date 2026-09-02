@@ -1226,3 +1226,24 @@ sırasında ikisini de gerçekten import ediyor: çözülemezse derleme durur.
 Bu turdaki üç dağıtım hatasının ortak dersi bu — hata çalışma zamanında
 değil, derlemede görünmeli.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-02 — İlk yönetici tek seferlik API ucundan
+Bağlam: `tools/create-user.mjs` üretimde iki kez çalışmadı. Önce `tools/`
+imajda yoktu; kopyalanınca da `@ktlsr/assay-db` `/app`ten çözülemedi —
+Next'in standalone çıktısı workspace paketlerini üst düzeyde açmıyor. İkisi
+de dağıtımda kanıtlandı. Arada `instrumentation.ts` üzerinden bootstrap
+denendi ve derlemeyi kırdı: `middleware.ts` var olduğu için o dosya edge
+için de derleniyor ve `pg` zinciri `fs`/`path`/`stream` istiyor.
+Seçenekler: Postgres'i dışarı açıp yerelden koşmak · kayıt ekranı ·
+tek seferlik API ucu
+Karar: `POST /api/bootstrap`.
+Gerekçe: Rota sunucu çalışma zamanı için derleniyor ve bağımlılıkları oraya
+izleniyor — `/api/runs` aynı paketi aynı şekilde kullanıyor ve üretimde
+çalıştığı ölçüldü (405 dönüyordu). Yani çözümün işe yarayacağı tahmin değil,
+gözlem. Postgres'i dışarı açmak geçici de olsa veritabanını internete
+verirdi.
+Üç kilit: `ASSAY_BOOTSTRAP_TOKEN` yoksa uç 404 (varlığı sızmıyor), token
+eşleşmezse 401, zaten bir ADMIN varsa 409. Değişken açık unutulsa bile
+ikinci bir yönetici açılamıyor. Uç ayrıca yayın modunda middleware ile
+kapatılıyor.
+Geri dönüş maliyeti: düşük

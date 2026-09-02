@@ -46,6 +46,9 @@ services:
       ASSAY_PUBLIC_SITE: ${ASSAY_PUBLIC_SITE:-}
       # Üretimde boş kalır. Yalnızca PGlite soketiyle koşarken 1 olmalı.
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-}
+      # İlk yöneticiyi açan tek seferlik ucun anahtarı. Boşken uç 404 döner.
+      # Hesap açıldıktan sonra silinmeli.
+      ASSAY_BOOTSTRAP_TOKEN: ${ASSAY_BOOTSTRAP_TOKEN:-}
     # Host portu YAYINLANMIYOR. Dokploy'un Traefik'i konteynere Docker ağı
     # üzerinden ulaşıyor; `ports:` ile 3000'i host'a bağlamak hem gereksiz hem
     # çakışma kaynağı. İlk dağıtım tam bu yüzden düştü:

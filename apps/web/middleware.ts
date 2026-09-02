@@ -26,6 +26,8 @@ const CLOSED_IN_PUBLIC_MODE = [
   /^\/compare(\/|$)/,
   /^\/dev(\/|$)/,
   /^\/api\/auth(\/|$)/,
+  // Kurulum ucu: yayın modunda hiç var olmamalı.
+  /^\/api\/bootstrap(\/|$)/,
 ]
 
 export function middleware(request: NextRequest) {

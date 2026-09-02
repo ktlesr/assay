@@ -86,18 +86,6 @@ RUN PRISMA_VERSION="$(node -p "require('/app/packages/db/package.json').dependen
  && rm -rf /tmp/prisma-cli \
  && chown -R assay:assay /app/packages/db/node_modules \
  && test -f /app/packages/db/node_modules/prisma/build/index.js
-# İlk yöneticiyi açan kurulum aracı. Kayıt ekranı yok (docs/decisions.md).
-COPY --from=build --chown=assay:assay /app/tools/create-user.mjs ./tools/create-user.mjs
-
-# Aracın bağımlılıklarının GERÇEKTEN çözüldüğü derleme anında kanıtlanıyor.
-#
-# `create-user.mjs` workspace paketlerini import ediyor ve bunlar standalone
-# çıktısında yalnızca `apps/web` onları izlediği için bulunuyor. Bu, sessizce
-# değişebilecek bir varsayım: bir gün auth argon2'yi bırakırsa dosya izlemeden
-# düşer ve araç çalışma zamanında kırılır. O gün bunu konteyner loguna
-# bakarak öğrenmek istemiyoruz — derleme burada dursun.
-RUN node --input-type=module -e "await import('@ktlsr/assay-db'); await import('@node-rs/argon2'); console.log('kurulum araci bagimliliklari cozuldu')"
-
 COPY --chown=assay:assay docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
