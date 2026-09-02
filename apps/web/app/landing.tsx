@@ -8,6 +8,7 @@ import {
   intervalGloss,
 } from '@ktlsr/assay-ui'
 import Link from 'next/link'
+import { RunTerminal } from './components/run-terminal'
 import { Shell } from './components/shell'
 import { compare, listSuites, type RunWithSummary } from '../lib/runs'
 
@@ -45,12 +46,32 @@ export async function Landing() {
     <Shell>
       <section className="hero">
         <h1 className="hero-title">Does your skill still fire?</h1>
-        <p className="hero-lede">
-          A skill ships with a README and a promise. Whether it triggers on the request it
-          claims, stays quiet on the one next to it, and does the same thing tomorrow —
-          nobody measures. Assay runs a case set against a real host, repeats it, and
-          reports the rate with its uncertainty attached.
-        </p>
+
+        {/*
+          Terminal hero'nun kendisi. Ziyaretçi ürünün tarifini değil, aracın
+          çalışırken ne yazdığını görüyor — ve yazdığı şey rahatsız edici: bir
+          çarpı ve geniş bir güven aralığı. Bu sayfanın tek argümanı bu.
+
+          Yayımlanmış koşum yoksa terminal çizilmiyor; satır uydurmuyoruz.
+        */}
+        {failing === undefined ? (
+          <p className="hero-lede">
+            A skill ships with a README and a promise. Whether it triggers on the request
+            it claims, stays quiet on the one next to it, and does the same thing tomorrow
+            — nobody measures. Assay runs a case set against a real host, repeats it, and
+            reports the rate with its uncertainty attached.
+          </p>
+        ) : (
+          <>
+            <RunTerminal run={failing.latest.run} />
+            <p className="term-gloss">
+              A recorded run, replayed. Nine cases, ten attempts each. Assay does not
+              round the failure up, and it does not hide how wide the interval still is
+              at ten attempts.
+            </p>
+          </>
+        )}
+
         <div className="hero-actions">
           {publicSite ? (
             <a href="https://www.npmjs.com/package/@ktlsr/assay" className="btn">
@@ -66,7 +87,7 @@ export async function Landing() {
       </section>
 
       {failing === undefined || worst === undefined ? (
-        <section className="section">
+        <section className="section-minor">
           <p className="rule-label mb-6">A real measurement</p>
           <Callout tone="info" title="This instance has no published runs yet">
             Every figure on this page is read out of the database, from runs uploaded by
@@ -75,9 +96,10 @@ export async function Landing() {
           </Callout>
         </section>
       ) : (
-        <section className="section">
-          <p className="rule-label mb-8">One case, measured ten times</p>
-          <div className="specimen">
+        <section className="section-major">
+          <p className="rule-label">A single case, up close</p>
+          <h2 className="section-title">One case, measured ten times</h2>
+          <div className="specimen mt-10">
             <div className="specimen-head">
               <Badge verdict={worst.failed > 0 ? 'fail' : 'pass'} size={16} />
               <span className="code">{worst.caseId}</span>
@@ -112,8 +134,9 @@ export async function Landing() {
       )}
 
       {comparison === null ? null : (
-        <section className="section">
-          <p className="rule-label mb-6">What it refuses to claim</p>
+        <section className="section-major">
+          <p className="rule-label">The part nobody builds</p>
+          <h2 className="section-title">What it refuses to claim</h2>
           <p className="section-lede">
             Two runs of the same skill are stored. Here is what Assay says when asked
             whether the second is better than the first — not a headline, the actual
@@ -140,7 +163,7 @@ export async function Landing() {
         </section>
       )}
 
-      <section className="section">
+      <section className="section-minor">
         <p className="rule-label mb-8">What it measures</p>
         <dl className="layer-grid">
           <Layer
@@ -170,7 +193,7 @@ export async function Landing() {
         </dl>
       </section>
 
-      <section className="section">
+      <section className="section-minor">
         <p className="rule-label mb-8">Three verdicts, not two</p>
         <div className="verdict-grid">
           <VerdictCard
@@ -189,7 +212,7 @@ export async function Landing() {
         </p>
       </section>
 
-      <section className="section">
+      <section className="section-minor">
         <p className="rule-label mb-8">Getting started</p>
         <ol className="ruled steps">
           <Step
@@ -216,7 +239,7 @@ export async function Landing() {
         </p>
       </section>
 
-      <section className="section section-last">
+      <section className="section-minor section-last">
         <p className="rule-label mb-6">Pricing</p>
         <p className="section-lede">
           Draft, and not yet charged for. The measuring half stays free and open — a
