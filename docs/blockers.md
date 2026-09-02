@@ -31,7 +31,9 @@ Açmak için: SMTP bilgileri geldiğinde Auth.js'in `Nodemailer` sağlayıcısı
 parola sıfırlama akışı eklenir.
 
 ## 2026-09-01 — Konteyner imajı bu makinede derlenmedi — ÇÖZÜLDÜ (aynı gün)
-Çözüm: İmaj ilk dağıtım denemesinde sunucuda başarıyla derlendi. Prisma
+Çözüm: İmaj ilk dağıtım denemesinde sunucuda başarıyla derlendi. (Konteyner
+ayrıca açılışta Prisma CLI'yi bulamayıp döngüye girdi; pnpm sembolik bağları
+runner aşamasına taşınmıyordu, CLI artık npm ile kuruluyor.) Prisma
 istemcisi üretildi, altı paket derlendi, Next standalone çıktısı ve middleware
 oluştu. Aynı koşumda görülen Prisma OpenSSL uyarısı `Dockerfile`'a `openssl`
 eklenerek kapatıldı. Dağıtım ayrı bir sebeple düştü (host portu 3000 doluydu);

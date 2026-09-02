@@ -60,7 +60,21 @@ COPY --from=build --chown=assay:assay /app/apps/web/.next/static ./apps/web/.nex
 # Migration için gereken en küçük küme.
 COPY --from=build --chown=assay:assay /app/packages/db/prisma ./packages/db/prisma
 COPY --from=build --chown=assay:assay /app/packages/db/prisma.config.ts ./packages/db/prisma.config.ts
-COPY --from=build --chown=assay:assay /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=build --chown=assay:assay /app/packages/db/package.json ./packages/db/package.json
+
+# Prisma CLI runner aşamasına npm ile kuruluyor, build aşamasından
+# kopyalanmıyor.
+#
+# Sebep bir dağıtım hatası: `packages/db/node_modules` pnpm'de sembolik
+# bağlardan ibaret ve hepsi `/app/node_modules/.pnpm/...` içine işaret ediyor.
+# O store runner aşamasına gelmediği için kopyalanan bağlar kırık kalıyordu ve
+# konteyner açılışta `Cannot find module .../prisma/build/index.js` ile
+# sonsuz yeniden başlatma döngüsüne giriyordu. Traefik'in yönlendireceği bir
+# arka uç hiç oluşmadı; alan adı bu yüzden 404 döndü.
+#
+# Sürüm `packages/db/package.json`dan okunuyor — burada sabitlemek, aynı
+# sürümü iki yerde tutmak ve birini unutmak demek olurdu.
+RUN cd packages/db  && npm install --no-save --no-audit --no-fund       "prisma@$(node -p "require('./package.json').dependencies.prisma")"  && chown -R assay:assay node_modules
 COPY --chown=assay:assay docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 

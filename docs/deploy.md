@@ -113,27 +113,44 @@ docker compose exec db pg_dump -U assay assay | gzip > assay-$(date +%F).sql.gz
 - [ ] Google OAuth geri dönüş adresi konsola eklendi:
       `https://<alan adı>/api/auth/callback/google`
 
-## Ağ: `web` Traefik'in ağında olmak zorunda
+## Prisma CLI runner aşamasına npm ile kuruluyor
 
-Dokploy'un Traefik'i `dokploy-network` üzerinde koşuyor. Compose kendi izole
-ağını kurduğu için, `web` yalnızca o ağdayken **Traefik ona ulaşamıyor** ve
-alan adı Traefik'in kendi 404'ünü döndürüyor — uygulama ayakta olsa bile.
+İlk dağıtımda konteyner sonsuz yeniden başlatma döngüsüne girdi:
 
-İlk dağıtımda tam olarak bu oldu. Belirti şuydu: yanıt `Content-Length: 19`
-ile geliyordu (Traefik'in "404 page not found" metni) ve uygulamanın kendi
-güvenlik başlıkları (`Content-Security-Policy`, `Strict-Transport-Security`)
-yanıtta hiç yoktu. İstek uygulamaya ulaşmıyorsa o başlıklar gelmez; teşhis
-bu ayrıma dayanıyor.
+```
+Error: Cannot find module '/app/packages/db/node_modules/prisma/build/index.js'
+```
 
-`docker-compose.yml` bu yüzden `web`i iki ağa birden bağlıyor: `default`
-(veritabanına ulaşmak için) ve `dokploy-network` (Traefik için). Ayrıca
-`traefik.docker.network=dokploy-network` etiketi var, çünkü konteyner birden
-çok ağdayken Traefik hangisini kullanacağını bilemiyor.
+Sebep pnpm'in dizin düzeni. `packages/db/node_modules` sembolik bağlardan
+ibaret ve hepsi `/app/node_modules/.pnpm/...` içine işaret ediyor; o store
+runner aşamasına kopyalanmadığı için kopyalanan bağlar kırık kalıyordu.
+`docker-entrypoint.sh` açılışta `prisma migrate deploy` çalıştırdığı için
+konteyner hiç ayağa kalkamadı.
 
-`db` bilerek yalnızca iç ağda kalıyor.
+`Dockerfile` artık `packages/db/package.json`'ı kopyalayıp Prisma CLI'yi
+npm ile kuruyor. Sürüm manifestodan okunuyor: burada sabitlemek aynı sürümü
+iki yerde tutmak olurdu.
 
-Domain ayarını değiştirdikten sonra **compose yeniden dağıtılmalı** — Dokploy
-Traefik etiketlerini ancak dağıtımda uyguluyor, arayüzde kaydetmek yetmiyor.
+### Bunun alan adına etkisi
+
+Konteyner ayağa kalkmadığı için Traefik'in yönlendireceği bir arka uç yoktu
+ve alan adı Traefik'in kendi 404'ünü döndürüyordu. Teşhis şu ayrıma dayandı:
+gelen yanıt `Content-Length: 19` idi (Traefik'in "404 page not found" metni)
+ve uygulamanın kendi güvenlik başlıkları (`Content-Security-Policy`,
+`Strict-Transport-Security`) yanıtta hiç yoktu. İstek uygulamaya ulaşsaydı
+o başlıklar gelirdi.
+
+Bu belirti yanıltıcı: alan adı, ağ ve ortam değişkenleri doğru olsa bile
+aynı 404 görünür. **Alan adı 404 dönüyorsa önce konteynerin gerçekten ayakta
+olduğuna bak** — Dokploy'un "yeşil" dağıtımı imajın derlendiğini söyler,
+konteynerin ayakta kaldığını değil.
+
+### Ağ ve Traefik etiketleri
+
+`docker-compose.yml` bunları **taşımıyor**. Dokploy dağıtım sırasında kendi
+Traefik etiketlerini ve ağını compose dosyasına ekliyor; elle eklemek
+çakışma üretir. Alan adı ayarı değiştirildiğinde compose'un yeniden
+dağıtılması gerekiyor — arayüzde kaydetmek tek başına yetmiyor.
 
 ## Port: host'a yayınlanmıyor
 
