@@ -1880,13 +1880,22 @@ main {
  * İçerik varsayılan olarak görünür; JS yoksa hiçbir şey kaybolmuyor.
  * ======================================================================== */
 
+/*
+ * Çizgi VARSAYILAN OLARAK duruyor. Yalnızca gözlemci kurulabildiğinde
+ * (`data-armed`) gizlenip çiziliyor. Önceki hâlinde sunucu render'ında
+ * `data-shown="false"` olduğu için bölüm sınırı hiç görünmüyordu ve JS
+ * çalışmayan bir istemcide hiç gelmiyordu.
+ */
+.reveal[data-armed='true'] > .section-major,
+.reveal[data-armed='true'] > .section-minor {
+  border-top-color: transparent;
+}
 .reveal > .section-major,
 .reveal > .section-minor {
-  border-top-color: transparent;
   position: relative;
 }
-.reveal > .section-major::before,
-.reveal > .section-minor::before {
+.reveal[data-armed='true'] > .section-major::before,
+.reveal[data-armed='true'] > .section-minor::before {
   content: '';
   position: absolute;
   inset-inline: 0;
@@ -1897,24 +1906,17 @@ main {
   transform-origin: left center;
   transition: transform var(--settle) var(--ease-settle);
 }
-.reveal > .section-major::before {
+.reveal[data-armed='true'] > .section-major::before {
   background: var(--rule-strong);
 }
-.reveal[data-shown='true'] > .section-major::before,
-.reveal[data-shown='true'] > .section-minor::before {
+.reveal[data-armed='true'][data-shown='true'] > .section-major::before,
+.reveal[data-armed='true'][data-shown='true'] > .section-minor::before {
   transform: scaleX(1);
 }
 
-/*
- * İçeriğe DOKUNULMUYOR. Bölümleri sırayla belirtmek (fade-in-up) bu tasarımın
- * bilerek reddettiği şey ve ayrıca kırılgan: JS çalışmazsa metin görünmez
- * kalırdı. Hareketin konusu yalnızca çizgi — dekoratif olan tek öğe. Metin
- * her koşulda ilk kareden itibaren okunabilir.
- */
-
 @media (prefers-reduced-motion: reduce) {
-  .reveal > .section-major::before,
-  .reveal > .section-minor::before {
+  .reveal[data-armed='true'] > .section-major::before,
+  .reveal[data-armed='true'] > .section-minor::before {
     transition: none;
     transform: scaleX(1);
   }
@@ -1952,9 +1954,6 @@ main {
 }
 .hero-title > span:nth-child(2) {
   animation-delay: 80ms;
-}
-.hero-title > span:nth-child(3) {
-  animation-delay: 160ms;
 }
 
 @keyframes line-open {
@@ -2194,4 +2193,154 @@ main {
  */
 :root {
   --page: 68rem;
+}
+
+/* ===========================================================================
+ * DÜZELTMELER — bitiş incelemesinden
+ * ======================================================================== */
+
+/*
+ * "Kart yok" (DESIGN.md'nin ilk somut kuralı).
+ *
+ * Bu üç blok dolgulu yüzeyler olarak duruyordu ve beyaz zemine geçince
+ * durum kötüleşti: eskiden #ffffff üzerinde #f1f3f3 farkı çok inceydi,
+ * şimdi beyaz kâğıdın üstünde gri bir levha gibi okunuyorlardı. Dolgu
+ * kalktı; ayrım artık çizgide, tıpkı verinin geri kalanı gibi.
+ */
+.specimen,
+.auth-panel,
+.term {
+  background: transparent;
+}
+.term {
+  border-inline: none;
+  border-bottom: var(--hairline) solid var(--rule);
+}
+
+/*
+ * Terminal ve komut satırları 375px'te kesiliyordu — hem de tam olarak
+ * öğretmek için var oldukları komutların ortasından. `.term` zaten yatay
+ * kayıyor; `.steps` kaymıyordu.
+ */
+.step-command {
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+
+@media (max-width: 40rem) {
+  .term-body {
+    min-width: 0;
+  }
+  .term-line {
+    white-space: pre-wrap;
+  }
+  .term-rate {
+    margin-left: 0;
+    padding-left: 0;
+  }
+}
+
+/*
+ * Başlığın üstünde altındakinden çok boşluk olur. Mobilde bölüm etiketleri
+ * bunun tersini yapıyordu: üstte ~15px, altta ~40px.
+ */
+@media (max-width: 40rem) {
+  .section-minor > .rule-label:first-child,
+  .section-major > .rule-label:first-child {
+    margin-top: var(--space-4);
+  }
+}
+
+/*
+ * Koyu temada alan görünmüyordu: %28 opaklık ve `--rule` (#1f2527) birleşince
+ * başlığın altında algılanamaz hâle geliyordu. Koyu tema daha çok mürekkep
+ * istiyor, çünkü kontrast yönü ters.
+ */
+[data-theme='dark'] .field-grid,
+:root:not([data-theme='light']) .field-grid {
+  opacity: 0.9;
+}
+[data-theme='dark'] .field-interval,
+:root:not([data-theme='light']) .field-interval {
+  opacity: 0.5;
+}
+/* Maske daha geç kapanıyor: alan sayfanın alt yarısında da yaşıyor. */
+.field-grid {
+  mask-image: radial-gradient(135% 115% at 50% 22%, #000 45%, transparent 92%);
+}
+
+/*
+ * Birincil eylem terminalin altındaki kurala oturuyor — sözleşmenin dediği
+ * yer. Boşlukta duran bir buton hiçbir şeye bağlı değildi.
+ */
+.hero-actions {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: var(--hairline) solid var(--rule);
+}
+
+/* ===========================================================================
+ * GİRİŞ — iki sütun
+ *
+ * Tek sütunlu hâli beyaz bir sayfanın ortasında duran bir kutuydu ve masaüstü
+ * alanın yarısından fazlası boştu. Şimdi sayfanın geri kalanıyla aynı düzen:
+ * solda gerçek bilgi, sağda işlem. Sol sütunda uydurma bir şey yok — ölçümün
+ * hesapsız çalıştığı, hesabın yalnızca hatırladığı ve kayıt ekranı olmadığı
+ * zaten bu ürünün gerçeği.
+ * ======================================================================== */
+
+.auth {
+  margin-inline: auto;
+  width: 100%;
+  max-width: none;
+  padding-block: clamp(var(--space-8), 7vh, var(--space-16));
+  display: grid;
+  gap: var(--space-12);
+}
+
+.auth-intro {
+  max-width: 42ch;
+}
+
+.auth-facts {
+  margin: var(--space-8) 0 0;
+  border-top: var(--hairline) solid var(--rule);
+}
+.auth-facts > div {
+  padding-block: var(--space-4);
+  border-bottom: var(--hairline) solid var(--rule);
+}
+.auth-facts dt {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.auth-facts dd {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+.auth-form {
+  max-width: 26rem;
+  width: 100%;
+}
+
+@media (min-width: 56rem) {
+  .auth {
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    column-gap: var(--space-16);
+    align-items: start;
+  }
+  .auth-intro {
+    max-width: 46ch;
+  }
+  .auth-form {
+    max-width: none;
+    position: sticky;
+    top: var(--space-12);
+  }
 }

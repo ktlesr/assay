@@ -23,6 +23,13 @@ export function Reveal({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [shown, setShown] = useState(false)
+  /*
+   * `armed` sunucu render'ında false: CSS çizgiyi ancak silahlanmış bir
+   * bileşende gizliyor. Bu olmadan JS çalışmayan bir istemcide bölüm
+   * sınırı HİÇ çizilmiyordu — inceleme yakaladı, dokuz karenin dokuzunda
+   * da üst çizgi yoktu. Hareket bir geliştirme; çizgi bir yapı.
+   */
+  const [armed, setArmed] = useState(false)
 
   useEffect(() => {
     const node = ref.current
@@ -31,6 +38,7 @@ export function Reveal({
       setShown(true)
       return
     }
+    setArmed(true)
     // Hareket tercihi kapalıysa gözlemci hiç kurulmuyor: iş yapmayan bir
     // gözlemci de iş yapar, sadece görünmez.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -56,6 +64,7 @@ export function Reveal({
   return (
     <div
       ref={ref}
+      data-armed={armed ? 'true' : 'false'}
       data-shown={shown ? 'true' : 'false'}
       className={className === undefined ? 'reveal' : `reveal ${className}`}
     >

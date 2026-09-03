@@ -132,9 +132,9 @@ const DIRECTION_CONTRACT = `<!--
   STORY: The visitor watches a real run fail, understands the tool refuses to
   round uncertainty away, and installs the CLI.
 
-  FIRST VIEWPORT: Headline left in three lines opening upward; a recorded
-  terminal beneath it at full measure; the primary action on the rule under it.
-  Nothing floats, nothing glows.
+  FIRST VIEWPORT: Headline left, its lines opening upward one after another; a
+  recorded terminal beneath it at full measure; the primary action sitting on
+  the rule directly under the terminal. Nothing floats, nothing glows.
 
   FORM: Established world inherited and expanded (white ground, live field).
   No world replacement, so no direction roll.

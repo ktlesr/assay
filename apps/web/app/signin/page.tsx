@@ -57,40 +57,64 @@ export default async function SignInPage({
   return (
     <Shell breadcrumbs={[{ label: 'sign in' }]}>
       <div className="auth">
-        <h1 className="auth-title">Sign in</h1>
-        <p className="auth-lede">
-          Runs measured by the CLI are yours before they are anyone else&rsquo;s. An
-          account only keeps their history in one place.
-        </p>
-
-        {error === undefined ? null : (
-          <div className="mt-6">
-            <Callout tone="danger" title="Sign-in failed">
-              Those credentials do not match an active account. Repeated attempts against
-              the same address are throttled.
-            </Callout>
-          </div>
-        )}
-
-        <div className="auth-panel mt-6">
-          <CredentialsForm action={signInWithPassword} />
-
-          {googleEnabled ? (
-            <>
-              <p className="auth-divider">or</p>
-              <form action={signInWithGoogle}>
-                <button type="submit" className="btn btn-block">
-                  Continue with Google
-                </button>
-              </form>
-            </>
-          ) : null}
+        <div className="auth-intro">
+          <h1 className="auth-title">Sign in</h1>
+          <p className="auth-lede">
+            Runs measured by the CLI are yours before they are anyone else&rsquo;s. An
+            account only keeps their history in one place.
+          </p>
+          {/*
+            Sağdaki formun karşısına gerçek bilgi konuyor, süs değil: hesabın
+            ne yaptığı ve ne yapmadığı. Bu sayfanın tek satılabilir iddiası da
+            bu — ölçüm SDK'da kalıyor, hesap yalnızca hatırlıyor.
+          */}
+          <dl className="auth-facts">
+            <div>
+              <dt>Measuring</dt>
+              <dd>
+                Runs locally with no account, stored under{' '}
+                <code className="code">.assay/runs/</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Remembering</dt>
+              <dd>Uploaded runs keep their history so the next one can be compared</dd>
+            </div>
+            <div>
+              <dt>Accounts</dt>
+              <dd>
+                There is no sign-up form. The first administrator is created during
+                installation, and further accounts are opened from the admin panel.
+              </dd>
+            </div>
+          </dl>
         </div>
 
-        <p className="field-hint mt-5">
-          There is no sign-up form. The first administrator is created during
-          installation, and further accounts are opened from the admin panel.
-        </p>
+        <div className="auth-form">
+          {error === undefined ? null : (
+            <div className="mb-6">
+              <Callout tone="danger" title="Sign-in failed">
+                Those credentials do not match an active account. Repeated attempts
+                against the same address are throttled.
+              </Callout>
+            </div>
+          )}
+
+          <div className="auth-panel">
+            <CredentialsForm action={signInWithPassword} />
+
+            {googleEnabled ? (
+              <>
+                <p className="auth-divider">or</p>
+                <form action={signInWithGoogle}>
+                  <button type="submit" className="btn btn-block">
+                    Continue with Google
+                  </button>
+                </form>
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
     </Shell>
   )

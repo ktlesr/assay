@@ -1,4 +1,4 @@
-import type { Attempt } from '@ktlsr/assay-core'
+import { redactDeep, type Attempt } from '@ktlsr/assay-core'
 import { Badge, Callout, Determination, TraceViewer } from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -114,7 +114,13 @@ export default async function AttemptPage({
       <section className="mb-12">
         <p className="rule-label mb-6">What the agent did</p>
         <TraceViewer
-          steps={(attempt.trace ?? []).map((event) => ({
+          /*
+           * Gösterim anında da maskeleniyor. Kayıt yazılırken maskeleme var
+           * ama yüklenen eski kayıtlar maskeleme eklenmeden önce yazıldı ve
+           * bu sayfa herkese açık bir vaka setinde oturumsuz ziyaretçiye de
+           * açılabiliyor. Sızıntının son çıkış kapısı burası.
+           */
+          steps={redactDeep(attempt.trace ?? []).map((event) => ({
             seq: event.seq,
             kind: event.kind,
             tool: event.tool,

@@ -8,10 +8,25 @@
  * `unknown` kendi rengini ve kendi sayacını taşır.
  */
 
-import { formatProportion, type Run, type RunSummary, type Verdict } from '@ktlsr/assay-core'
+import {
+  formatProportion,
+  redact,
+  type Run,
+  type RunSummary,
+  type Verdict,
+} from '@ktlsr/assay-core'
 
+/**
+ * Kaçış ve maskeleme aynı yerde.
+ *
+ * Maskeleme kayıt YAZILIRKEN de yapılıyor ama bu yetmiyor: rapor eski
+ * kayıtlardan da üretilebiliyor ve o kayıtlar maskeleme eklenmeden önce
+ * yazıldı. Rapor bir dosya olarak paylaşılıyor, yani sızıntının son çıkış
+ * kapısı burası. Tek bir yerde durdurmak, her interpolasyonu tek tek
+ * hatırlamaktan güvenli.
+ */
 const escape = (value: string): string =>
-  value.replace(
+  redact(value).replace(
     /[&<>"']/g,
     (char) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ??

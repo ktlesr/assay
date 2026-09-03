@@ -12,7 +12,7 @@
 
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Run } from '@ktlsr/assay-core'
+import { redactDeep, type Run } from '@ktlsr/assay-core'
 
 /**
  * Dosya biçimi sürümü.
@@ -96,5 +96,14 @@ export function parseStored(raw: string, source = '<memory>'): Run {
     )
   }
   if (record.run === undefined) throw new Error(`${source} carries no run`)
-  return record.run
+  /*
+   * Okurken de maskeleniyor.
+   *
+   * Yazarken maskelemek yalnızca bundan SONRA yazılan kayıtları koruyor;
+   * diskte duran eski kayıtlar hâlâ ev dizini yollarını taşıyor ve `report`,
+   * `--html` ve `push` hepsi buradan geçiyor. Maskelemeyi okuma yoluna da
+   * koymak, tek bir kaydın bile maskelenmemiş bir yolu ekrana ya da bir
+   * dosyaya taşımasını engelliyor.
+   */
+  return redactDeep(record.run)
 }
