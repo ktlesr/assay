@@ -31,11 +31,11 @@ jobs:
       # Prisma istemcisi repoda tutulmuyor; typecheck ona bağlı.
       - run: pnpm --filter @ktlsr/assay-db exec prisma generate
       - run: pnpm typecheck
-      - run: npm install -g @anthropic-ai/claude-code
-      - uses: ./action
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # Eylem artık host'u ve CLI'ı kendi kuruyor; burada yalnızca yerel
+      # derleme hazırlanıyor, eylem onu yayımlanmış sürüme tercih ediyor.
+      - uses: ./
         with:
           suite: examples/widget-manifest.suite.yaml
           skill: ./examples/widget-manifest
           repeat: ${{ inputs.repeat }}
+          claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

@@ -2,6 +2,10 @@
 #
 # PR açıldığında skill dosyaları değiştiyse suite koşar, karneyi PR yorumuna
 # yazar ve regresyon varsa check'i düşürür.
+#
+# Kurulum adımı YOK: eylem hem `@ktlsr/assay` CLI'ını hem de Claude Code
+# host'unu kendi kuruyor. `setup-node` da gerekmiyor — runner'ın node'u yeterli.
+# Sizden istenen tek şey bir kimlik bilgisi.
 
 name: Assay
 
@@ -13,38 +17,29 @@ on:
   push:
     branches: [main]
 
-# Karne yorumu ve baseline artefaktı için gerekli.
 permissions:
   contents: read
+  # Karne yorumu için.
   pull-requests: write
+  # Baseline artefaktını indirmek için: bir önceki koşumla karşılaştırma
+  # buradan geliyor.
   actions: read
 
 jobs:
   assay:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      # Host CLI'ı kurun. Assay ölçmez, ölçtüreni çağırır.
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
-
-      - name: Build Assay
-        run: |
-          npm install -g pnpm@10
-          pnpm install --frozen-lockfile
-          pnpm typecheck
-
-      - uses: ./action
-        env:
-          # `claude setup-token` ile üretilen uzun ömürlü token.
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      - uses: ktlesr/assay@v1
         with:
           suite: assay.suite.yaml
           skill: ./skills/my-skill
-          # CI'da 1 yazmayın: tek koşum kararsızlık hakkında hiçbir şey söylemez.
+
+          # CI'da 1 yazmayın: tek koşum bir gözlem, ölçüm değil. Kararsızlık
+          # ancak N tekrarla görülür ve rapor oranı N ve güven aralığıyla verir.
           repeat: '10'
+
+          # `claude setup-token` ile üretilen uzun ömürlü token. Alternatif:
+          # `anthropic-api-key`. İkisi de repository secret'tan gelmeli.
+          claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

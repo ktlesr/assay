@@ -57,7 +57,7 @@ export default async function SignInPage({
   return (
     <Shell breadcrumbs={[{ label: 'sign in' }]}>
       <div className="auth">
-        <div className="auth-intro">
+        <div className="auth-head">
           <h1 className="auth-title">Sign in</h1>
           <p className="auth-lede">
             Runs measured by the CLI are yours before they are anyone else&rsquo;s. An
@@ -68,26 +68,6 @@ export default async function SignInPage({
             ne yaptığı ve ne yapmadığı. Bu sayfanın tek satılabilir iddiası da
             bu — ölçüm SDK'da kalıyor, hesap yalnızca hatırlıyor.
           */}
-          <dl className="auth-facts">
-            <div>
-              <dt>Measuring</dt>
-              <dd>
-                Runs locally with no account, stored under{' '}
-                <code className="code">.assay/runs/</code>
-              </dd>
-            </div>
-            <div>
-              <dt>Remembering</dt>
-              <dd>Uploaded runs keep their history so the next one can be compared</dd>
-            </div>
-            <div>
-              <dt>Accounts</dt>
-              <dd>
-                There is no sign-up form. The first administrator is created during
-                installation, and further accounts are opened from the admin panel.
-              </dd>
-            </div>
-          </dl>
         </div>
 
         <div className="auth-form">
@@ -115,6 +95,27 @@ export default async function SignInPage({
             ) : null}
           </div>
         </div>
+
+        <dl className="auth-facts">
+          <div>
+            <dt>Measuring</dt>
+            <dd>
+              Runs locally with no account, stored under{' '}
+              <code className="code">.assay/runs/</code>
+            </dd>
+          </div>
+          <div>
+            <dt>Remembering</dt>
+            <dd>Uploaded runs keep their history so the next one can be compared</dd>
+          </div>
+          <div>
+            <dt>Accounts</dt>
+            <dd>
+              There is no sign-up form. The first administrator is created during
+              installation, and further accounts are opened from the admin panel.
+            </dd>
+          </div>
+        </dl>
       </div>
     </Shell>
   )

@@ -70,16 +70,33 @@ process.exit(result.status ?? 1)
 
 // ---------------------------------------------------------------------------
 
+/**
+ * CLI'ı bulur.
+ *
+ * Üç yer, bu sırayla: bu deponun kendi derlemesi (dogfood koşumu), çağıranın
+ * workspace'i, ve global kurulum (action'ın kendi kurduğu yer). Sıra önemli:
+ * yerel derleme varsa yayımlanmış sürüm yerine o ölçüyor, yani depo kendi
+ * değişikliğini ölçebiliyor.
+ */
 function resolveCli() {
-  for (const candidate of [
+  const candidates = [
     join(process.cwd(), 'packages/cli/dist/bin.js'),
     join(process.cwd(), 'node_modules/@ktlsr/assay/dist/bin.js'),
-  ]) {
+  ]
+
+  // Global kurulum: `npm root -g` runner'a göre değişiyor, sormak tahmin
+  // etmekten güvenli.
+  const globalRoot = spawnSync('npm', ['root', '-g'], { encoding: 'utf8', shell: true })
+  const root = String(globalRoot.stdout ?? '').trim()
+  if (root !== '') candidates.push(join(root, '@ktlsr/assay/dist/bin.js'))
+
+  for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate
   }
   fail(
-    'cannot find the assay CLI. Build it first (pnpm install && pnpm typecheck) ' +
-      'or install @ktlsr/assay in the workspace.',
+    'cannot find the assay CLI. The action installs @ktlsr/assay itself; if you ' +
+      'see this, the install step failed. Checked: ' +
+      candidates.join(', '),
   )
   return ''
 }

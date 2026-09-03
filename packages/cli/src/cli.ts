@@ -7,11 +7,18 @@
  * Argüman ayrıştırması `node:util.parseArgs` ile — bağımlılık eklemeye değmez.
  */
 
-import { readFile, stat, writeFile } from 'node:fs/promises'
-import { basename, dirname, resolve } from 'node:path'
+import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { ClaudeCodeAdapter } from '@ktlsr/assay-adapters'
-import { compareRuns, parseSuite, summarizeRun, type Run, type Suite } from '@ktlsr/assay-core'
+import {
+  compareRuns,
+  parseSuite,
+  redactDeep,
+  summarizeRun,
+  type Run,
+  type Suite,
+} from '@ktlsr/assay-core'
 import { RunStore, runSuite, suiteHash } from '@ktlsr/assay-runner'
 import { renderHtmlReport } from './html.js'
 import {
@@ -43,6 +50,7 @@ Usage
   assay compare <run-a> <run-b>     compare two stored runs, pins checked
   assay ci <suite.yaml>             run and exit non-zero on failure
   assay push [run-id]               upload a stored run to a hosted instance
+  assay scrub [dir]                 mask usernames and secrets in stored records
 
 Options
   --skill <dir>       the skill or plugin directory under test
@@ -109,6 +117,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       return compare(positionals[0], positionals[1], parsed.values)
     case 'push':
       return push(positionals[0], parsed.values)
+    case 'scrub':
+      return scrub(positionals[0], parsed.values)
     default:
       process.stderr.write(
         `${style.red('error')} unknown command "${command}"\n\n${USAGE}`,
@@ -505,4 +515,44 @@ async function push(runId: string | undefined, options: Options): Promise<number
 `,
   )
   return EXIT.usage
+}
+
+/**
+ * Saklanan kayıtları yerinde maskeler.
+ *
+ * Maskeleme üç yerde zaten yapılıyor: kayıt yazılırken, okunurken ve raporda
+ * basılırken. Üçü de bir *gösterim* yüzeyini kapatıyor. Ama `.assay/runs`
+ * bir gösterim yüzeyi değil, bir **dosya kümesi**: CI onu artefakt olarak
+ * yüklüyor, insanlar zip'liyor, hata raporuna ekliyor. Baytlar makineden
+ * çıkarken maskelenmiş olmaları gerekiyor, gösterildiklerinde değil.
+ *
+ * Ölçüm verisi değişmez: yalnızca ev dizini yollarındaki kullanıcı adı ve
+ * tanınan sır biçimleri silinir. Değişen her dosyanın adı yazılır — bir ölçüm
+ * aracının sessizce dosya değiştirmesi kabul edilemez.
+ */
+async function scrub(dir: string | undefined, options: Options): Promise<number> {
+  const target = dir ?? join(String(options['store'] ?? '.assay'), 'runs')
+  let names: string[]
+  try {
+    names = (await readdir(target)).filter((name) => name.endsWith('.json'))
+  } catch {
+    process.stderr.write(`${style.red('error')} no run store at ${target}\n`)
+    return EXIT.usage
+  }
+
+  let changed = 0
+  for (const name of names) {
+    const path = join(target, name)
+    const raw = await readFile(path, 'utf8')
+    const clean = `${JSON.stringify(redactDeep(JSON.parse(raw) as unknown), null, 2)}\n`
+    if (clean === raw) continue
+    await writeFile(path, clean, 'utf8')
+    changed += 1
+    process.stdout.write(`  ${style.grey('scrubbed')} ${name}\n`)
+  }
+
+  process.stdout.write(
+    `${names.length} record(s) checked, ${changed} rewritten in ${target}\n`,
+  )
+  return EXIT.ok
 }

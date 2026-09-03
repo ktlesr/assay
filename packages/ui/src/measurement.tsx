@@ -2,13 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { IconAlert, IconFail, IconInfo, IconPass, IconUnknown } from './icons'
-import {
-  countSentence,
-  formatBounds,
-  intervalGloss,
-  pct,
-  type Measurement,
-} from './format'
+import { countSentence, intervalGloss, pct, type Measurement } from './format'
 
 export type { Measurement }
 
@@ -153,19 +147,23 @@ export function IntervalRule({
       />
       {showBounds ? (
         /*
-         * Tek etiket, aralığın ortasında. İki uca ayrı ayrı konumlanan
-         * etiketler aralık daraldığında üst üste biniyordu. `clamp` etiketi
-         * rayın içinde tutuyor: aralık uçlardan birine yaslandığında dışarı
-         * taşmıyor.
+         * Uç değerler aralığın UÇLARINDA duruyor (DESIGN.md: "aralık,
+         * çizilmiş, uçlarındaki sayılarla") — ama bir flex satırı içinde.
+         *
+         * Önce ikisi ayrı ayrı `left: low%` ve `left: high%` ile
+         * konumlanıyordu ve aralık daraldığında üst üste biniyorlardı. Sonra
+         * tek etikete birleştirildi ve bu sefer uçları etiketlemekten
+         * vazgeçilmiş oldu. Flex ikisini birden veriyor: kutular ASLA üst üste
+         * binmez, iterler. Aralık genişken uçlara yaslanıyorlar; daraldığında
+         * yan yana gelip açıklığın iki yanına eşit taşıyorlar.
          */
         <span
-          className="interval-bound"
-          style={{
-            left: `clamp(2.4rem, ${clamp(low + width / 2)}%, calc(100% - 2.4rem))`,
-          }}
+          className="interval-bounds"
+          style={{ left: `${low}%`, width: `${width}%` }}
           aria-hidden="true"
         >
-          {formatBounds(value)}
+          <span className="interval-bound">{pct(value.ci.low)}</span>
+          <span className="interval-bound">{pct(value.ci.high)}</span>
         </span>
       ) : null}
     </div>

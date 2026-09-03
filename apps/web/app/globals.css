@@ -360,15 +360,6 @@ body {
   animation: point-set var(--tick) var(--ease-settle) both;
 }
 /* Uç değerler — aralığın altında, kendi uçlarında hizalı. */
-.interval-bound {
-  position: absolute;
-  top: calc(50% + 0.5rem);
-  transform: translateX(-50%);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-faint);
-  white-space: nowrap;
-}
 
 @keyframes settle {
   from {
@@ -2277,7 +2268,7 @@ main {
   gap: var(--space-12);
 }
 
-.auth-intro {
+.auth-head {
   max-width: 42ch;
 }
 
@@ -2316,26 +2307,37 @@ main {
  * Operate yüzeyi: iş önce gelir, açıklama sonra. `order` ile düzeltiliyor,
  * kaynak sırası masaüstü okuma sırası olarak kalıyor.
  */
-.auth-form {
-  order: -1;
-}
-.auth-intro {
-  order: 0;
-}
+/*
+ * Mobil sıra: BAŞLIK → FORM → açıklama.
+ *
+ * İlk düzeltmede form en başa alınmıştı ve telefonda sayfa başlıksız bir
+ * EMAIL/PASSWORD paneliyle açılıyordu. Doğru sıra ikisinin arası: kullanıcı
+ * nerede olduğunu görüyor, sonra işi yapıyor, açıklama altta bekliyor.
+ * Kaynak sırası zaten bu — `order` gerekmiyor, üç kardeş yeter.
+ */
 
 @media (min-width: 56rem) {
   .auth {
     grid-template-columns: minmax(0, 1fr) 24rem;
+    grid-template-areas:
+      'head form'
+      'facts form';
+    grid-template-rows: auto 1fr;
     column-gap: var(--space-16);
+    row-gap: 0;
     align-items: start;
   }
-  .auth-intro {
+  /* Masaüstü: solda başlık ve açıklama, sağda işlem — ikisi de tepeden. */
+  .auth-head {
+    grid-area: head;
     max-width: 46ch;
-    order: 0;
   }
-  /* Masaüstünde okuma sırası geri geliyor: solda bağlam, sağda işlem. */
+  .auth-facts {
+    grid-area: facts;
+    max-width: 46ch;
+  }
   .auth-form {
-    order: 0;
+    grid-area: form;
     max-width: none;
     position: sticky;
     top: var(--space-12);
@@ -2354,11 +2356,25 @@ main {
 }
 
 /*
- * Aralık etiketi tek ve ortada. İki uca ayrı ayrı konumlanan etiketler dar
- * aralıkta üst üste biniyordu — ve dar aralık tam da sayının en çok okunmak
- * istendiği yer.
+ * Uç değerler açıklığın iki ucunda, bir flex satırı içinde.
+ *
+ * Mutlak konumlanmış iki etiket dar aralıkta üst üste biniyordu; tek etikete
+ * birleştirmek çakışmayı çözdü ama uçları etiketlemekten vazgeçti. Flex
+ * kutuları asla üst üste binmez — iterler. Geniş aralıkta uçlara yaslanırlar,
+ * dar aralıkta yan yana gelip açıklığın iki yanına eşit taşarlar.
  */
+.interval-bounds {
+  position: absolute;
+  top: calc(50% + 0.5rem);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75ch;
+  pointer-events: none;
+}
 .interval-bound {
-  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

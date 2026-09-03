@@ -75,8 +75,25 @@ Claude Code adaptörü `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token` ile
 yürüdüğü için interaktif oturumu devralmaz.
 
 CLI ayrıntıları: [packages/cli/README.md](packages/cli/README.md).
-GitHub Action: [action/README.md](action/README.md), hazır workflow
-[examples/workflows/assay.yml](examples/workflows/assay.yml).
+### GitHub Action
+
+```yaml
+- uses: actions/checkout@v5
+- uses: ktlesr/assay@v1
+  with:
+    suite: ./my-skill.suite.yaml
+    skill: ./my-skill
+    claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+```
+
+Eylem CLI'ı ve host'u kendi kuruyor; `setup-node` ya da derleme adımı
+gerekmiyor. Karneyi PR yorumuna yazıyor, regresyonda check'i düşürüyor ve
+koşum kayıtlarını artefakt olarak yüklüyor (yüklemeden önce kullanıcı adı ve
+sır maskelemesinden geçiriyor).
+
+Ayrıntılar: [action/README.md](action/README.md) · hazır workflow
+[examples/workflows/assay.yml](examples/workflows/assay.yml) · yayın adımları
+[docs/marketplace.md](docs/marketplace.md).
 
 ### npm paketleri
 
