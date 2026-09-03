@@ -24,8 +24,8 @@ export default async function AdminRunsPage() {
       <AdminNav />
       <h1 className="page-title">Runs</h1>
       <p className="page-lede">
-        Deleting a run removes its attempts, traces and evidence. A comparison that
-        used it as a baseline then reports a missing baseline rather than passing.
+        Deleting a run removes its attempts, traces and evidence. A comparison that used
+        it as a baseline then reports a missing baseline rather than passing.
       </p>
 
       {runs.length === 0 ? (
@@ -43,10 +43,7 @@ export default async function AdminRunsPage() {
               className="flex flex-wrap items-baseline justify-between gap-4 py-4"
             >
               <span className="min-w-0">
-                <Link
-                  href={`/runs/${run.id}`}
-                  className="case-id link"
-                >
+                <Link href={`/runs/${run.id}`} className="case-id link">
                   {run.id}
                 </Link>
                 <span className="mt-1 block text-xs text-text-faint">

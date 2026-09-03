@@ -1719,3 +1719,479 @@ body {
     text-align: left;
   }
 }
+
+/* ===========================================================================
+ * ÖLÇÜM ALANI — hareketli zemin
+ *
+ * Sayfanın arkasındaki katman ürünün kendi işaretlerinden yapıldı: milimetrik
+ * kâğıt ızgarası ve yavaşça açılıp kapanan güven aralıkları. Gradient bulutu
+ * ya da parlayan küre yok; bir ölçüm aracının zemini ölçümden yapılır.
+ *
+ * Hepsi compositor'da: transform, opacity, clip-path. Sıfır JS.
+ * ======================================================================== */
+
+.field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+/*
+ * Işık: renk değil parlaklık. Saf beyaz zemin tek başına düz duruyor; bu
+ * çok geniş ve çok soluk açıklık ona bir merkez veriyor. Koyu temada ters
+ * yönde çalışıyor — kâğıt yerine ışık kaynağı.
+ */
+.field-light {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(
+      58% 42% at 50% 12%,
+      color-mix(in srgb, var(--surface-sunken) 55%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      44% 38% at 88% 74%,
+      color-mix(in srgb, var(--surface-sunken) 40%, transparent),
+      transparent 72%
+    );
+  animation: field-breathe 34s var(--ease-settle) infinite alternate;
+}
+
+/*
+ * Izgara: 1px hairline milimetrik kâğıt. İki ölçek — ince kare ve her sekizde
+ * bir kalın çizgi, tıpkı gerçek grafik kâğıdı gibi. Çok yavaş sürükleniyor:
+ * hareketi fark etmiyorsunuz, durduğunda fark ediyorsunuz.
+ */
+.field-grid {
+  position: absolute;
+  inset: -8rem;
+  background-image:
+    linear-gradient(to right, var(--rule) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--rule) 1px, transparent 1px),
+    linear-gradient(to right, var(--rule) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--rule) 1px, transparent 1px);
+  background-size:
+    14rem 14rem,
+    14rem 14rem,
+    1.75rem 1.75rem,
+    1.75rem 1.75rem;
+  opacity: 0.5;
+  mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 78%);
+  animation: field-drift 90s linear infinite;
+}
+
+.field-rules {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * Aralık: uçları serifli yatay çizgi — `IntervalRule`'un devasa ve sessiz
+ * hâli. Ölçülen noktadan dışa açılıyor, duruyor, kapanıyor. Sayfanın tek
+ * yazılı hareketi burada da aynı cümleyi kuruyor, yalnızca çok daha yavaş.
+ */
+.field-interval {
+  position: absolute;
+  display: block;
+  height: 9px;
+  border-top: 1px solid var(--rule-strong);
+  opacity: 0.28;
+  clip-path: inset(0 50% 0 50%);
+  animation: field-open var(--dur, 26s) var(--ease-settle) var(--delay, 0s) infinite;
+}
+.field-interval::before,
+.field-interval::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  width: 1px;
+  height: 9px;
+  background: var(--rule-strong);
+}
+.field-interval::before {
+  left: 0;
+}
+.field-interval::after {
+  right: 0;
+}
+
+@keyframes field-open {
+  0% {
+    clip-path: inset(0 50% 0 50%);
+  }
+  22%,
+  62% {
+    clip-path: inset(0 0 0 0);
+  }
+  90%,
+  100% {
+    clip-path: inset(0 50% 0 50%);
+  }
+}
+
+@keyframes field-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-14rem, -14rem, 0);
+  }
+}
+
+@keyframes field-breathe {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+    opacity: 0.75;
+  }
+  to {
+    transform: scale(1.12) translate3d(0, -1.5%, 0);
+    opacity: 1;
+  }
+}
+
+/* İçerik alanın üstünde; kabuk ve ana sütun kendi yığın bağlamını alıyor. */
+.page-head,
+main {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-grid,
+  .field-light,
+  .field-interval {
+    animation: none;
+  }
+  /* Duran alan yine de bir alan: aralıklar açık kalıyor, kaybolmuyor. */
+  .field-interval {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* ===========================================================================
+ * KAYDIRMA — çizgi çiziliyor, içerik ona eşlik ediyor
+ *
+ * Her bölüme aynı fade-in-up vermek yerine hareketin konusu bölümün üst
+ * çizgisi: soldan sağa çiziliyor, bir cetvelin kâğıda basılması gibi.
+ * İçerik varsayılan olarak görünür; JS yoksa hiçbir şey kaybolmuyor.
+ * ======================================================================== */
+
+.reveal > .section-major,
+.reveal > .section-minor {
+  border-top-color: transparent;
+  position: relative;
+}
+.reveal > .section-major::before,
+.reveal > .section-minor::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: var(--hairline);
+  background: var(--rule);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--settle) var(--ease-settle);
+}
+.reveal > .section-major::before {
+  background: var(--rule-strong);
+}
+.reveal[data-shown='true'] > .section-major::before,
+.reveal[data-shown='true'] > .section-minor::before {
+  transform: scaleX(1);
+}
+
+/*
+ * İçeriğe DOKUNULMUYOR. Bölümleri sırayla belirtmek (fade-in-up) bu tasarımın
+ * bilerek reddettiği şey ve ayrıca kırılgan: JS çalışmazsa metin görünmez
+ * kalırdı. Hareketin konusu yalnızca çizgi — dekoratif olan tek öğe. Metin
+ * her koşulda ilk kareden itibaren okunabilir.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal > .section-major::before,
+  .reveal > .section-minor::before {
+    transition: none;
+    transform: scaleX(1);
+  }
+}
+
+/* ===========================================================================
+ * TİPOGRAFİ — ölçek ve ölçü
+ *
+ * Bildirilen kusur: "bazı metinler sarılıyor ve yanlarında boşluk bırakıyor."
+ * Sebep tek: `max-width` ch cinsinden çok dar tutulmuştu (`.hero-title` 15ch,
+ * `.section-title` 22ch) ve `text-wrap: balance` bunu daha da kısaltıyordu.
+ * Sonuç, sağında geniş bir boşluk duran üç kelimelik satırlardı.
+ *
+ * Düzeltme iki parçalı: ölçü gerçek dizelere göre genişletildi ve `balance`
+ * yalnızca gerçekten kısa başlıklarda bırakıldı. Uzun başlıkta `balance`
+ * satırları eşitlemek için hepsini kısaltır — tam da şikâyet edilen şey.
+ * ======================================================================== */
+
+.hero-title {
+  max-width: 22ch;
+  font-size: clamp(2.75rem, 7.5vw, 5.25rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+/*
+ * Başlığın satır satır açılması — sayfanın ilk hareketi ve tek girişi.
+ * `clip-path` ile: satır aşağıdan yukarı **açılıyor**, kaymıyor. Aynı cümle
+ * güven aralığında da kuruluyor, yalnızca yatay.
+ */
+.hero-title > span {
+  display: block;
+  clip-path: inset(0 0 110% 0);
+  animation: line-open var(--settle) var(--ease-settle) forwards;
+}
+.hero-title > span:nth-child(2) {
+  animation-delay: 80ms;
+}
+.hero-title > span:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+@keyframes line-open {
+  to {
+    clip-path: inset(0 0 -0.15em 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-title > span {
+    animation: none;
+    clip-path: none;
+  }
+}
+
+.hero-lede {
+  max-width: 54ch;
+  font-size: clamp(1.0625rem, 1.6vw, 1.3125rem);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/*
+ * Bölüm başlığı 22ch idi ve "Why one trigger score is not a measurement"
+ * gibi bir dize orada dört satıra düşüyordu. 30ch iki satır veriyor ve sağdaki
+ * boşluk kapanıyor. `balance` kaldırıldı: uzun başlıkta satırları eşitlemek
+ * için hepsini kısaltıyor.
+ */
+.section-title {
+  max-width: 30ch;
+  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+  line-height: 1.06;
+  text-wrap: pretty;
+}
+
+/* Gövde ölçüsü 62–68ch: okuma ölçüsü, kolon değil. */
+.section-lede {
+  max-width: 66ch;
+}
+.section-note {
+  max-width: 68ch;
+}
+.page-lede {
+  max-width: 64ch;
+}
+
+/*
+ * `.hero-actions` yaslamayı bozuyordu: kod parçası uzun olduğunda butonun
+ * yanında kalıyor ve satır ortadan kırılıyordu. Artık iki blok, dar ekranda
+ * alt alta, geniş ekranda aynı taban çizgisinde.
+ */
+.hero-actions {
+  align-items: baseline;
+  gap: var(--space-4) var(--space-8);
+}
+
+/* Pin satırı — dört pin, her biri bir veya iki alan, üç durum. */
+.pin {
+  grid-template-columns: 13rem minmax(0, 1fr) 6.5rem;
+  align-items: start;
+}
+.pin-index {
+  display: inline-block;
+  min-width: 1.25rem;
+  color: var(--text-faint);
+}
+.pin-name {
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+.pin-field {
+  display: block;
+}
+.pin-field + .pin-field {
+  margin-top: var(--space-1);
+}
+.pin-field-name {
+  display: inline-block;
+  min-width: 10rem;
+  color: var(--text-faint);
+}
+.pin-field-value {
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+}
+/* Kayan pin: renk değil, ağırlık ve sol kenar. Kroma ölçüme ayrılmış. */
+.pin-changed {
+  box-shadow: inset 2px 0 0 var(--text);
+  padding-left: var(--space-3);
+}
+.pin-changed .pin-name,
+.pin-changed .pin-field-value,
+.pin-changed .pin-state {
+  color: var(--text);
+}
+/* Ölçülemeyen pin, `unknown` ile aynı dili konuşuyor: ne tuttu ne kaydı. */
+.pin-unavailable .pin-state {
+  color: var(--unknown);
+}
+.pin-unavailable {
+  box-shadow: inset 2px 0 0 var(--unknown-rule);
+  padding-left: var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .pin {
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
+  }
+  .pin-value {
+    grid-column: 1 / -1;
+    margin-top: var(--space-2);
+  }
+  .pin-field-name {
+    min-width: 0;
+    margin-right: var(--space-2);
+  }
+}
+
+/* ===========================================================================
+ * GİRİŞ — tek sütun, kâğıdın ortasında
+ *
+ * Eski hâli sola yaslı dar bir sütundu ve `page-title` ile bir eyebrow
+ * taşıyordu; ekran genişledikçe sağında büyüyen bir boşluk kalıyordu. Artık
+ * gerçekten ortalanmış ve dikeyde de yerleşiyor: giriş bir belge sayfası
+ * değil, tek bir işlem.
+ * ======================================================================== */
+
+.auth {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 26rem;
+  padding-block: clamp(var(--space-8), 9vh, var(--space-16));
+}
+.auth-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+.auth-lede {
+  margin: var(--space-4) 0 0;
+  max-width: none;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+/*
+ * Panel kâğıdın üstünde duran bir kart değil, kâğıda basılmış bir alan:
+ * gölge yok, üstünde kalın bir kural ve altında hairline. Beyaz zeminde
+ * yükseltilmiş yüzey artık bir ton KOYU, bu yüzden panel gerçekten ayrışıyor.
+ */
+.auth-panel {
+  border: var(--hairline) solid var(--rule);
+  border-top: 2px solid var(--rule-strong);
+  padding: var(--space-8) var(--space-6);
+  background: var(--surface-raised);
+}
+
+/* Alanlar odaklandığında kenar mürekkebe dönüyor — tek geri bildirim. */
+.auth-panel input {
+  transition: border-color var(--tick) linear;
+}
+
+.auth .field-hint {
+  max-width: none;
+}
+
+/* ===========================================================================
+ * BÖLÜM IZGARASI — genişliği kullan, yanına boşluk bırakma
+ *
+ * Bildirilen kusur buydu: metin sarılıyor ve sağında geniş bir boşluk
+ * kalıyordu. Sebep çift daralma — sütun 60rem, paragraf 66ch, aradaki fark
+ * her paragrafın sağında ölü alan olarak duruyordu.
+ *
+ * Çözüm bir teknik ayar değil, bir düzen: bölümün işaretçisi (başlık ya da
+ * etiket) sola çıkıyor ve gövde sağda tam ölçüsünde akıyor. Bir şartname
+ * sayfasının düzeni; sertifika dünyasının kendi düzeni. Başlık sütunu
+ * yapışkan, yani uzun bir bölümde okurken hangi bölümde olduğunuz kayboluyor
+ * değil.
+ * ======================================================================== */
+
+@media (min-width: 64rem) {
+  /*
+   * Izgara YALNIZCA düzyazı bölümlerine uygulanıyor (`:has(.section-title)`).
+   * Referans bölümleri — "what it measures", "three verdicts", "pricing" —
+   * gövdesi üç sütunlu bir bileşen ızgarası olan bölümler; onları dar gövde
+   * sütununa sokmak üçlüyü ikiye düşürüp öksüz bir üçüncü kart bırakıyordu.
+   * `:has` desteklenmeyen tarayıcıda bölüm tek sütun kalıyor: kayıp yok.
+   */
+  .section-major:has(> .section-title),
+  .section-minor:has(> .section-title) {
+    display: grid;
+    grid-template-columns: 16rem minmax(0, 1fr);
+    column-gap: var(--space-12);
+    align-items: start;
+  }
+
+  .section-major:has(> .section-title) > *,
+  .section-minor:has(> .section-title) > * {
+    grid-column: 2;
+  }
+
+  /* Bölümün işaretçisi sola çıkıyor ve okurken orada kalıyor. */
+  .section-major > .section-title,
+  .section-minor > .section-title {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: start;
+    position: sticky;
+    top: var(--space-12);
+    max-width: none;
+    margin-top: 0;
+    font-size: var(--text-2xl);
+    line-height: 1.1;
+  }
+
+  /* Gövde artık tam ölçüsünü kullanıyor. */
+  .section-major:has(> .section-title) > .section-lede,
+  .section-minor:has(> .section-title) > .section-lede,
+  .section-major:has(> .section-title) > .section-note,
+  .section-minor:has(> .section-title) > .section-note {
+    max-width: 72ch;
+  }
+
+  .section-major:has(> .section-title) > *:first-child,
+  .section-minor:has(> .section-title) > *:first-child {
+    margin-top: 0;
+  }
+}
+
+/*
+ * Sayfa sütunu 60rem'den 68rem'e. Ölçüm blokları ve iz görüntüleyici bu
+ * genişlikte nefes alıyor; okuma ölçüsü ızgara sayesinde zaten korunuyor.
+ */
+:root {
+  --page: 68rem;
+}

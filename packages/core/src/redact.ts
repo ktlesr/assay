@@ -8,6 +8,13 @@
  * Tavan: yalnızca tanınan biçimler yakalanır. Özel bir şirket içi token biçimi
  * geçerse görülmez — bu yüzden maskeleme, ortam değişkenlerini ajana hiç
  * vermemenin yerine geçmez, ikinci savunma hattıdır.
+ *
+ * Sırlar tek sızıntı türü değil. Ev dizini yolları işletim sistemi kullanıcı
+ * adını taşıyor ve iz metinleri bu yollarla dolu: ajan her dosyayı mutlak
+ * yolla açıyor. Kayıt CI artefaktı olarak yükleniyor, HTML raporuna basılıyor
+ * ve hosted tarafta yayımlanabiliyor — yani bir skill yazarı kendi koşumunu
+ * paylaştığında makine kullanıcı adını da paylaşmış oluyor. Kimlik, sır kadar
+ * kişisel bir veri.
  */
 
 /** Tanınan sır biçimleri. Maskeleme yalnızca değeri siler, varlığını değil. */
@@ -24,6 +31,39 @@ const SECRET_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
 ]
 
 /**
+ * Ev dizini yolları — kullanıcı adı maskelenir, yolun biçimi korunur.
+ *
+ * `C:\Users\ada\...` → `C:\Users\<user>\...`. Yolu tamamen silmek
+ * ölçümün okunabilirliğini bozardı: hangi dosyanın açıldığı bir iz sinyali.
+ * Silinen tek şey kimlik.
+ *
+ * Üç platform da kapsanıyor ve Windows'ta iki ayırıcı da: ajan bazen `/`
+ * bazen `\` yazıyor, ikisi de aynı yola çözülüyor.
+ */
+/** Yol ayırıcıları, karakter sınıfı içinde kullanılmak üzere: `/` ve `\`. */
+const SEP = '/\\\\'
+
+const HOME_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
+  [
+    'windows-home',
+    new RegExp(`([A-Za-z]:[${SEP}]Users[${SEP}])([^${SEP}\\s"'<>|:*?]+)`, 'g'),
+  ],
+  ['macos-home', new RegExp(`(/Users/)([^${SEP}\\s"'<>|:*?]+)`, 'g')],
+  ['linux-home', new RegExp(`(/home/)([^${SEP}\\s"'<>|:*?]+)`, 'g')],
+]
+
+/** Maskelenmeyen kullanıcı adları: gerçek bir kimlik taşımıyorlar. */
+const GENERIC_HOME_SEGMENTS = new Set([
+  '<user>',
+  'user',
+  'runner',
+  'root',
+  'shared',
+  'public',
+  'default',
+])
+
+/**
  * Metindeki bilinen sırları maskeler.
  *
  * Maskeleme yerine geçen etiket, hangi tür sırrın bulunduğunu söyler — silinen
@@ -34,12 +74,25 @@ export function redact(text: string): string {
   for (const [label, pattern] of SECRET_PATTERNS) {
     out = out.replace(pattern, `[redacted:${label}]`)
   }
+  for (const [, pattern] of HOME_PATTERNS) {
+    out = out.replace(pattern, (match, prefix: string, name: string) =>
+      GENERIC_HOME_SEGMENTS.has(name.toLowerCase()) ? match : `${prefix}<user>`,
+    )
+  }
   return out
 }
 
 /** Bir değerde sır var mı. Maskelemeden önce kontrol etmek isteyen için. */
 export function containsSecret(text: string): boolean {
   return SECRET_PATTERNS.some(([, pattern]) => new RegExp(pattern.source).test(text))
+}
+
+/** Metinde maskelenmemiş bir ev dizini kullanıcı adı var mı. */
+export function containsHomePath(text: string): boolean {
+  return HOME_PATTERNS.some(([, pattern]) => {
+    const match = new RegExp(pattern.source).exec(text)
+    return match !== null && !GENERIC_HOME_SEGMENTS.has((match[2] ?? '').toLowerCase())
+  })
 }
 
 /**

@@ -59,15 +59,56 @@ export interface Pins {
   suiteVersion: number
   /** Pin 4'ün denetçisi — suite kaynağının içerik hash'i. */
   suiteHash: string
+  /**
+   * Pin 3'ün denetçisi — host'un bildirdiği ortamdan türetilen hash.
+   *
+   * Sistem promptu hash'i DEĞİLDİR ve öyle etiketlenmez (docs/decisions.md).
+   * Ama pin 3'ün ölçülemediği bir hostta kaymayı yakalayan tek şey bu:
+   * model, araç listesi, skill listesi ve output style değişirse hash değişir.
+   * Adaptör veremediyse alan hiç yok.
+   */
+  environmentHash?: string
 }
+
+/**
+ * Bilgi taşımayan pin değerleri.
+ *
+ * Host bir pini vermediğinde alan boş kalmıyor, bir yer tutucu taşıyor. İki
+ * koşumda da aynı yer tutucu bulunuyor ve saf bir eşitlik kontrolü bunu
+ * "tuttu" sayıyordu — yani ölçülmemiş bir koşulu ölçülmüş gibi raporluyordu.
+ * Değişmez #1'in yasakladığı şeyin pin tarafındaki karşılığı.
+ */
+const UNAVAILABLE_PIN_VALUES = new Set(['', 'not-provided-by-host', 'unknown', 'n/a'])
+
+const isUnavailable = (value: string | number | undefined): boolean =>
+  value === undefined ||
+  (typeof value === 'string' && UNAVAILABLE_PIN_VALUES.has(value.trim().toLowerCase()))
 
 /** İki koşumun karşılaştırılabilir olup olmadığı. */
 export interface PinComparison {
   comparable: boolean
   /** Kayan pin adları. Boş değilse karşılaştırma `unknown` üretir. */
   drifted: readonly (keyof Pins)[]
+  /**
+   * Ölçülemeyen pin adları — "tuttu" da değil, "kaydı" da değil.
+   *
+   * Bir denetçisi varsa (pin 3 için `environmentHash`) ve o denetçi iki
+   * koşumda da dolu ve eşitse pin kapsanmış sayılır ve burada görünmez.
+   */
+  unavailable: readonly (keyof Pins)[]
 }
 
+/**
+ * Pinleri karşılaştırır.
+ *
+ * Üç durum, iki değil: **tuttu**, **kaydı**, **ölçülemedi**. Eskiden ikincisi
+ * ve üçüncüsü aynıydı; iki koşumda da `not-provided-by-host` yazan bir pin
+ * "tuttu" sayılıyor ve karşılaştırmaya ölçülmemiş bir garanti veriyordu.
+ *
+ * Ölçülemeyen bir pin karşılaştırmayı durdurur (değişmez #2: "pinlerden biri
+ * **eksik** veya farklıysa karşılaştırma yapılmaz"). Tek istisna, o pini
+ * kapsayan bir denetçinin iki koşumda da dolu ve eşit olması.
+ */
 export function comparePins(a: Pins, b: Pins): PinComparison {
   const keys: (keyof Pins)[] = [
     'skillSource',
@@ -77,8 +118,43 @@ export function comparePins(a: Pins, b: Pins): PinComparison {
     'suiteVersion',
     'suiteHash',
   ]
-  const drifted = keys.filter((key) => a[key] !== b[key])
-  return { comparable: drifted.length === 0, drifted }
+
+  // Pin 3'ün denetçisi: iki tarafta da dolu ve eşitse ortam kayması yakalanmış
+  // demektir ve sistem promptu hash'inin eksikliği karşılaştırmayı durdurmaz.
+  const environmentCovers =
+    !isUnavailable(a.environmentHash) &&
+    !isUnavailable(b.environmentHash) &&
+    a.environmentHash === b.environmentHash
+  const covered: Partial<Record<keyof Pins, boolean>> = {
+    systemPromptHash: environmentCovers,
+  }
+
+  const drifted: (keyof Pins)[] = []
+  const unavailable: (keyof Pins)[] = []
+
+  for (const key of keys) {
+    if (isUnavailable(a[key]) || isUnavailable(b[key])) {
+      if (covered[key] !== true) unavailable.push(key)
+      continue
+    }
+    if (a[key] !== b[key]) drifted.push(key)
+  }
+
+  // `environmentHash` kendisi bir pin değil, denetçi: kaydıysa pin 3 kaymıştır.
+  if (
+    !isUnavailable(a.environmentHash) &&
+    !isUnavailable(b.environmentHash) &&
+    a.environmentHash !== b.environmentHash &&
+    !drifted.includes('systemPromptHash')
+  ) {
+    drifted.push('systemPromptHash')
+  }
+
+  return {
+    comparable: drifted.length === 0 && unavailable.length === 0,
+    drifted,
+    unavailable,
+  }
 }
 
 // ---------------------------------------------------------------------------

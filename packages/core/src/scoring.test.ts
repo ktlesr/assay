@@ -256,7 +256,10 @@ describe('summarize', () => {
 
   it('bir negatif sızdıysa ayrım gücü ölçülmüş sayılır', () => {
     const summary = summarize(
-      [attempt('trigger.negative.a', 'pass', false), attempt('trigger.negative.a', 'fail', true)],
+      [
+        attempt('trigger.negative.a', 'pass', false),
+        attempt('trigger.negative.a', 'fail', true),
+      ],
       expected,
     )
     expect(summary.discrimination.falsePositives).toBe(1)
@@ -266,7 +269,10 @@ describe('summarize', () => {
   it('not verdicti değiştirmez', () => {
     // Pozitif kaçtı, negatiflerin hepsi tuttu: verdict fail, not yine de var.
     const summary = summarize(
-      [attempt('trigger.positive.x', 'fail', false), attempt('trigger.negative.a', 'pass', false)],
+      [
+        attempt('trigger.positive.x', 'fail', false),
+        attempt('trigger.negative.a', 'pass', false),
+      ],
       expected,
     )
     expect(summary.verdict).toBe('fail')
@@ -282,7 +288,10 @@ describe('summarize', () => {
   it('ölçülemeyen negatif ayrım gücü saymaz', () => {
     // Tek negatif okunamadıysa "hiçbiri kırılmadı" demek yanlış olur.
     const summary = summarize(
-      [attempt('trigger.positive.x', 'pass', true), attempt('trigger.negative.a', 'unknown', null)],
+      [
+        attempt('trigger.positive.x', 'pass', true),
+        attempt('trigger.negative.a', 'unknown', null),
+      ],
       expected,
     )
     expect(summary.discrimination.attempts).toBe(0)

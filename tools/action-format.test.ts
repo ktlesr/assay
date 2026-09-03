@@ -24,6 +24,9 @@ const pins: Pins = {
   skillHash: 'sha256:s1',
   model: 'claude-haiku-4-5-20251001',
   systemPromptHash: 'not-provided-by-host',
+  // Host sistem promptu hash'ini vermiyor; ortam hash'i pin 3'ü kapsıyor ve
+  // karşılaştırmayı açık tutuyor (comparePins, değişmez #2).
+  environmentHash: 'sha256:env',
   suiteVersion: 1,
   suiteHash: 'sha256:c1',
 }

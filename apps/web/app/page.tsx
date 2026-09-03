@@ -1,4 +1,10 @@
-import { Badge, EmptyState, IntervalRule, RateFigure, countSentence } from '@ktlsr/assay-ui'
+import {
+  Badge,
+  EmptyState,
+  IntervalRule,
+  RateFigure,
+  countSentence,
+} from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { Shell } from './components/shell'
 import { Landing } from './landing'
@@ -23,17 +29,15 @@ export default async function Home() {
         <EmptyState
           title="Nothing measured here yet"
           description="Assay stores every run on your own machine first. Measure a skill with the CLI, then upload the record to keep its history and compare against it later."
-          action={
-            <code className="code">assay push --suite ./my-skill.suite.yaml</code>
-          }
+          action={<code className="code">assay push --suite ./my-skill.suite.yaml</code>}
         />
       ) : (
         <>
           <h1 className="page-title">Measured skills</h1>
           <p className="page-lede">
-            One line per skill, showing its most recent run. The bar is the 95%
-            confidence interval — a short bar means the number is settled, a long one
-            means it is not.
+            One line per skill, showing its most recent run. The bar is the 95% confidence
+            interval — a short bar means the number is settled, a long one means it is
+            not.
           </p>
 
           <div className="ruled mt-12">
@@ -49,8 +53,7 @@ export default async function Home() {
                 <span className="min-w-0">
                   <span className="suite-name">{skill}</span>
                   <span className="case-count">
-                    {countSentence(latest.summary.trigger.recall, 'fired')} it should
-                    have
+                    {countSentence(latest.summary.trigger.recall, 'fired')} it should have
                     {latest.summary.counts.unknown > 0 ? (
                       <span className="ml-3 text-unknown">
                         {latest.summary.counts.unknown} not measured

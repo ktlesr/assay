@@ -52,6 +52,11 @@ for (const path of targets) {
     const response = await page.goto(url, { waitUntil: 'networkidle' })
     const status = response?.status() ?? 0
 
+    // `networkidle` ağın durduğunu söylüyor, sayfanın durduğunu değil. Giriş
+    // animasyonları bitmeden çekilen kare boş bir hero gösteriyordu — kusuru
+    // sayfada sanıp aramaya başlamıştım. 1.4 sn en uzun açılışı da kapsıyor.
+    await page.waitForTimeout(1400)
+
     // Yatay taşma sessizce kaçan bir hata: ölçüp raporluyoruz.
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

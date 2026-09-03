@@ -24,9 +24,8 @@ export default async function TokensPage() {
     <Shell breadcrumbs={[{ label: 'settings' }, { label: 'tokens' }]}>
       <h1 className="page-title">API tokens</h1>
       <p className="page-lede">
-        <code className="code">assay push</code> uploads a stored run with
-        one of these. Only the hash is kept here, so a token can be revoked but never
-        read back.
+        <code className="code">assay push</code> uploads a stored run with one of these.
+        Only the hash is kept here, so a token can be revoked but never read back.
       </p>
 
       <div className="mt-10">

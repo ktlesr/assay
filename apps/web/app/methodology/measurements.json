@@ -3,36 +3,70 @@
   "caseSet": {
     "pins": [
       {
-        "pin": "skillSource",
-        "value": "anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678",
-        "same": true
+        "pin": 1,
+        "name": "Skill version",
+        "state": "held",
+        "fields": [
+          {
+            "field": "skillSource",
+            "value": "anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678",
+            "state": "held"
+          },
+          {
+            "field": "skillHash",
+            "value": "sha256:91d476562e4e1910efbf135ab510dbab4db7c2209ff2638daa74bfc372336bbf",
+            "state": "held"
+          }
+        ]
       },
       {
-        "pin": "skillHash",
-        "value": "sha256:91d476562e4e1910efbf135ab510dbab4db7c2209ff2638daa74bfc372336bbf",
-        "same": true
+        "pin": 2,
+        "name": "Model identity",
+        "state": "held",
+        "fields": [
+          {
+            "field": "model",
+            "value": "claude-haiku-4-5-20251001",
+            "state": "held"
+          }
+        ]
       },
       {
-        "pin": "model",
-        "value": "claude-haiku-4-5-20251001",
-        "same": true
+        "pin": 3,
+        "name": "Host environment",
+        "state": "unavailable",
+        "fields": [
+          {
+            "field": "systemPromptHash",
+            "value": "not-provided-by-host",
+            "state": "unavailable"
+          }
+        ]
       },
       {
-        "pin": "systemPromptHash",
-        "value": "not-provided-by-host",
-        "same": true
-      },
-      {
-        "pin": "suiteVersion",
-        "value": "1",
-        "same": true
-      },
-      {
-        "pin": "suiteHash",
-        "value": "sha256:31fa58c3ebe210e5e04c30954c60b6888a61708108f78a848c1dfee3ea839eb6",
-        "same": false
+        "pin": 4,
+        "name": "Case set version",
+        "state": "changed",
+        "fields": [
+          {
+            "field": "suiteVersion",
+            "value": "1",
+            "state": "held"
+          },
+          {
+            "field": "suiteHash",
+            "value": "sha256:31fa58c3ebe210e5e04c30954c60b6888a61708108f78a848c1dfee3ea839eb6",
+            "state": "changed"
+          }
+        ]
       }
     ],
+    "counts": {
+      "total": 4,
+      "held": 2,
+      "changed": 1,
+      "unavailable": 1
+    },
     "runs": [
       {
         "label": "First case set",
@@ -220,7 +254,7 @@
         {
           "seq": 5,
           "kind": "assistant_message",
-          "text": "Base directory for this skill: C:\\Users\\KESER\\AppData\\Local\\Temp\\assay-skill-Mbz3TV\\skills\\doc-coauthoring\n\n# Doc Co-Authoring Workflow\r\n\r\nThis skill provides a structured workflow for guiding users through collaborative document creation. Act as an active guide, walking users through three stages: Context Gathering, Refinement & Structure, and Reader Testing.\r\n\r\n## When to Offer This Workflow\r\n\r\n**Trigger conditions…"
+          "text": "Base directory for this skill: C:\\Users\\<user>\\AppData\\Local\\Temp\\assay-skill-Mbz3TV\\skills\\doc-coauthoring\n\n# Doc Co-Authoring Workflow\r\n\r\nThis skill provides a structured workflow for guiding users through collaborative document creation. Act as an active guide, walking users through three stages: Context Gathering, Refinement & Structure, and Reader Testing.\r\n\r\n## When to Offer This Workflow\r\n\r\n**Trigger condition…"
         },
         {
           "seq": 6,

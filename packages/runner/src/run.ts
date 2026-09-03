@@ -96,10 +96,15 @@ export async function runSuite<S extends AgentSession>(
   const skillCopy = await copySkill(options.skillPath)
   const cases: CaseResult[] = []
 
+  // Ortam hash'i koşum seviyesinde bir pin ama oturum seviyesinde okunuyor.
+  // Attempt'ler farklı hash bildirirse ortam koşum ortasında kaymış demektir;
+  // o durumda hiçbir değer yazılmıyor ve pin "ölçülemedi" kalıyor.
+  const environmentHashes = new Set<string>()
+
   for (const testCase of suite.cases) {
     const attempts: Attempt[] = []
     for (let index = 0; index < repeat; index += 1) {
-      const attempt = await runAttempt(
+      const { attempt, environmentHash } = await runAttempt(
         suite,
         testCase,
         index,
@@ -107,6 +112,7 @@ export async function runSuite<S extends AgentSession>(
         { ...options, skillPath: skillCopy },
         now,
       )
+      if (environmentHash !== undefined) environmentHashes.add(environmentHash)
       attempts.push(attempt)
       options.onProgress?.({
         caseId: testCase.id,
@@ -129,7 +135,12 @@ export async function runSuite<S extends AgentSession>(
     finishedAt: now().toISOString(),
     host: adapter.id,
     skill: suite.target.skill,
-    pins: pinsOf(suite, options.source, skillHash),
+    pins: pinsOf(
+      suite,
+      options.source,
+      skillHash,
+      environmentHashes.size === 1 ? [...environmentHashes][0] : undefined,
+    ),
     runs: repeat,
     cases,
     verdict: allVerdicts.includes('fail')
@@ -140,7 +151,20 @@ export async function runSuite<S extends AgentSession>(
   }
 }
 
-export function pinsOf(suite: Suite, source: string, skillHash = ''): Pins {
+/**
+ * Koşum pinleri.
+ *
+ * `environmentHash` adaptörden geliyor: host sistem promptu hash'ini vermediği
+ * hostlarda pin 3'ün kaymasını yakalayan tek şey o. Adaptör vermediyse alan
+ * hiç yazılmıyor ve `comparePins` pin 3'ü "ölçülemedi" sayıyor — eskiden iki
+ * koşumda da aynı yer tutucu bulunduğu için "tuttu" sayılıyordu.
+ */
+export function pinsOf(
+  suite: Suite,
+  source: string,
+  skillHash = '',
+  environmentHash?: string,
+): Pins {
   return {
     skillSource: suite.target.source,
     skillHash,
@@ -148,6 +172,9 @@ export function pinsOf(suite: Suite, source: string, skillHash = ''): Pins {
     systemPromptHash: suite.environment.system_prompt_hash,
     suiteVersion: suite.version,
     suiteHash: suiteHash(source),
+    ...(environmentHash === undefined || environmentHash === ''
+      ? {}
+      : { environmentHash }),
   }
 }
 
@@ -175,6 +202,17 @@ function summarizeCase(
 // Tek attempt
 // ---------------------------------------------------------------------------
 
+/**
+ * Bir attempt ve o attempt'in gördüğü ortam hash'i.
+ *
+ * Hash koşum seviyesinde bir pin ama yalnızca oturum seviyesinde okunabiliyor;
+ * `runSuite` attempt'lerden toplayıp hepsi aynıysa pine yazıyor.
+ */
+interface AttemptResult {
+  attempt: Attempt
+  environmentHash?: string
+}
+
 async function runAttempt<S extends AgentSession>(
   suite: Suite,
   testCase: SuiteCase,
@@ -182,9 +220,10 @@ async function runAttempt<S extends AgentSession>(
   adapter: HostAdapter<S>,
   options: RunOptions,
   now: () => Date,
-): Promise<Attempt> {
+): Promise<AttemptResult> {
   const startedAt = now().toISOString()
   const began = Date.now()
+  let environmentHash: string | undefined
 
   let workspace: Awaited<ReturnType<typeof createWorkspace>> | undefined
   try {
@@ -194,14 +233,16 @@ async function runAttempt<S extends AgentSession>(
     })
   } catch (cause) {
     // Sandbox kurulamadıysa ölçüm yapılmadı; sessiz pass üretilemez.
-    return unknownAttempt(
-      testCase,
-      index,
-      startedAt,
-      now,
-      began,
-      `the sandbox could not be prepared: ${message(cause)}`,
-    )
+    return {
+      attempt: unknownAttempt(
+        testCase,
+        index,
+        startedAt,
+        now,
+        began,
+        `the sandbox could not be prepared: ${message(cause)}`,
+      ),
+    }
   }
 
   let session: S | undefined
@@ -249,6 +290,7 @@ async function runAttempt<S extends AgentSession>(
     const result = await adapter.finalize(session)
     latencyMs = result.latencyMs
     cost = result.cost
+    environmentHash = result.environmentHash
 
     const after = await snapshot(workspace.dir)
     const captured = result.files === undefined ? await capture(workspace.dir) : null
@@ -278,16 +320,19 @@ async function runAttempt<S extends AgentSession>(
   }
 
   if (adapterFailure !== null) {
-    return unknownAttempt(
-      testCase,
-      index,
-      startedAt,
-      now,
-      began,
-      `the host adapter failed: ${adapterFailure}`,
-      trigger,
-      trace,
-    )
+    return {
+      attempt: unknownAttempt(
+        testCase,
+        index,
+        startedAt,
+        now,
+        began,
+        `the host adapter failed: ${adapterFailure}`,
+        trigger,
+        trace,
+      ),
+      ...(environmentHash === undefined ? {} : { environmentHash }),
+    }
   }
 
   const assertions: AssertionResult[] = evaluateAssertions(
@@ -310,7 +355,7 @@ async function runAttempt<S extends AgentSession>(
       ? combined.reason
       : `${combined.reason} | ${skippedFiles.length} file(s) exceeded the capture limit and were not inspected: ${skippedFiles.join(', ')}`
 
-  return {
+  const attempt: Attempt = {
     index,
     caseId: testCase.id,
     startedAt,
@@ -325,6 +370,8 @@ async function runAttempt<S extends AgentSession>(
     ...(trace === undefined ? {} : { trace: redactDeep(trace) }),
     ...(evidence.env === undefined ? {} : { env: redactDeep(evidence.env) }),
   }
+
+  return { attempt, ...(environmentHash === undefined ? {} : { environmentHash }) }
 }
 
 function unknownAttempt(

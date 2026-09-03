@@ -58,7 +58,11 @@ describe('comparePins — değişmez #2', () => {
   }
 
   it('dört pin aynıysa karşılaştırılabilir', () => {
-    expect(comparePins(base, { ...base })).toEqual({ comparable: true, drifted: [] })
+    expect(comparePins(base, { ...base })).toEqual({
+      comparable: true,
+      drifted: [],
+      unavailable: [],
+    })
   })
 
   it.each([
@@ -71,6 +75,51 @@ describe('comparePins — değişmez #2', () => {
     const result = comparePins(base, { ...base, [key]: value })
     expect(result.comparable).toBe(false)
     expect(result.drifted).toEqual([key])
+  })
+
+  /**
+   * Üçüncü durum: ölçülemedi.
+   *
+   * Host bir pini vermediğinde alan bir yer tutucu taşıyor. İki koşumda da aynı
+   * yer tutucu bulunuyordu ve saf eşitlik bunu "tuttu" sayıyordu — ölçülmemiş
+   * bir koşula karşılaştırılabilirlik garantisi veriliyordu.
+   */
+  describe('ölçülemeyen pin', () => {
+    const blind: Pins = { ...base, systemPromptHash: 'not-provided-by-host' }
+
+    it('iki tarafta da yer tutucuysa "tuttu" sayılmaz', () => {
+      const result = comparePins(blind, { ...blind })
+      expect(result.comparable).toBe(false)
+      expect(result.unavailable).toEqual(['systemPromptHash'])
+      expect(result.drifted).toEqual([])
+    })
+
+    it('boş bir denetçi hash de ölçülemedi sayılır', () => {
+      const result = comparePins({ ...base, skillHash: '' }, { ...base, skillHash: '' })
+      expect(result.comparable).toBe(false)
+      expect(result.unavailable).toEqual(['skillHash'])
+    })
+
+    it('ortam hash degeri esitse pin 3 kapsanir ve karsilastirma acilir', () => {
+      const covered: Pins = { ...blind, environmentHash: 'sha256:env' }
+      const result = comparePins(covered, { ...covered })
+      expect(result.comparable).toBe(true)
+      expect(result.unavailable).toEqual([])
+    })
+
+    it('ortam hash degeri kaymissa pin 3 kaymis sayilir', () => {
+      const a: Pins = { ...blind, environmentHash: 'sha256:env-a' }
+      const b: Pins = { ...blind, environmentHash: 'sha256:env-b' }
+      const result = comparePins(a, b)
+      expect(result.comparable).toBe(false)
+      expect(result.drifted).toEqual(['systemPromptHash'])
+    })
+
+    it('ortam hash yalnızca bir tarafta varsa kapsamaz', () => {
+      const result = comparePins({ ...blind, environmentHash: 'sha256:env' }, blind)
+      expect(result.comparable).toBe(false)
+      expect(result.unavailable).toEqual(['systemPromptHash'])
+    })
   })
 
   it('suite sürümü artınca da karşılaştırılamaz', () => {

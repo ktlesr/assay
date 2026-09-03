@@ -44,6 +44,8 @@ export interface RunComparison {
   comparable: boolean
   /** Kayan pin adları. Boş değilse `cases` boş ve verdict `unknown`. */
   drifted: readonly (keyof Pins)[]
+  /** Ölçülemeyen pin adları — kaymadı, ama tuttuğu da bilinmiyor. */
+  unavailable: readonly (keyof Pins)[]
   cases: readonly CaseComparison[]
   verdict: Verdict
   reason: string
@@ -52,18 +54,33 @@ export interface RunComparison {
 /**
  * İki koşumu karşılaştırır.
  *
- * Pinlerden biri kaymışsa hiçbir vaka karşılaştırılmaz ve `unknown` döner;
- * hangi pinin kaydığı `drifted` içinde yazar.
+ * Pinlerden biri kaymışsa VEYA ölçülemiyorsa hiçbir vaka karşılaştırılmaz ve
+ * `unknown` döner; hangi pinin kaydığı `drifted`, hangisinin okunamadığı
+ * `unavailable` içinde yazar. İkisi ayrı: biri "koşullar değişti", diğeri
+ * "koşulların aynı olduğunu bilmiyoruz".
  */
 export function compareRuns(before: Run, after: Run): RunComparison {
   const pins = comparePins(before.pins, after.pins)
   if (!pins.comparable) {
+    // Kayan pin ile ölçülemeyen pin ayrı cümleler: biri "koşullar değişti",
+    // diğeri "koşulların aynı olduğunu bilmiyoruz". İkisi de karşılaştırmayı
+    // durduruyor ama kullanıcıya farklı bir iş düşüyor.
+    const parts: string[] = []
+    if (pins.drifted.length > 0) {
+      parts.push(`${pins.drifted.join(', ')} changed between them`)
+    }
+    if (pins.unavailable.length > 0) {
+      parts.push(
+        `${pins.unavailable.join(', ')} could not be read in one or both runs, so the conditions cannot be shown to match`,
+      )
+    }
     return {
       comparable: false,
       drifted: pins.drifted,
+      unavailable: pins.unavailable,
       cases: [],
       verdict: 'unknown',
-      reason: `the runs are not comparable: ${pins.drifted.join(', ')} changed between them`,
+      reason: `the runs are not comparable: ${parts.join('; ')}`,
     }
   }
 
@@ -85,6 +102,7 @@ export function compareRuns(before: Run, after: Run): RunComparison {
   return {
     comparable: true,
     drifted: [],
+    unavailable: [],
     cases,
     verdict: regressed.length > 0 ? 'fail' : unresolved.length > 0 ? 'unknown' : 'pass',
     reason:

@@ -65,7 +65,10 @@ export default async function ComparePage({
   return (
     <Shell
       breadcrumbs={[
-        { label: after.run.skill, href: `/suites/${encodeURIComponent(after.run.skill)}` },
+        {
+          label: after.run.skill,
+          href: `/suites/${encodeURIComponent(after.run.skill)}`,
+        },
         { label: 'compare' },
       ]}
     >
@@ -87,8 +90,8 @@ export default async function ComparePage({
           <p className="rule-label mb-2">Case by case</p>
           <p className="mb-8 mt-4 max-w-[62ch] text-sm text-text-muted">
             A move is only called a regression when the two intervals do not overlap.
-            Overlapping intervals mean the difference cannot be told apart from
-            run-to-run noise, however large the gap between the two percentages looks.
+            Overlapping intervals mean the difference cannot be told apart from run-to-run
+            noise, however large the gap between the two percentages looks.
           </p>
           <div className="ruled">
             {comparison.cases.map((row, index) => (

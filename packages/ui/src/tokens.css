@@ -52,16 +52,22 @@
 :root {
   color-scheme: light;
 
-  --surface: #f1f3f3;
-  --surface-raised: #ffffff;
-  --surface-sunken: #e2e7e7;
+  /*
+   * Zemin saf beyaz kâğıt. Önceki soğuk gri (#f1f3f3) sayfayı bir yüzey gibi
+   * gösteriyordu; sertifika bir yüzey değil, bir **yaprak**. Yükseltilmiş
+   * bölge artık beyazdan koyu değil, beyazın bir ton altı — ilişki tersine
+   * döndü ve veri blokları kâğıdın *üstünde* duruyor.
+   */
+  --surface: #ffffff;
+  --surface-raised: #f5f7f7;
+  --surface-sunken: #eceff0;
 
   --text: #0d1112;
   --text-muted: #4e5658;
   --text-faint: #6a7375;
 
   /* Hairline: 1px'te bile ezilmeyen ama bağırmayan çizgi. */
-  --rule: #d2d8d8;
+  --rule: #dbe1e1;
   --rule-strong: #a6afb0;
 
   /* Vurgu mürekkebin kendisi: odak halkası ve satır işareti tam kontrast. */
@@ -144,15 +150,15 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  --surface: #f1f3f3;
-  --surface-raised: #ffffff;
-  --surface-sunken: #e2e7e7;
+  --surface: #ffffff;
+  --surface-raised: #f5f7f7;
+  --surface-sunken: #eceff0;
 
   --text: #0d1112;
   --text-muted: #4e5658;
   --text-faint: #6a7375;
 
-  --rule: #d2d8d8;
+  --rule: #dbe1e1;
   --rule-strong: #a6afb0;
 
   --accent: #0d1112;

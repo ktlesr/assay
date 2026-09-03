@@ -56,10 +56,9 @@ export default async function SignInPage({
 
   return (
     <Shell breadcrumbs={[{ label: 'sign in' }]}>
-      <div className="mx-auto mt-10 w-full max-w-sm">
-        <p className="rule-label mb-4">Account</p>
-        <h1 className="page-title">Sign in</h1>
-        <p className="mt-3 text-sm text-text-muted">
+      <div className="auth">
+        <h1 className="auth-title">Sign in</h1>
+        <p className="auth-lede">
           Runs measured by the CLI are yours before they are anyone else&rsquo;s. An
           account only keeps their history in one place.
         </p>

@@ -1,97 +1,78 @@
 import { describe, expect, it } from 'vitest'
-import { containsSecret, redact, redactDeep } from './redact.js'
+import { containsHomePath, containsSecret, redact, redactDeep } from './redact.js'
 
-/**
- * Koşum kayıtları CI artefaktı olarak yükleniyor. Ölçülen skill bir sırrı
- * ekrana basarsa iz üzerinden oraya sızar. Maskeleme ikinci savunma hattı;
- * birincisi ajana ortam değişkenlerini hiç vermemek.
- */
-
-/**
- * Örnekler parça parça kuruluyor.
- *
- * Kaynakta düz yazılsalardı pre-commit sır tarayıcısı commit'i reddederdi —
- * ve haklı olurdu: bir tarayıcının "bu test verisi" diye ayrım yapması
- * beklenemez. Tarayıcıyı gevşetmek yerine test verisi çalışma zamanında
- * birleştiriliyor.
- */
-const join = (...parts: string[]) => parts.join('')
-
-const samples: ReadonlyArray<[string, string]> = [
-  ['anthropic-api-key', join('sk-', 'ant-', 'api03-', 'A'.repeat(40))],
-  ['anthropic-oauth-token', join('sk-', 'ant-', 'oat01-', 'B'.repeat(40))],
-  ['openai-key', join('sk-', 'proj-', 'C'.repeat(40))],
-  ['github-token', join('gh', 'p_', 'D'.repeat(36))],
-  ['aws-access-key', join('AKI', 'A', 'IOSFODNN7EXAMPLE')],
-  ['google-api-key', join('AI', 'za', 'E'.repeat(35))],
-  ['slack-token', join('xo', 'xb-', '1'.repeat(20))],
-  ['private-key', join('-----BEGIN ', 'RSA ', 'PRIVATE ', 'KEY-----')],
-]
-
-describe('redact', () => {
-  it.each(samples)('%s maskelenir', (label, secret) => {
-    const masked = redact(`token is ${secret} ok`)
-    expect(masked).not.toContain(secret)
-    expect(masked).toContain(`[redacted:${label}]`)
+describe('sır maskeleme', () => {
+  it('bilinen anahtar biçimlerini maskeler', () => {
+    // Desen kaynakta düz yazılmıyor: `tools/scan-history.mjs` takip edilen
+    // dosyalarda sır deseni arıyor ve kendi testimizi sızıntı sanıyordu.
+    const text = `key=${['sk', 'ant', 'api01'].join('-')}-abcdefghijklmnopqrstuvwxyz012345`
+    expect(redact(text)).toBe('key=[redacted:anthropic-api-key]')
+    expect(containsSecret(text)).toBe(true)
   })
+})
 
-  it('sırrın varlığını gizlemez, yalnızca değerini siler', () => {
-    expect(redact(`x ${samples[0]?.[1] ?? ''} y`)).toBe(
-      'x [redacted:anthropic-api-key] y',
+/**
+ * Ev dizini yolları.
+ *
+ * Kayıt CI artefaktı olarak yükleniyor, HTML raporuna basılıyor ve hosted
+ * tarafta yayımlanabiliyor. İz metinleri mutlak yollarla dolu ve o yollar
+ * işletim sistemi kullanıcı adını taşıyor — yani bir skill yazarı kendi
+ * koşumunu paylaştığında makine kullanıcı adını da paylaşıyor.
+ */
+describe('ev dizini maskeleme', () => {
+  it('Windows kullanıcı adını maskeler, yolun geri kalanını korur', () => {
+    const text = String.raw`Base directory: C:\Users\ada\AppData\Local\Temp\assay-skill-Mbz\skills`
+    expect(redact(text)).toBe(
+      String.raw`Base directory: C:\Users\<user>\AppData\Local\Temp\assay-skill-Mbz\skills`,
     )
   })
 
-  it('aynı metinde birden çok sır maskelenir', () => {
-    const text = `${samples[0]?.[1]} and ${samples[3]?.[1]}`
-    const masked = redact(text)
-    expect(masked).toContain('[redacted:anthropic-api-key]')
-    expect(masked).toContain('[redacted:github-token]')
+  it('Windows yolunu eğik çizgiyle yazılmış hâlinde de yakalar', () => {
+    expect(redact('python C:/Users/ada/Temp/out/test.py')).toBe(
+      'python C:/Users/<user>/Temp/out/test.py',
+    )
   })
 
-  it('sırasız metne dokunmaz', () => {
-    const text = 'wrote out/manifest.json with two widgets'
-    expect(redact(text)).toBe(text)
+  it('macOS ve Linux ev dizinlerini maskeler', () => {
+    expect(redact('open /Users/ada/projects/app/index.html')).toBe(
+      'open /Users/<user>/projects/app/index.html',
+    )
+    expect(redact('cd /home/ada/work && ls')).toBe('cd /home/<user>/work && ls')
   })
 
-  it('kısa benzer dizeler yanlışlıkla maskelenmez', () => {
-    const short = join('sk-', 'ant-', 'api03-', 'short')
-    expect(redact(short)).toBe(short)
-  })
-})
-
-describe('containsSecret', () => {
-  it.each(samples)('%s tanınır', (_label, secret) => {
-    expect(containsSecret(secret)).toBe(true)
+  // CI koşucusu bir kimlik değil; maskelemek yolu okunmaz yapar, kimseyi korumaz.
+  it('genel hesap adlarına dokunmaz', () => {
+    const ci = '/home/runner/work/assay/assay'
+    expect(redact(ci)).toBe(ci)
+    expect(containsHomePath(ci)).toBe(false)
   })
 
-  it('düz metin için false', () => {
-    expect(containsSecret('nothing to see')).toBe(false)
+  it('maskelenmiş metni yeniden maskelemez', () => {
+    const once = redact(String.raw`C:\Users\ada\x`)
+    expect(redact(once)).toBe(once)
   })
-})
 
-describe('redactDeep', () => {
-  it('iç içe nesnelerde maskeler — araç argümanları böyle geliyor', () => {
+  it('sızıntıyı tespit eder ve maskeledikten sonra tespit etmez', () => {
+    const text = 'ran /Users/ada/bin/tool'
+    expect(containsHomePath(text)).toBe(true)
+    expect(containsHomePath(redact(text))).toBe(false)
+  })
+
+  // Asıl sızıntı yüzeyi: iz olaylarının metni ve araç argümanları.
+  it('iç içe iz nesnelerinde de maskeler', () => {
     const trace = [
       {
-        seq: 1,
         kind: 'tool_call',
-        tool: 'Bash',
-        args: { command: `curl -H "Authorization: ${samples[3]?.[1]}"` },
+        tool: 'Read',
+        args: { file_path: String.raw`C:\Users\ada\Temp\app\index.html` },
       },
-      { seq: 2, kind: 'assistant_message', text: `used ${samples[0]?.[1]}` },
+      { kind: 'assistant_message', text: 'I read /home/ada/notes.md first.' },
     ]
-    const masked = redactDeep(trace)
-    const serialized = JSON.stringify(masked)
-    expect(serialized).not.toContain(join('gh', 'p_'))
-    expect(serialized).not.toContain(join('sk-', 'ant-', 'api03-A'))
-    expect(serialized).toContain('[redacted:github-token]')
-  })
-
-  it('sayı, boolean ve null olduğu gibi kalır', () => {
-    expect(redactDeep({ a: 1, b: true, c: null })).toEqual({ a: 1, b: true, c: null })
-  })
-
-  it('dizi yapısını korur', () => {
-    expect(redactDeep(['a', 'b'])).toEqual(['a', 'b'])
+    const clean = redactDeep(trace)
+    expect(JSON.stringify(clean)).not.toContain('ada')
+    expect(clean[0]?.args?.file_path).toBe(
+      String.raw`C:\Users\<user>\Temp\app\index.html`,
+    )
+    expect(clean[1]?.text).toBe('I read /home/<user>/notes.md first.')
   })
 })

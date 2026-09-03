@@ -25,8 +25,8 @@ export default async function AuditPage() {
       <AdminNav />
       <h1 className="page-title">Audit log</h1>
       <p className="page-lede">
-        Every administrative action, newest first. Read-only: there is no way to remove
-        an entry from here.
+        Every administrative action, newest first. Read-only: there is no way to remove an
+        entry from here.
       </p>
 
       {entries.length === 0 ? (

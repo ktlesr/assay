@@ -1,6 +1,13 @@
 'use client'
 
-import { IconMoon, IconSun, IconSystem, applyTheme, readTheme, type Theme } from '@ktlsr/assay-ui'
+import {
+  IconMoon,
+  IconSun,
+  IconSystem,
+  applyTheme,
+  readTheme,
+  type Theme,
+} from '@ktlsr/assay-ui'
 import { useEffect, useState } from 'react'
 
 const CYCLE: ReadonlyArray<{ value: Theme; label: string; Glyph: typeof IconSun }> = [
@@ -27,7 +34,9 @@ export function ThemeToggle() {
 
   const index = CYCLE.findIndex((option) => option.value === theme)
   const current = CYCLE[index === -1 ? 0 : index] as (typeof CYCLE)[number]
-  const next = CYCLE[(index === -1 ? 0 : index + 1) % CYCLE.length] as (typeof CYCLE)[number]
+  const next = CYCLE[
+    (index === -1 ? 0 : index + 1) % CYCLE.length
+  ] as (typeof CYCLE)[number]
 
   return (
     <button

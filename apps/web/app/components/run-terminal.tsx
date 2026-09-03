@@ -36,8 +36,14 @@ const MARK: Record<Line['kind'], string> = {
  * beliriyor, harf harf değil: makine çıktısı satırlar hâlinde gelir, harfler
  * hâlinde değil. Bu ayrım terminali gerçekçi yapan şey.
  */
-const TYPE_MS_PER_CHAR = 26
-const LINE_STEP_MS = 95
+/*
+ * Süreler kısaltıldı (26/95 → 17/58). Sebep ekran görüntüsünden geldi: sayfa
+ * yüklendikten ~1.8 sn sonrasına kadar terminal BOŞ bir kutu olarak duruyordu
+ * ve hero'nun tek argümanı o kutunun içinde. Yazma hissi 17 ms/karakterde
+ * korunuyor; toplam açılış bir saniyenin altına iniyor.
+ */
+const TYPE_MS_PER_CHAR = 17
+const LINE_STEP_MS = 58
 
 export function RunTerminal({ run }: { run: Run }) {
   const lines = linesFor(run)
@@ -45,7 +51,11 @@ export function RunTerminal({ run }: { run: Run }) {
   const typeMs = command.length * TYPE_MS_PER_CHAR
 
   return (
-    <div className="term" role="img" aria-label={`Recorded run of ${run.skill}: ${lines.filter((l) => l.kind !== 'blank').length} lines of output`}>
+    <div
+      className="term"
+      role="img"
+      aria-label={`Recorded run of ${run.skill}: ${lines.filter((l) => l.kind !== 'blank').length} lines of output`}
+    >
       <div className="term-body">
         {lines.map((line, i) => {
           if (line.kind === 'blank') {
@@ -92,7 +102,9 @@ export function RunTerminal({ run }: { run: Run }) {
         <div
           className="term-line term-reveal"
           style={
-            { animationDelay: `${typeMs + 240 + lines.length * LINE_STEP_MS}ms` } as React.CSSProperties
+            {
+              animationDelay: `${typeMs + 240 + lines.length * LINE_STEP_MS}ms`,
+            } as React.CSSProperties
           }
         >
           <span className="term-mark term-prompt">$</span>

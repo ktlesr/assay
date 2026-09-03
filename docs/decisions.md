@@ -1524,3 +1524,75 @@ sonunda yazılı, yani sayı elle yazılmış değil, türetilmiş: `docs/measur
 tablolarıyla aynı disiplin. Kayıtların kimliği (run id, tarih, pinler) sayfada
 gösteriliyor ki iddia denetlenebilsin.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Ev dizini yolları da maskeleniyor
+
+Bağlam: /methodology sayfasındaki ham iz `C:\Users\KESER\...` basıyordu.
+Aynı iz HTML raporunda ve yüklenen koşum kaydında da var; bir skill yazarı
+kendi raporunu paylaştığında makine kullanıcı adını da paylaşıyor.
+Seçenekler: yalnızca sayfada gizlemek · yolu tamamen silmek · kullanıcı adını
+maskeleyip yolun biçimini korumak
+Karar: Üçüncüsü, ve `packages/core`'daki mevcut sır maskelemesinin içinde.
+`C:\Users\ada\...` → `C:\Users\<user>\...`; macOS ve Linux ev dizinleri de
+kapsanıyor, `runner`/`root` gibi genel hesap adlarına dokunulmuyor.
+Gerekçe: Sayfada gizlemek sızıntının bir yüzünü kapatıp diğer ikisini açık
+bırakırdı; asıl yüzey kayıt. Yolu tamamen silmek iz sinyalini bozar — hangi
+dosyanın açıldığı ölçümün bir parçası; silinen tek şey kimlik olmalı.
+`redactDeep` zaten runner'da iz ve env üzerine uygulanıyordu, yani tek bir
+desen listesi üç tüketiciyi birden kapsıyor.
+Not: sayfanın verisi maskeleme eklenmeden ÖNCE yazılmış kayıtlardan
+üretiliyor, bu yüzden `tools/methodology-data.mjs` de maskeleme uyguluyor ve
+üretilen JSON'da maskelenmemiş bir yol kalırsa exit 1 veriyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Ölçülemeyen pin "tuttu" sayılmaz
+
+Bağlam: `comparePins` saf eşitlik yapıyordu. Claude Code sistem promptu
+hash'ini vermiyor ve alan iki koşumda da `not-provided-by-host` taşıyor —
+yani ölçülmemiş bir koşul "tuttu" sayılıyor ve karşılaştırmaya sahip
+olmadığı bir garanti veriliyordu. Değişmez #2 "pinlerden biri **eksik** veya
+farklıysa karşılaştırma yapılmaz" diyor; kod yalnızca "farklı"yı uyguluyordu.
+Seçenekler: olduğu gibi bırakmak · her eksik pini kesin engel yapmak
+(Claude Code'da compare tamamen ölür) · üçüncü durum + denetçi
+Karar: Üçüncüsü. `PinComparison` artık `unavailable` da döndürüyor; eksik
+pin karşılaştırmayı durduruyor. İstisna: `Pins.environmentHash` iki koşumda
+da dolu ve eşitse pin 3 kapsanmış sayılıyor ve karşılaştırma açılıyor.
+Adaptör bu hash'i zaten hesaplıyordu (2026-08-31 kararı) ama kayda hiç
+yazılmıyordu; runner artık yazıyor.
+Gerekçe: İkinci seçenek doğru ama tek başına aracın çalışan bir özelliğini
+öldürürdü; eksik olan ön koşuldu, kural değil. Ortam hash'i pin 3'ün
+denetçisi olarak tam da `skillHash`/`suiteHash` çiftinin işini yapıyor:
+beyan edilemeyen bir koşulu içerikten yakalıyor. Attempt'ler farklı hash
+bildirirse ortam koşum ortasında kaymış demektir; o durumda hiçbir değer
+yazılmıyor ve pin ölçülemedi kalıyor.
+Bedeli: ortam hash'i taşımayan eski kayıtlar artık karşılaştırılamıyor ve
+`unknown` üretiyor. Bu doğru cevap — o koşumlarda koşulların aynı olduğu
+gerçekten bilinmiyor.
+Geri dönüş maliyeti: orta (kayıt şemasına alan eklendi, opsiyonel)
+
+## 2026-09-03 — Beyaz zemin, canlı ölçüm alanı ve iki sütunlu bölüm ızgarası
+
+Bağlam: Üç sayfanın (tanıtım, giriş, metodoloji) "premium seviyede, animasyonlu
+ve hareketli arka planlı, beyaz zeminli" yeniden tasarımı istendi. DESIGN.md
+zemini soğuk gri (#f1f3f3) yapıyor, gradienti ve bölüm animasyonlarını
+yasaklıyor. Ayrıca "bazı metinler sarılıyor ve yanlarında boşluk bırakıyor"
+kusuru bildirildi.
+Seçenekler: dünyayı değiştirmek (konsept turnuvası) · dünyayı devralıp
+genişletmek
+Karar: İkincisi. Sertifika konsepti duruyor; üç kural değişti.
+1. Zemin saf beyaz, yükseltilmiş yüzey bir ton koyu — ilişki tersine döndü.
+2. Hareketli zemin var ama ürünün kendi işaretlerinden: milimetrik kâğıt
+   ızgarası ve yavaşça açılıp kapanan güven aralıkları. Gradient bulutu yok.
+3. Bölümler geniş ekranda iki sütun: işaretçi solda (yapışkan), gövde sağda.
+Gerekçe: Kullanıcı sertifika kimliğini reddetmedi, bitişini istedi; dünyayı
+değiştirmek ürün gerçeğini atmak olurdu (impeccable/new-work: "Established
+world: inherit it"). Hareketli zemin ölçümden yapılınca marka rengi eklemeden
+"premium" oluyor ve renk hâlâ yalnızca verdict'te. İki sütun ızgarası
+bildirilen kusurun kök sebebini kapatıyor: çift daralma (sütun 60rem,
+paragraf 66ch) her paragrafın sağında ölü alan bırakıyordu; artık o alan
+bölümün başlığı.
+Sınır: ızgara yalnızca `:has(> .section-title)` olan düzyazı bölümlerine
+uygulanıyor. Referans bölümlerinde gövde üç sütunlu bir bileşen ızgarası ve
+onu dar sütuna sokmak öksüz bir üçüncü kart bırakıyordu — ekran görüntüsü
+yakaladı.
+Geri dönüş maliyeti: düşük (token ve CSS)

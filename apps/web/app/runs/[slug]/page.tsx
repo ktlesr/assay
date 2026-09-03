@@ -277,7 +277,13 @@ function CaseRow({
         <IntervalRule
           value={caseResult.passRate}
           delayMs={delayMs}
-          tone={verdict === 'pass' ? 'text-pass' : verdict === 'fail' ? 'text-fail' : 'text-unknown'}
+          tone={
+            verdict === 'pass'
+              ? 'text-pass'
+              : verdict === 'fail'
+                ? 'text-fail'
+                : 'text-unknown'
+          }
         />
       </span>
       <span className="case-figure">

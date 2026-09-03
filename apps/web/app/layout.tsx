@@ -2,6 +2,7 @@ import { themeScript } from '@ktlsr/assay-ui'
 import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from 'next/font/google'
 import type { ReactNode } from 'react'
+import { InstrumentField } from './components/instrument-field'
 import './globals.css'
 
 /**
@@ -104,10 +105,43 @@ export const viewport: Viewport = {
   initialScale: 1,
   // Tema rengi iki temada ayrı: tarayıcı çubuğu sayfayla aynı zemini alsın.
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f1f3f3' },
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0b0d0e' },
   ],
 }
+
+/*
+ * Yön sözleşmesi — derlenmiş çıktıda da kalması gerekiyor.
+ *
+ * JSX yorumu (`{/* ... *\/}`) derleyici tarafından siliniyor, yani üretim
+ * HTML'inde denetlenemiyor. Bu yüzden gerçek bir HTML yorumu olarak, gövdenin
+ * ilk çocuğu hâlinde basılıyor.
+ */
+const DIRECTION_CONTRACT = `<!--
+  assay/direction seed: certificate-printed-live
+
+  THESIS: A measurement instrument's page is made of measurement. Refuses the
+  SaaS landing arrangement (gradient hero, feature-card grid, logo wall) and
+  refuses the flat white page just as firmly.
+
+  OWN-WORLD: White paper ground, cool graphite ink, hairline rules, no brand
+  chroma; colour appears only where a verdict does. Instrument Serif headings
+  over IBM Plex Sans/Mono data. Behind everything a drifting graph-paper field
+  where confidence intervals open and close.
+
+  STORY: The visitor watches a real run fail, understands the tool refuses to
+  round uncertainty away, and installs the CLI.
+
+  FIRST VIEWPORT: Headline left in three lines opening upward; a recorded
+  terminal beneath it at full measure; the primary action on the rule under it.
+  Nothing floats, nothing glows.
+
+  FORM: Established world inherited and expanded (white ground, live field).
+  No world replacement, so no direction roll.
+
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the
+  finish review, the verdict, and DESIGN.md.
+-->`
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -120,7 +154,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <div hidden dangerouslySetInnerHTML={{ __html: DIRECTION_CONTRACT }} />
+        <InstrumentField />
+        {children}
+      </body>
     </html>
   )
 }

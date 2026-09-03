@@ -32,7 +32,10 @@ export function Pins({ run, drifted = [] }: { run: Run; drifted?: readonly strin
               {label}
               {moved ? <span className="pin-drift-mark">changed</span> : null}
             </dt>
-            <dd className="min-w-0 truncate py-0.5 font-mono text-xs text-text-muted" title={value}>
+            <dd
+              className="min-w-0 truncate py-0.5 font-mono text-xs text-text-muted"
+              title={value}
+            >
               {value}
             </dd>
           </div>
