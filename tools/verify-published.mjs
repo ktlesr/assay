@@ -10,6 +10,7 @@
  * [{ name, version }, ...]
  */
 import { execFileSync } from 'node:child_process'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { readFileSync } from 'node:fs'
 
 /**
@@ -45,26 +46,59 @@ if (!Array.isArray(packages) || packages.length === 0) {
 
 let missing = 0
 
-for (const { name, version } of packages) {
-  const spec = `${name}@${version}`
+/**
+ * Registry yayılımını bekler.
+ *
+ * 0.1.2'de dördü de başarıyla yayımlandı ama son paket `npm view`'a iki saniye
+ * sonra hâlâ görünmüyordu ve doğrulama işi kırmızıya döndürdü — yayın
+ * tamamken. Yanlış alarmın bedeli gerçek alarmdan yüksek: bir daha "yayın
+ * eksik kaldı" yazısını kimse ciddiye almaz.
+ *
+ * Bu yüzden yokluk hemen hata sayılmıyor, birkaç kez artan aralıklarla
+ * soruluyor. Sürüm YANLIŞ geldiğinde beklenmiyor: o bir yayılma gecikmesi
+ * değil, gerçekten farklı bir cevap.
+ */
+const ATTEMPTS = [0, 3000, 6000, 12000, 20000]
+
+const lookUp = (spec) => {
   try {
     // `npm view` yayımlanmamış bir sürümde sıfırdan farklı kodla çıkar.
     // Windows'ta `npm` bir .cmd; Node 22 onu kabuk olmadan spawn etmiyor
     // (CVE-2024-27980). CI ubuntu'da kabuk kullanılmıyor.
-    const found = execFileSync('npm', ['view', spec, 'version'], {
+    return execFileSync('npm', ['view', spec, 'version'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: process.platform === 'win32',
     }).trim()
-
-    if (found === version) {
-      console.log(`ok ${spec}`)
-    } else {
-      console.error(`::error::${spec} bekleniyordu, registry ${found} diyor`)
-      missing += 1
-    }
   } catch {
-    console.error(`::error::${spec} registry'de bulunamadı — yayın eksik kalmış olabilir`)
+    return null
+  }
+}
+
+for (const { name, version } of packages) {
+  const spec = `${name}@${version}`
+  let found = null
+
+  for (const [attempt, wait] of ATTEMPTS.entries()) {
+    if (wait > 0) {
+      console.log(`  ${spec} henüz görünmüyor, ${wait / 1000}s bekleniyor…`)
+      await sleep(wait)
+    }
+    found = lookUp(spec)
+    if (found !== null) break
+    if (attempt === ATTEMPTS.length - 1) {
+      console.error(
+        `::error::${spec} registry'de bulunamadı — yayın eksik kalmış olabilir`,
+      )
+    }
+  }
+
+  if (found === null) {
+    missing += 1
+  } else if (found === version) {
+    console.log(`ok ${spec}`)
+  } else {
+    console.error(`::error::${spec} bekleniyordu, registry ${found} diyor`)
     missing += 1
   }
 }
