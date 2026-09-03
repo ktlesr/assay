@@ -83,6 +83,21 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
+      # Trusted publishing (OIDC) npm >= 11.5.1 ister; Node 22 ile gelen npm
+      # 10.9.x bunu YAPMAZ. 0.1.0 aslında NODE_AUTH_TOKEN ile yayımlanmıştı,
+      # OIDC ile değil; token çıkarılınca hatta hiç kimlik bilgisi kalmadı ve
+      # 0.1.1 iki kez E404 ile düştü. Kimlik bilgisiz PUT 404 döner, 401 değil.
+      - name: npm sürümü trusted publishing için yeterli mi
+        if: needs.guard.outputs.publishing == 'true'
+        run: |
+          npm install -g npm@latest
+          v=$(npm --version)
+          echo "npm $v"
+          if ! { echo 11.5.1; echo "$v"; } | sort -V -C; then
+            echo "::error::npm $v trusted publishing desteklemiyor (>= 11.5.1 gerekli). Yayın durduruldu."
+            exit 1
+          fi
+
       - run: pnpm install --frozen-lockfile
 
       # Prisma istemcisi repoda tutulmuyor (üretilen kod); typecheck ona bağlı.

@@ -1366,3 +1366,42 @@ ayrım gücü hakkında da bir şey söylemez (değişmez #1 ile aynı mantık).
 Kapsam: `apps/web` aynı alanı okuyabiliyor ama notu göstermiyor; yayımlanmayan
 bir paket olduğu için 0.1.1'in dışında bırakıldı.
 Geri dönüş maliyeti: düşük (türetilmiş alan, kayıt şeması değişmedi)
+
+## 2026-09-03 — DÜZELTME: 0.1.0 OIDC ile değil, token ile yayımlanmıştı
+
+Bağlam: 2026-09-01 tarihli "Kimlik doğrulama trusted publishing, token hattan
+çıkarıldı" kaydı, 0.1.0'ın trusted publishing (OIDC) ile yayımlandığını
+söylüyor ve dayanağı olarak koşum kütüğündeki şu satırı gösteriyordu:
+`No NPM_TOKEN found, but OIDC is available - using npm trusted publishing`.
+**Bu okuma yanlıştı.** O satır changesets/action'ın kendi `NPM_TOKEN`
+değişkenini bulamadığını söylüyor; gerçek kimlik bilgisi `setup-node`'un
+`.npmrc`'ye yazdığı `NODE_AUTH_TOKEN` ile geliyordu ve o sırada iş akışında
+hâlâ tanımlıydı.
+
+Kanıt (üçü birden):
+1. `npm view @ktlsr/assay-core@0.1.0 _npmVersion` → **10.9.8**. npm'in OIDC
+   token değişimi 11.5.1'de geldi; 10.9.8 trusted publishing yapamaz.
+2. Başarılı koşumun commit'indeki (`efc4f16`) `release.yml` iki yerde
+   `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` taşıyor.
+3. `c1adebd` bu iki satırı ve `npm whoami` ön kontrolünü kaldırdı. Ondan
+   sonraki **ilk** yayın denemesi olan 0.1.1, iki bağımsız koşumda da
+   `E404 PUT .../@ktlsr%2fassay-core` verdi.
+
+Yani hat, c1adebd'den beri hiçbir kimlik bilgisi taşımıyordu. Kimlik
+bilgisiz bir PUT'a npm, paketin varlığını sızdırmamak için 401 değil **404**
+döner; hata mesajı bu yüzden "paket yok" gibi okunuyor ve yanlış yere
+baktırıyor. Provenance'ın imzalanmış olması da yanıltıcı: o Sigstore'a
+GitHub OIDC'si ile yapılıyor ve npm kimlik doğrulamasından bağımsız.
+
+Seçenekler: (a) `NODE_AUTH_TOKEN`'ı geri koymak · (b) iş akışında npm'i
+>= 11.5.1'e yükseltip trusted publishing'i gerçekten çalıştırmak
+Karar: (b). Yayın işine `npm install -g npm@latest` ve sürüm kapısı eklendi;
+npm 11.5.1'den eskiyse yayın **publish'e hiç gitmeden** durur.
+Gerekçe: (a) token'sız hat kararını geri alır ve 90 günlük yenileme
+döngüsünü geri getirir — o karar hâlâ doğru, yalnızca ön koşulu eksikti.
+Asıl ders ise ayrı: `npm whoami` ön kontrolü kaldırılırken yerine hiçbir şey
+konmamıştı, bu yüzden kimlik bilgisi olmadan yayın denenip geri alınamaz bir
+adımın ortasında patlayabiliyordu. Sürüm kapısı o boşluğu dolduruyor.
+Şans eseri hasar yok: `core` bağımlılık sırasında ilk yayımlanan paket
+olduğu için dördü de gitmedi; kısmi yayın olmadı.
+Geri dönüş maliyeti: düşük
