@@ -230,7 +230,17 @@ kapsamı dışında. Sınırın kendisi bugün ölçüldü ve yazıldı; kapatı
 0.2.0'ın işi. Bu arada rapor bunu bir sandbox sınırı olarak açıkça söylüyor
 (docs/measurements.md, "Ölçülemeyenler ve tavanlar").
 
-## 2026-09-03 — Oturum koşmadığında assertion katmanı `fail` üretiyor (değişmez #1)
+## 2026-09-03 — Oturum koşmadığında assertion katmanı `fail` üretiyor — ÇÖZÜLDÜ (0.1.3)
+
+**Çözüm:** `runAttempt` artık oturum çapraz kontrolden geçmediğinde
+(`SessionResult.outcome === 'error'`) hiç kanıt toplamıyor; sevk katmanının
+mevcut `REQUIRES` koruması her katmanda `unknown` üretiyor. Seçenek C
+uygulandı. Ayrım korundu: gerçekten koşup hiçbir şey yazmayan ajan
+`file_exists`te `fail` vermeye devam ediyor, ve iki yön de testli.
+Düzeltmenin gerçekten yakaladığı, koşul geçici olarak `false` yapılıp testin
+kırmızıya döndüğü görülerek doğrulandı. Aşağısı, engel açıkken yazılmış
+kayıttır.
+
 
 **Ne gerekiyor:** Kod değişikliği. Sır ya da erişim gerekmiyor; 0.1.3'e alındı
 ([roadmap.md](roadmap.md)).

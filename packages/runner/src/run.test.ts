@@ -302,3 +302,115 @@ describe('runSuite — kayıt kendi içinde tutarlı', () => {
     expect(attempt?.reason).toBe('all 1 check(s) passed')
   })
 })
+
+/**
+ * Ölçülmeyen koşum ile ölçülüp boş çıkan koşum ayrı şeylerdir.
+ *
+ * Kusur gerçek bir koşumda görüldü: token iptal edilince tetiklenme `unknown`,
+ * artefakt assertion'ları `fail`, `side_effect` ise `pass` dönüyordu. Üçü de
+ * aynı olaydan. `fail` kullanıcıyı kırık skill aramaya gönderiyor; `pass` ise
+ * değişmez #1'in doğrudan yasakladığı sessiz geçiş.
+ *
+ * Ayrımın iki yönü de burada sınanıyor, çünkü düzeltmenin fazla ileri gitmesi
+ * de bir kusur olurdu: koşup hiçbir şey yazmayan bir ajan hâlâ `fail`
+ * almalı.
+ */
+describe('runSuite — ölçülmeyen koşum her katmanda unknown', () => {
+  const COMPLETION_SUITE = `
+version: 1
+target: { skill: widget, source: assay@test }
+environment:
+  host: mock
+  model: test-model
+  system_prompt_hash: sha256:test
+# Değişmez #3: tekrar sayısı asla 1 olamaz — doğrulayıcı bu fixture'ı da
+# reddetti, ki bu kuralın gerçekten zorlandığının kanıtı.
+runs: 2
+cases:
+  - id: complete.writes_file
+    prompt: Write the manifest.
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: 'out/manifest.json' }
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: ['out/'], network: deny }
+  - id: trigger.negative.near_neighbor.readme
+    prompt: Write a README.
+    expect: { triggered: false }
+`
+
+  let completionSuite: Suite
+
+  beforeAll(() => {
+    const parsed = parseSuite(COMPLETION_SUITE)
+    if (!parsed.ok) throw new Error(parsed.issues.map((i) => i.message).join('; '))
+    completionSuite = parsed.suite
+  })
+
+  const runCompletion = (adapter: MockAdapter) =>
+    runSuite(completionSuite, adapter, { source: COMPLETION_SUITE, skillPath })
+
+  /** Kimlik doğrulaması ölü: host oturumu hiç açamadı. */
+  const deadSession: MockScenario = {
+    trigger: {
+      available: false,
+      reason: 'the host reported an error: Not logged in · Please run /login',
+    },
+    result: { outcome: 'error' },
+  }
+
+  it('kimlik doğrulaması ölü oturumda hiçbir katman fail ya da pass vermez', async () => {
+    const result = await runCompletion(new MockAdapter({ scenarios: [deadSession] }))
+    const attempts = result.cases.flatMap((c) => c.attempts)
+
+    for (const attempt of attempts) {
+      expect(attempt.verdict).toBe('unknown')
+      for (const assertion of attempt.assertions) {
+        expect(assertion.verdict).toBe('unknown')
+      }
+    }
+
+    // Özellikle bu üçü: eskiden ilki fail, üçüncüsü PASS veriyordu.
+    const completion = result.cases.find((c) => c.caseId === 'complete.writes_file')
+    const byType = (type: string) =>
+      completion?.attempts[0]?.assertions.find((a) => a.assertion.type === type)
+    expect(byType('file_exists')?.verdict).toBe('unknown')
+    expect(byType('trace')?.verdict).toBe('unknown')
+    expect(byType('side_effect')?.verdict).toBe('unknown')
+
+    expect(result.verdict).toBe('unknown')
+  })
+
+  /**
+   * Karşı yön. Ajan gerçekten koştu, oturum düzgün bitti, ama dosyayı
+   * yazmadı — burada ölçüm VAR ve sonuç `fail` olmalı. Düzeltme bu vakayı
+   * `unknown`a çevirseydi, ürünün ölçtüğü asıl şeyi kaybederdik.
+   */
+  it('koşan ama hiçbir şey yazmayan ajan file_exists"te fail vermeye devam eder', async () => {
+    const ranButWroteNothing: MockScenario = {
+      trigger: {
+        available: true,
+        triggered: true,
+        skills: ['widget'],
+        complete: true,
+        via: 'mock',
+      },
+      trace: [
+        { seq: 1, kind: 'skill_trigger', skill: 'widget' },
+        { seq: 2, kind: 'session_end', outcome: 'completed' },
+      ],
+      result: { outcome: 'completed' },
+    }
+
+    const result = await runCompletion(
+      new MockAdapter({ scenarios: [ranButWroteNothing] }),
+    )
+    const completion = result.cases.find((c) => c.caseId === 'complete.writes_file')
+    const assertions = completion?.attempts[0]?.assertions ?? []
+    const fileExists = assertions.find((a) => a.assertion.type === 'file_exists')
+
+    expect(fileExists?.verdict).toBe('fail')
+    expect(completion?.attempts[0]?.verdict).toBe('fail')
+  })
+})

@@ -1,5 +1,54 @@
 # @ktlsr/assay-adapters
 
+## 0.1.3
+
+### Patch Changes
+
+- A run that never happened now reports `unknown` on every layer, not `fail`.
+  
+  **BEHAVIOUR CHANGE — read this before upgrading.** Runs that report `fail`
+  today will report `unknown` after this release, and the CI exit code moves
+  from **1** to **3**. If your pipeline treats those codes differently — and it
+  should — this changes which branch you take. `assay ci --allow-unknown` turns
+  exit 3 back into 0 if you want the old pass-through behaviour.
+  
+  **What was wrong.** When the host could not open a session at all — a revoked
+  token, a process that failed to start, a session whose `terminal_reason` was
+  not `completed` — the same event produced three different verdicts in one
+  attempt:
+  
+  | Layer | Before | After |
+  |---|---|---|
+  | Trigger | `unknown` | `unknown` |
+  | `file_exists`, `file_valid`, `json_schema`, `file_content_matches` | **`fail`** | `unknown` |
+  | `side_effect` | **`pass`** | `unknown` |
+  
+  Nothing was measured, yet one layer called it a failure and another called it
+  a success. The `fail` sends you looking for a broken skill when the problem is
+  a credential. The `pass` is worse: it is the silent pass the three-state
+  verdict exists to prevent, and nobody investigates a green result.
+  
+  **Why it happened.** The trigger layer consulted the session's outcome; the
+  assertion layer did not. With no session, the sandbox working directory stayed
+  untouched, so evidence collection returned an *empty* file list rather than no
+  file list at all. The dispatch guard only checks whether an evidence field is
+  `undefined`, and an empty array is not undefined — so the assertions ran
+  against a workspace that was never used. The same applied to the environment
+  diff, where "no writes recorded" read as "the boundary held".
+  
+  **The fix.** When the session fails its cross-check, the runner now collects no
+  evidence at all rather than empty evidence. No new mechanism was added: the
+  existing guard already returns `unknown` for a missing evidence field, it was
+  simply never shown the truth. The trace is still recorded in the run record for
+  diagnosis; it is just not offered to assertions as evidence.
+  
+  **What did not change.** An agent that genuinely ran, completed, and wrote
+  nothing still reports `fail` on `file_exists`. That distinction is the point —
+  there the measurement is real, and turning it into `unknown` would lose exactly
+  what this tool exists to detect. Both directions are covered by tests.
+- Updated dependencies
+  - @ktlsr/assay-core@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

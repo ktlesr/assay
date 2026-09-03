@@ -101,7 +101,7 @@ bundan sonra anlamlı.
 
 ---
 
-## 0.1.3 — Ölçülmeyen koşum her katmanda `unknown`
+## 0.1.3 — Ölçülmeyen koşum her katmanda `unknown` — TAMAMLANDI
 
 **Amaç:** Aynı olayın iki katmanda iki farklı verdict üretmemesi.
 

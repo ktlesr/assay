@@ -292,26 +292,57 @@ async function runAttempt<S extends AgentSession>(
     cost = result.cost
     environmentHash = result.environmentHash
 
-    const after = await snapshot(workspace.dir)
-    const captured = result.files === undefined ? await capture(workspace.dir) : null
-    if (captured !== null && captured.skipped.length > 0) {
-      skippedFiles = captured.skipped
-    }
-    evidence = {
-      files: result.files ?? captured?.files ?? [],
-      ...(trace === undefined ? {} : { trace }),
-      ...(result.exitCode === undefined ? {} : { exitCode: result.exitCode }),
-      env:
-        result.env ??
-        envDiff({
-          workdir: workspace.dir,
-          before: workspace.before,
-          after,
-          trace,
-          ...(deniedTools(adapter) === undefined
-            ? {}
-            : { deniedTools: deniedTools(adapter) as readonly string[] }),
-        }),
+    /*
+     * Oturum çapraz kontrolden geçmediyse KANIT YOKTUR.
+     *
+     * Host oturumu hiç açamadığında (iptal edilmiş token, çöken süreç,
+     * `terminal_reason` "completed" değil) çalışma dizini dokunulmadan kalıyor
+     * ve `capture` boş bir dizi dönüyordu. `evidence.files` "var ama boş"
+     * oluyordu; sevk katmanının koruması yalnızca `undefined` denetlediği için
+     * `[]` ondan geçiyor ve `file_exists` "no file matches" diyerek **fail**
+     * üretiyordu. Aynı sebeple `env` de dolu ve boş geliyor ve `side_effect`
+     * hiçbir ihlal görmeyip **pass** diyordu — değişmez #1'in doğrudan
+     * yasakladığı sessiz geçiş.
+     *
+     * Tetiklenme katmanı bunu zaten doğru yapıyordu: adaptörün
+     * `readTriggerSignal`'i oturumun durumuna bakıp `unknown` dönüyor. Bu blok
+     * aynı bilgiyi assertion katmanına da taşıyor.
+     *
+     * Yeni bir mekanizma eklenmiyor: alanlar hiç doldurulmuyor ve `REQUIRES`
+     * koruması zaten "alan yoksa unknown" diyor.
+     *
+     * AYRIM KORUNUYOR: gerçekten koşup hiçbir şey yazmayan bir ajan
+     * (`outcome: 'completed'`, boş workspace) kanıtını almaya ve `file_exists`
+     * üzerinden **fail** vermeye devam ediyor. Orada ölçüm gerçekten var.
+     *
+     * İz kayda yine yazılıyor (teşhis için), yalnızca assertion'lara kanıt
+     * olarak verilmiyor: koşmamış bir oturumun izi üzerinde araç iddiası
+     * değerlendirmek de ölçmediğini ölçmektir.
+     */
+    if (result.outcome === 'error') {
+      evidence = {}
+    } else {
+      const after = await snapshot(workspace.dir)
+      const captured = result.files === undefined ? await capture(workspace.dir) : null
+      if (captured !== null && captured.skipped.length > 0) {
+        skippedFiles = captured.skipped
+      }
+      evidence = {
+        files: result.files ?? captured?.files ?? [],
+        ...(trace === undefined ? {} : { trace }),
+        ...(result.exitCode === undefined ? {} : { exitCode: result.exitCode }),
+        env:
+          result.env ??
+          envDiff({
+            workdir: workspace.dir,
+            before: workspace.before,
+            after,
+            trace,
+            ...(deniedTools(adapter) === undefined
+              ? {}
+              : { deniedTools: deniedTools(adapter) as readonly string[] }),
+          }),
+      }
     }
   } catch (cause) {
     adapterFailure = message(cause)
