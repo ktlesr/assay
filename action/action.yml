@@ -78,6 +78,14 @@ runs:
         ASSAY_ALLOW_UNKNOWN: ${{ inputs.allow-unknown }}
       run: node "${{ github.action_path }}/run.mjs"
 
+    # Maskeleme kayıt yazarken, okurken ve raporda basılırken yapılıyor ama
+    # artefakt bir gösterim yüzeyi değil, ham dosya. İndiren herkes JSON'u
+    # okuyor; kaçırılan tek kanal buydu.
+    - name: Scrub run records before upload
+      if: always()
+      shell: bash
+      run: node "${{ github.action_path }}/scrub-runs.mjs" .assay/runs
+
     - name: Upload report and runs
       if: always()
       uses: actions/upload-artifact@v4

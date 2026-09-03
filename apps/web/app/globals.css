@@ -1863,55 +1863,15 @@ main {
   }
 }
 
-/* ===========================================================================
- * KAYDIRMA — çizgi çiziliyor, içerik ona eşlik ediyor
- *
- * Her bölüme aynı fade-in-up vermek yerine hareketin konusu bölümün üst
- * çizgisi: soldan sağa çiziliyor, bir cetvelin kâğıda basılması gibi.
- * İçerik varsayılan olarak görünür; JS yoksa hiçbir şey kaybolmuyor.
- * ======================================================================== */
-
 /*
- * Çizgi VARSAYILAN OLARAK duruyor. Yalnızca gözlemci kurulabildiğinde
- * (`data-armed`) gizlenip çiziliyor. Önceki hâlinde sunucu render'ında
- * `data-shown="false"` olduğu için bölüm sınırı hiç görünmüyordu ve JS
- * çalışmayan bir istemcide hiç gelmiyordu.
+ * Bölüm sınırı ARTIK ANİMASYONLU DEĞİL.
+ *
+ * Denendi ve iki kez kırıldı: önce sunucu render'ında, sonra ekranın altındaki
+ * bölümlerde çizgi hiç görünmedi — gözlemci hiç kesişmediği için. Çizgi bir
+ * yapı öğesi; yapıyı animasyona bağlamak onu opsiyonel yapıyor. Hareket
+ * bütçesi zaten dolu: arkadaki alan ve hero'nun satır açılması. Üçüncüsü
+ * gerekmiyordu ve bedeli sayfanın iskeletiydi.
  */
-.reveal[data-armed='true'] > .section-major,
-.reveal[data-armed='true'] > .section-minor {
-  border-top-color: transparent;
-}
-.reveal > .section-major,
-.reveal > .section-minor {
-  position: relative;
-}
-.reveal[data-armed='true'] > .section-major::before,
-.reveal[data-armed='true'] > .section-minor::before {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: var(--hairline);
-  background: var(--rule);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--settle) var(--ease-settle);
-}
-.reveal[data-armed='true'] > .section-major::before {
-  background: var(--rule-strong);
-}
-.reveal[data-armed='true'][data-shown='true'] > .section-major::before,
-.reveal[data-armed='true'][data-shown='true'] > .section-minor::before {
-  transform: scaleX(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal[data-armed='true'] > .section-major::before,
-  .reveal[data-armed='true'] > .section-minor::before {
-    transition: none;
-    transform: scaleX(1);
-  }
-}
 
 /* ===========================================================================
  * TİPOGRAFİ — ölçek ve ölçü
@@ -2213,21 +2173,49 @@ main {
  * öğretmek için var oldukları komutların ortasından. `.term` zaten yatay
  * kayıyor; `.steps` kaymıyordu.
  */
+/*
+ * Komut satırı SARIYOR, kaymıyor.
+ *
+ * `overflow-x: auto` kesilmeyi bir etkileşimin arkasına saklıyordu; ekran
+ * görüntüsünde komut hâlâ okunmuyordu ve bölüm zaten o komutu öğretmek için
+ * var. Asılı girinti ikinci satırı `$` işaretinin altına değil, komutun
+ * altına hizalıyor.
+ */
 .step-command {
-  overflow-x: auto;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  padding-left: 2ch;
+  text-indent: -2ch;
 }
 
+/*
+ * Mobil terminal — REGRESYON DÜZELTMESİ.
+ *
+ * İlk denemede satırlar `pre-wrap` yapıldı ve oran sütunu satır içine aktı:
+ * `100%`, `(N=1`, `95%`, `72%–` diye parçalanıp sağdan kesildi. N ve güven
+ * aralığının ayrılması tam da değişmez #4'ün varlık sebebi; onu kırpmak
+ * sayfanın kendi iddiasını ekranda çürütüyordu.
+ *
+ * Doğrusu satırı sarmak değil, İKİ SATIRA AYIRMAK: üstte çıktı, altta oran,
+ * ikisi de bütün. Oran kendi satırında olduğu için hiçbir yerinden bölünmüyor.
+ */
 @media (max-width: 40rem) {
   .term-body {
     min-width: 0;
+    font-size: 0.6875rem;
   }
   .term-line {
-    white-space: pre-wrap;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+  .term-text {
+    overflow-wrap: anywhere;
   }
   .term-rate {
+    flex-basis: 100%;
     margin-left: 0;
-    padding-left: 0;
+    padding-left: 2ch;
+    white-space: nowrap;
   }
 }
 
@@ -2320,6 +2308,21 @@ main {
   width: 100%;
 }
 
+/*
+ * REGRESYON DÜZELTMESİ — mobilde form önce gelir.
+ *
+ * İki sütuna geçerken tanım listesi kaynak sırasında formun önüne geçti ve
+ * 375px'te sayfanın tek kontrolü belge yüksekliğinin ~%55'ine düştü. Bu bir
+ * Operate yüzeyi: iş önce gelir, açıklama sonra. `order` ile düzeltiliyor,
+ * kaynak sırası masaüstü okuma sırası olarak kalıyor.
+ */
+.auth-form {
+  order: -1;
+}
+.auth-intro {
+  order: 0;
+}
+
 @media (min-width: 56rem) {
   .auth {
     grid-template-columns: minmax(0, 1fr) 24rem;
@@ -2328,11 +2331,25 @@ main {
   }
   .auth-intro {
     max-width: 46ch;
+    order: 0;
   }
+  /* Masaüstünde okuma sırası geri geliyor: solda bağlam, sağda işlem. */
   .auth-form {
+    order: 0;
     max-width: none;
     position: sticky;
     top: var(--space-12);
+  }
+}
+
+/*
+ * Sayfanın alt üçte biri boştu. Giriş kısa bir sayfa; dikeyde ortalamak
+ * boşluğu ikiye bölüp kompozisyonu ekrana oturtuyor.
+ */
+@media (min-width: 56rem) and (min-height: 44rem) {
+  .auth {
+    min-height: calc(100dvh - 16rem);
+    align-content: center;
   }
 }
 

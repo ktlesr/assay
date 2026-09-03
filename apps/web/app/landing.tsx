@@ -8,7 +8,6 @@ import {
   intervalGloss,
 } from '@ktlsr/assay-ui'
 import Link from 'next/link'
-import { Reveal } from './components/reveal'
 import { RunTerminal } from './components/run-terminal'
 import { Shell } from './components/shell'
 import { compare, listSuites, type RunWithSummary } from '../lib/runs'
@@ -165,117 +164,109 @@ export async function Landing() {
         </section>
       )}
 
-      <Reveal>
-        <section className="section-minor">
-          <p className="rule-label mb-8">What it measures</p>
-          <dl className="layer-grid">
-            <Layer
-              title="Trigger accuracy"
-              body="Does it fire on the request it claims, and stay quiet on the near neighbour? A case set without a negative case is rejected — a skill that fires on everything would pass every positive case."
-            />
-            <Layer
-              title="Task completion"
-              body="Does the artefact exist, parse, and match the schema? Deterministic assertions only: file existence, structure, schema, text match."
-            />
-            <Layer
-              title="Tool trace"
-              body="Were the expected tools called in the expected order? A right answer reached the wrong way is a skill that breaks tomorrow."
-            />
-            <Layer
-              title="Side effects"
-              body="What did it write, delete, or reach for on the network? Where the sandbox cannot see, the run says so instead of reporting a clean slate."
-            />
-            <Layer
-              title="Instability"
-              body="Repeat count never defaults to one. A single attempt is an observation; the measurement is the rate across N with its interval."
-            />
-            <Layer
-              title="Regression"
-              body="Did the new version get worse? Only claimed when the conditions are identical and the intervals do not overlap."
-            />
-          </dl>
-        </section>
-      </Reveal>
+      <section className="section-minor">
+        <p className="rule-label mb-8">What it measures</p>
+        <dl className="layer-grid">
+          <Layer
+            title="Trigger accuracy"
+            body="Does it fire on the request it claims, and stay quiet on the near neighbour? A case set without a negative case is rejected — a skill that fires on everything would pass every positive case."
+          />
+          <Layer
+            title="Task completion"
+            body="Does the artefact exist, parse, and match the schema? Deterministic assertions only: file existence, structure, schema, text match."
+          />
+          <Layer
+            title="Tool trace"
+            body="Were the expected tools called in the expected order? A right answer reached the wrong way is a skill that breaks tomorrow."
+          />
+          <Layer
+            title="Side effects"
+            body="What did it write, delete, or reach for on the network? Where the sandbox cannot see, the run says so instead of reporting a clean slate."
+          />
+          <Layer
+            title="Instability"
+            body="Repeat count never defaults to one. A single attempt is an observation; the measurement is the rate across N with its interval."
+          />
+          <Layer
+            title="Regression"
+            body="Did the new version get worse? Only claimed when the conditions are identical and the intervals do not overlap."
+          />
+        </dl>
+      </section>
 
-      <Reveal>
-        <section className="section-minor">
-          <p className="rule-label mb-8">Three verdicts, not two</p>
-          <div className="verdict-grid">
-            <VerdictCard
-              kind="pass"
-              body="The assertion held, and there was enough signal to say so."
-            />
-            <VerdictCard
-              kind="fail"
-              body="The assertion did not hold. Something is broken."
-            />
-            <VerdictCard
-              kind="unknown"
-              body="The signal could not be read. A first-class result, counted and shown separately — never rounded up to a pass."
-            />
-          </div>
-          <p className="section-note">
-            The most dangerous thing a test tool can do is report what it could not
-            measure as a success. Everything else here follows from refusing that.
-          </p>
-        </section>
-      </Reveal>
+      <section className="section-minor">
+        <p className="rule-label mb-8">Three verdicts, not two</p>
+        <div className="verdict-grid">
+          <VerdictCard
+            kind="pass"
+            body="The assertion held, and there was enough signal to say so."
+          />
+          <VerdictCard
+            kind="fail"
+            body="The assertion did not hold. Something is broken."
+          />
+          <VerdictCard
+            kind="unknown"
+            body="The signal could not be read. A first-class result, counted and shown separately — never rounded up to a pass."
+          />
+        </div>
+        <p className="section-note">
+          The most dangerous thing a test tool can do is report what it could not measure
+          as a success. Everything else here follows from refusing that.
+        </p>
+      </section>
 
-      <Reveal>
-        <section className="section-minor">
-          <p className="rule-label mb-8">Getting started</p>
-          <ol className="ruled steps">
-            <Step
-              command="npx assay init ./my-skill"
-              note="writes an example case set next to the skill"
-            />
-            <Step
-              command="npx assay run ./my-skill.suite.yaml --skill ./my-skill"
-              note="runs it against the host, N times per case, stores the record locally"
-            />
-            <Step
-              command="npx assay ci ./my-skill.suite.yaml"
-              note="the same run, with a CI exit code: 1 for a failure, 3 for nothing measured"
-            />
-            <Step
-              command="npx assay push --suite ./my-skill.suite.yaml"
-              note="optional — keeps the history here so the next run can be compared against it"
-            />
-          </ol>
-          <p className="section-note">
-            The SDK is Apache-2.0 and works with no account: runs are stored under{' '}
-            <code className="code">.assay/runs/</code> and printed as JSON. The hosted
-            side does not measure anything — it remembers.
-          </p>
-        </section>
-      </Reveal>
+      <section className="section-minor">
+        <p className="rule-label mb-8">Getting started</p>
+        <ol className="ruled steps">
+          <Step
+            command="npx assay init ./my-skill"
+            note="writes an example case set next to the skill"
+          />
+          <Step
+            command="npx assay run ./my-skill.suite.yaml --skill ./my-skill"
+            note="runs it against the host, N times per case, stores the record locally"
+          />
+          <Step
+            command="npx assay ci ./my-skill.suite.yaml"
+            note="the same run, with a CI exit code: 1 for a failure, 3 for nothing measured"
+          />
+          <Step
+            command="npx assay push --suite ./my-skill.suite.yaml"
+            note="optional — keeps the history here so the next run can be compared against it"
+          />
+        </ol>
+        <p className="section-note">
+          The SDK is Apache-2.0 and works with no account: runs are stored under{' '}
+          <code className="code">.assay/runs/</code> and printed as JSON. The hosted side
+          does not measure anything — it remembers.
+        </p>
+      </section>
 
-      <Reveal>
-        <section className="section-minor section-last">
-          <p className="rule-label mb-6">Pricing</p>
-          <p className="section-lede">
-            Draft, and not yet charged for. The measuring half stays free and open — a
-            measurement layer nobody can read is a measurement nobody should trust.
-          </p>
-          <div className="tier-grid">
-            <Tier
-              name="SDK"
-              price="Free, Apache-2.0"
-              body="The CLI, the adapters, the assertion engine, the local store, the GitHub Action. Everything that measures."
-            />
-            <Tier
-              name="Team"
-              price="Draft"
-              body="Uploaded history, regression comparison across versions, shared visibility. Everything that remembers."
-            />
-            <Tier
-              name="Platform"
-              price="Draft"
-              body="For catalogues that want a measured quality signal on the skills they distribute — dated, pinned, reproducible."
-            />
-          </div>
-        </section>
-      </Reveal>
+      <section className="section-minor section-last">
+        <p className="rule-label mb-6">Pricing</p>
+        <p className="section-lede">
+          Draft, and not yet charged for. The measuring half stays free and open — a
+          measurement layer nobody can read is a measurement nobody should trust.
+        </p>
+        <div className="tier-grid">
+          <Tier
+            name="SDK"
+            price="Free, Apache-2.0"
+            body="The CLI, the adapters, the assertion engine, the local store, the GitHub Action. Everything that measures."
+          />
+          <Tier
+            name="Team"
+            price="Draft"
+            body="Uploaded history, regression comparison across versions, shared visibility. Everything that remembers."
+          />
+          <Tier
+            name="Platform"
+            price="Draft"
+            body="For catalogues that want a measured quality signal on the skills they distribute — dated, pinned, reproducible."
+          />
+        </div>
+      </section>
     </Shell>
   )
 }
