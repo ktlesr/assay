@@ -101,6 +101,36 @@ bundan sonra anlamlı.
 
 ---
 
+## 0.2.0 — Sandbox tavanı: reddedilen komut
+
+**Amaç:** Ölçümün "skill bunu yapamadı" ile "Assay buna izin vermedi"yi
+ayırması.
+
+Adaptör `--permission-mode acceptEdits` ile koşuyor: `Write` serbest, kabuk
+çalıştırma onay bekliyor ve etkileşimsiz koşumda onaylayacak kimse yok. Redde
+ait metin izde duruyor ama sınıflandırılmıyor, dolayısıyla iki farklı
+başarısızlık aynı görünüyor. Ölçüldü: `webapp-testing` tamamlama koşumunda
+10 denemenin 10'unda en az bir kabuk çağrısı reddedildi ve 4'ü
+`no_swallowed_errors`'ı tetikledi ([measurements.md](measurements.md),
+[blockers.md](blockers.md)).
+
+| Adım | Çıktı |
+|---|---|
+| 0.2.0-a Reddi sınıflandır | `TraceEvent.refusal`; izin reddi yüzünden düşen artefakt assertion'ı `fail` değil `unknown` üretir |
+| 0.2.0-b Redde ayrı cümle | `no_swallowed_errors` "gerçek hata bildirilmedi" ile "Assay'in reddi bildirilmedi"yi ayrı raporlar |
+| 0.2.0-c Komut allowlist'i | Vaka seti `sandbox: { allow_commands: [...] }` beyan eder; runner host'un `--allowedTools` biçimine çevirir, izin genişlemesi `suiteHash`'e girer |
+
+**Geçiş kriteri.** Bir kabuk çalıştıran tamamlama vakası, komut allowlist'i
+verildiğinde `pass`/`fail` üretebiliyor; verilmediğinde `unknown` üretiyor ve
+sebebini yazıyor. Hiçbir durumda izin reddi `fail` olarak raporlanmıyor.
+
+**Neden konteyner değil.** Konteyner sandbox (A1'in yükseltme yolu) bu üçünü de
+gereksiz kılmaz: konteynerin içinde de bir izin modeli seçmek gerekiyor. Sıra
+bu yüzden böyle — önce ölçümün dürüstlüğü, sonra izolasyonun sertliği.
+Konteyner Faz 3'te kalıyor ([sandbox-security.md](sandbox-security.md), A1).
+
+---
+
 ## Sonraki dalga
 
 Faz 3'ten sonra değerlendirilecek. **Şimdi yapılmayacak.**

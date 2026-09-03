@@ -152,3 +152,80 @@ oluşmadı.
 `NODE_AUTH_TOKEN` geri konabilir — ama o zaman `setup-node`'a `registry-url`
 da geri eklenmeli, çünkü `.npmrc`'yi o yazıyor. Bu, token'sız hat kararını
 geri alır ve 90 günlük yenileme döngüsünü geri getirir.
+
+## 2026-09-03 — `acceptEdits` kabuğu onaya gönderiyor; sandbox kısıtı skill hatasından ayrılamıyor
+
+**Ne gerekiyor:** Kod değişikliği. Sır ya da erişim gerekmiyor — bu bir kapsam
+kararı ve 0.2.0'a alındı ([roadmap.md](roadmap.md)).
+
+**Sorun.** Claude Code adaptörü `--permission-mode acceptEdits` ile koşuyor
+(2026-08-31 kararı). Bu mod `Write` ve `Edit`'e izin veriyor ama kabuk
+çalıştırmayı **onay bekleyen** duruma gönderiyor. Koşum etkileşimsiz olduğu
+için onaylayacak kimse yok; çağrı reddediliyor.
+
+Reddin izdeki görünümü sıradan bir araç hatası:
+
+```
+Bash        "This command requires approval"
+Bash        "This Bash command contains multiple operations. The following parts
+             require approval: cd ... && python test_estimator.py"
+PowerShell  "Compound command changes working directory ... requires manual approval"
+PowerShell  "tee-object may receive a path from an upstream pipeline command ..."
+```
+
+Assay bu metni **sınıflandırmıyor**. Sonuç, ölçümde iki ayrı şeyin aynı
+görünmesi:
+
+1. **Tamamlama katmanı sandbox'ı ölçüyor.** Bir şey *çalıştırması* gereken
+   skill (test koşucusu, derleme adımı, betik) işi bitiremiyor; düşen assertion
+   skill hakkında değil, bizim kısıtımız hakkında.
+2. **`no_swallowed_errors` iki farklı iddiayı karıştırıyor.** Kural "ajan
+   hatayı bildirdi mi" diye soruyor ve doğru cevaplıyor — ama hatanın kaynağı
+   Assay olduğunda kullanıcı "skill hatayı yutuyor" ile "Assay komutu
+   reddetti, skill bunu söylemedi" arasını ayıramıyor.
+
+**Ölçüldü.** `webapp-testing` tamamlama koşumu,
+`complete.regression_suite_green`, 10 deneme:
+
+| Gözlem | Sayı |
+|---|---|
+| En az bir kabuk çağrısı onay beklerken reddedilen deneme | 10/10 |
+| `no_swallowed_errors` **fail** veren deneme | 4/10 |
+| `out/run.txt` (koşum çıktısı) üreten deneme | 8/10 |
+
+Son satır sorunun ikinci yüzü: dosya çoğu denemede var, oysa koşum hemen hiç
+gerçekleşmedi. `file_exists` + `file_content_matches` dosyanın var olduğunu
+söyleyebiliyor, içeriğinin hak edildiğini söyleyemiyor
+([measurements.md](measurements.md)).
+
+**Değerlendirilen seçenekler.**
+
+| # | Seçenek | Bedeli | Karar |
+|---|---|---|---|
+| A | Olduğu gibi bırakmak | İki hata biçimi kalıcı olarak karışık kalır | Hayır |
+| B | Varsayılanı `bypassPermissions` yapmak | Sandbox'ın gözlediği her sınır kalkar (H4, sandbox-security.md) | Hayır |
+| C | Reddi birinci sınıf sinyal yapmak | Küçük; adaptör + assertion sevkiyatı | **0.2.0** |
+| D | Vaka seti başına komut allowlist'i | Şema alanı + adaptör bayrağı; gerçek kapsam kazandırıyor | **0.2.0, C'den sonra** |
+| E | Konteyner sandbox | Büyük; A1'in yükseltme yolu | Faz 3'te kalıyor |
+
+**C — reddi sınıflandır.** Adaptör, `tool_result` hatasının host'un izin
+katmanından mı yoksa komutun kendisinden mi geldiğini işaretler
+(`TraceEvent.refusal: 'permission'`). Buna bağlı iki davranış:
+
+- Reddedilen bir çağrının engellediği artefakt assertion'ı `fail` değil
+  **`unknown`** üretir. Değişmez #1'in doğrudan gereği: engellediğimiz bir
+  şeyin olmamasını skill'in kusuru diye raporlamak, ölçemediğini raporlamanın
+  aynası.
+- `no_swallowed_errors` iki ayrı sebep döndürür: "ajan gerçek bir hatayı
+  bildirmedi" ve "ajan **Assay'in** reddini bildirmedi". İkincisi hâlâ değerli
+  bir sinyal — bildirmemek yine bildirmemektir — ama farklı bir cümle.
+
+**D — komut allowlist'i.** Vaka seti `sandbox: { allow_commands: [...] }`
+beyan eder; runner bunu host'un `--allowedTools "Bash(python:*)"` biçimine
+çevirir. İzin genişlemesi vaka setinde yazılı ve `suiteHash`'e giriyor, yani
+pinlenmiş ve görünür bir karar oluyor — bugünkü sessiz genel reddin tersi.
+
+**Neden şimdi kapatılmadı:** ikisi de davranış değişikliği ve 0.1.1 yayınının
+kapsamı dışında. Sınırın kendisi bugün ölçüldü ve yazıldı; kapatılması
+0.2.0'ın işi. Bu arada rapor bunu bir sandbox sınırı olarak açıkça söylüyor
+(docs/measurements.md, "Ölçülemeyenler ve tavanlar").

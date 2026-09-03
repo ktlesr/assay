@@ -1485,3 +1485,42 @@ Aynı suite'te yan yana duran iki vaka, aynı kayıtta, aynı dört pinle
 karşılaştırılabilir. 2026-09-03'teki "öneri bir iddiadır, koşum bir
 ölçümdür" kararının aynısı.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Sandbox izin reddi 0.2.0'da sınıflandırılacak, mod değişmeyecek
+
+Bağlam: `--permission-mode acceptEdits` `Write`'a izin verip kabuk
+çalıştırmayı onaya gönderiyor; etkileşimsiz koşumda onay yok. Tamamlama
+ölçümünde bir vakanın 10 denemesinin 10'unda en az bir kabuk çağrısı
+reddedildi ve 4'ü `no_swallowed_errors`'ı tetikledi. Assay reddi sıradan bir
+araç hatasından ayırmıyor.
+Seçenekler: (A) olduğu gibi bırakmak · (B) varsayılanı `bypassPermissions`
+yapmak · (C) reddi birinci sınıf sinyal yapmak · (D) vaka seti başına komut
+allowlist'i · (E) konteyner sandbox
+Karar: C ve D, 0.2.0'da; E Faz 3'te kalıyor. İzin modu değişmiyor.
+Gerekçe: (B) sandbox'ın gözlediği her sınırı kaldırırdı ve H4 zaten bunu
+kasıtlı olarak kapatmıştı. (E) doğru uzun vadeli cevap ama bugünkü sorunu
+çözmüyor: konteynerin içinde de bir izin modeli seçmek gerekiyor. (C)
+değişmez #1'in doğrudan gereği — engellediğimiz bir şeyin olmamasını skill'in
+kusuru diye raporlamak, ölçemediğini "geçti" saymanın aynası. (D) izin
+genişlemesini vaka setine yazıyor, yani `suiteHash`'e giriyor ve pinlenmiş bir
+karar oluyor; bugünkü sessiz genel reddin tersi.
+Kapanmadan önceki durum raporda açıkça yazılı: bu bir sandbox sınırı, skill
+kusuru değil.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Metodoloji sayfasının verisi derleme öncesi üretilip commit'leniyor
+
+Bağlam: `/methodology` gerçek koşum kayıtlarından tablo göstermeli (sözleşme
+3) ama `apps/web` runner'a bağlanamıyor (docs/stack.md) ve koşum store'ları
+`.gitignore` kapsamında.
+Seçenekler: koşumları veritabanına yükleyip `listRuns` ile okumak · sayfayı
+elle yazılmış sayılarla doldurmak (sözleşme ihlali) · kayıtlardan JSON üretip
+commit'lemek
+Karar: `tools/methodology-data.mjs` → `apps/web/app/methodology/measurements.json`.
+Gerekçe: Veritabanı yolu, sayfayı bir dağıtımın veri durumuna bağlardı —
+yayın sunucusunda o koşumlar yüklü değilse sayfa boşalırdı, oysa yazının
+kendisi o sayıların üstüne kurulu. Üretici betik commit'li ve komut sayfanın
+sonunda yazılı, yani sayı elle yazılmış değil, türetilmiş: `docs/measurements.md`
+tablolarıyla aynı disiplin. Kayıtların kimliği (run id, tarih, pinler) sayfada
+gösteriliyor ki iddia denetlenebilsin.
+Geri dönüş maliyeti: düşük
