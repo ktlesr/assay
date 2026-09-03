@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Pallet freight estimator</title>
+<main>
+  <h1>Pallet freight estimator</h1>
+
+  <label for="pallets">Pallets</label>
+  <input id="pallets" type="number" value="3" />
+
+  <label for="distance">Distance (km)</label>
+  <input id="distance" type="number" value="220" />
+
+  <label for="tier">Service tier</label>
+  <select id="tier">
+    <option value="standard">Standard</option>
+    <option value="express">Express</option>
+  </select>
+
+  <button id="calculate">Calculate</button>
+
+  <p id="total">Total: —</p>
+  <p id="breakdown"></p>
+</main>
+<script>
+  const RATE_PER_KM = 0.42
+  const PALLET_FEE = 18.5
+  const TIER_MULTIPLIER = { standard: 1, express: 1.65 }
+
+  function estimate(pallets, distance, tier) {
+    const base = pallets * PALLET_FEE + distance * RATE_PER_KM
+    return base * TIER_MULTIPLIER[tier]
+  }
+
+  document.getElementById('calculate').addEventListener('click', () => {
+    const pallets = Number(document.getElementById('pallets').value)
+    const distance = Number(document.getElementById('distance').value)
+    const tier = document.getElementById('tier').value
+    const total = estimate(pallets, distance, tier)
+    document.getElementById('total').textContent = 'Total: ' + total.toFixed(2)
+    document.getElementById('breakdown').textContent =
+      pallets + ' pallets, ' + distance + ' km, ' + tier + ' tier'
+  })
+</script>

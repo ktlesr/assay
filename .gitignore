@@ -46,3 +46,6 @@ packages/db/generated/
 
 # npm kimlik bilgisi — asla commitlenmez
 .npmrc
+
+# ölçüm koşumu store'ları
+.runs-*/

@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { parseSuite } from '../packages/core/src/suite.js'
 
 /**
- * examples/ altındaki suite dosyaları biçim referansıdır. Şema değişip de
- * örnekler güncellenmezse burası kırmızıya döner.
+ * examples/ ve suites/ altındaki suite dosyaları biçim referansıdır. Şema
+ * değişip de örnekler güncellenmezse burası kırmızıya döner.
  */
-const files = globSync('examples/**/*.suite.yaml')
+const files = [
+  ...globSync('examples/**/*.suite.yaml'),
+  ...globSync('suites/**/*.suite.yaml'),
+]
 
 describe('örnek vaka setleri', () => {
   it('en az bir örnek var', () => {

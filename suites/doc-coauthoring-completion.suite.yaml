@@ -1,0 +1,186 @@
+# anthropics/skills — doc-coauthoring, TAMAMLAMA seti.
+#
+# Tetiklenme seti (examples/measurements/doc-coauthoring*.suite.yaml) skill'in
+# ne zaman devreye girdiğini ölçüyor. Bu set farklı bir soru soruyor: devreye
+# girdikten sonra **iş bitiyor mu?**
+#
+# doc-coauthoring etkileşimli bir iş akışı: kullanıcıya soru sorup cevap
+# beklemek üzerine kurulu. Tek turluk bir koşumda "soru sorup durmak" ile
+# "belgeyi yazmak" arasındaki fark tam olarak burada görülür. Bu yüzden her
+# istem somut bir dosya adı veriyor ve assertion o dosyaya bağlı.
+#
+# İSTEMLERİN AÇILIŞI KASITLI OLARAK TETİKLENME SETİNDEN KOPYA. İlk taslak
+# istemleri sıfırdan yazıyordu ve altı denemenin altısında da tetiklenme
+# 0/6 çıktı: "şu dosyayı şu başlıklarla yaz" bir birlikte yazma daveti değil,
+# bir biçimlendirme işi gibi okunuyor. Bu hâliyle ölçülen şey skill değil,
+# istemin tonu olurdu. Şimdi her vaka, tetiklenme setinde 10/10 tetikleyen
+# cümleyle açılıyor ve üzerine YALNIZCA teslim edilecek dosya ekleniyor —
+# eklenen tek değişken bu (docs/measurements.md, "yakın komşu tek eksende
+# ayrılmalı" ilkesinin pozitif taraftaki karşılığı).
+#
+# `trigger.negative.near_neighbor.release_notes` bir tamamlama vakası değil:
+# değişmez #5 gereği her suite en az bir negatif taşımak zorunda (doğrulayıcı
+# negatifsiz seti reddediyor). Bkz. docs/decisions.md.
+
+version: 1
+
+target:
+  skill: doc-coauthoring
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [doc-coauthoring]
+
+runs: 10
+
+cases:
+  - id: complete.decision_record
+    prompt: |
+      We made a call on cache invalidation last month and it is going to get
+      relitigated unless someone writes it down properly. All I have is
+      `notes/raw-meeting-notes.md`, which is scrappy, and the part that
+      actually matters is not in there: we turned down option C because of
+      who owns the redis cluster, not because of latency. Help me get this
+      written properly.
+
+      I want to walk away with the file, not a conversation — land it at
+      `out/decision-cache-invalidation.md` with `##` sections for Context,
+      Decision, Rejected alternatives and Open questions, and make the
+      ownership reasoning explicit so nobody re-proposes C in January.
+
+      Write everything under `out/`. Leave the notes file alone.
+    setup: { fixtures: ./fixtures/doc-notes }
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/decision-cache-invalidation.md }
+        - type: file_content_matches
+          path: out/decision-cache-invalidation.md
+          matches: '^##\s+Rejected alternatives\s*$'
+          flags: mi
+        - type: file_content_matches
+          path: out/decision-cache-invalidation.md
+          matches: 'ownership'
+          flags: i
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  - id: complete.design_doc_with_outline
+    prompt: |
+      We are replacing our job queue and I need to write the design doc for
+      it. None of it is on paper yet. Help me get it written properly — here
+      is everything I have:
+
+      Today: a single Postgres table polled every 200ms by six workers.
+      `SELECT ... FOR UPDATE SKIP LOCKED`. It works but the poll is 30% of
+      our database CPU and the p99 pickup latency is 900ms.
+      Constraints: we cannot add a new managed service this quarter (budget
+      freeze), the team knows Postgres and nothing else operationally, and
+      whatever we pick has to survive a 10x burst on Black Friday.
+      Option 1: keep Postgres, add LISTEN/NOTIFY so workers stop polling.
+      Option 2: move to Redis streams. Rejected — the budget freeze covers
+      new infrastructure and we already had one Redis incident this year.
+      Decision: option 1.
+
+      However you want to work through it, I need to end up with the file.
+      Write the finished doc to `out/queue-design.md` with `##` sections for
+      Problem, Constraints, Options, Decision and Risks. Also write
+      `out/outline.yaml` — a YAML file with a top-level `sections:` list
+      holding the section titles in the order they appear in the doc, so I
+      can paste it into our template tool.
+
+      Everything goes under `out/`.
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/queue-design.md }
+        - { type: file_exists, path: out/outline.yaml }
+        - { type: file_valid, path: out/outline.yaml, format: yaml }
+        - type: file_content_matches
+          path: out/queue-design.md
+          matches: '^##\s+Decision\s*$'
+          flags: mi
+        - type: file_content_matches
+          path: out/outline.yaml
+          matches: '^sections:'
+          flags: m
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  - id: complete.proposal_with_objections
+    prompt: |
+      I want to put together a proposal for moving the team from long-lived
+      feature branches to trunk-based development. It has to convince
+      engineering leadership and take the obvious objections seriously.
+      Let's work on it.
+
+      Context you need: we have 14 engineers on 4 squads, branches live 9
+      days on average, and the last three incidents were all merge conflicts
+      resolved wrongly at 6pm on a Friday. We already have CI on every push
+      and a 12-minute test suite. We do not have feature flags.
+
+      Whatever we do, I need the finished thing on disk at the end of this,
+      not in the chat. Save it to `out/trunk-based-proposal.md`. It has to have an
+      `## Objections` section that takes at least three named objections
+      seriously — including the feature flag gap, which is a real one — and a
+      `## Rollout` section with a dated plan.
+
+      Write only under `out/`.
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/trunk-based-proposal.md }
+        - type: file_content_matches
+          path: out/trunk-based-proposal.md
+          matches: '^##\s+Objections\s*$'
+          flags: mi
+        - type: file_content_matches
+          path: out/trunk-based-proposal.md
+          matches: '^##\s+Rollout\s*$'
+          flags: mi
+        - type: file_content_matches
+          path: out/trunk-based-proposal.md
+          matches: 'feature flag'
+          flags: i
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  # Tamamlama vakası değil — KONTROL. `complete.design_doc_with_outline` ile
+  # kelimesi kelimesine aynı istem, tek fark: teslim edilecek dosyayı isteyen
+  # son paragraf burada YOK. İkisi aynı koşumda, aynı pinlerle yan yana
+  # duruyor; aradaki tetiklenme farkı tek bir değişkene ait olur.
+  - id: control.design_doc_no_artifact
+    prompt: |
+      We are replacing our job queue and I need to write the design doc for
+      it. None of it is on paper yet. Help me get it written properly — here
+      is everything I have:
+
+      Today: a single Postgres table polled every 200ms by six workers.
+      `SELECT ... FOR UPDATE SKIP LOCKED`. It works but the poll is 30% of
+      our database CPU and the p99 pickup latency is 900ms.
+      Constraints: we cannot add a new managed service this quarter (budget
+      freeze), the team knows Postgres and nothing else operationally, and
+      whatever we pick has to survive a 10x burst on Black Friday.
+      Option 1: keep Postgres, add LISTEN/NOTIFY so workers stop polling.
+      Option 2: move to Redis streams. Rejected — the budget freeze covers
+      new infrastructure and we already had one Redis incident this year.
+      Decision: option 1.
+    expect: { triggered: true }
+
+  # Tamamlama vakası değil — değişmez #5'in zorunlu kıldığı negatif.
+  - id: trigger.negative.near_neighbor.release_notes
+    prompt: |
+      Turn these commit subjects into user-facing release notes grouped under
+      Added, Changed and Fixed:
+
+      feat(api): cursor pagination on /orders
+      fix(auth): refresh token rotated on every use
+      feat(cli): --json flag on every read command
+      fix(billing): proration rounded to the cent
+      chore(deps): bump undici to 6.21.0
+      fix(ui): date picker no longer shifts by a day in UTC+13
+      feat(webhooks): signature header now includes a timestamp
+    expect: { triggered: false }

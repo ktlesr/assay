@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Warehouse sign-in</title>
+<main>
+  <h1>Warehouse sign-in</h1>
+  <form id="signin-form">
+    <label for="operator-id">Operator ID</label>
+    <input id="operator-id" name="operator" autocomplete="off" />
+
+    <label for="pin">PIN</label>
+    <input id="pin" name="pin" type="password" autocomplete="off" />
+
+    <label for="shift">Shift</label>
+    <select id="shift" name="shift">
+      <option value="early">Early</option>
+      <option value="late">Late</option>
+      <option value="night">Night</option>
+    </select>
+
+    <button id="submit-btn" type="submit">Sign in</button>
+  </form>
+
+  <p id="status-message" hidden></p>
+  <p id="error-message" hidden></p>
+</main>
+<script>
+  const VALID = { '4471': '8823', '4472': '1190' }
+  document.getElementById('signin-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+    const operator = document.getElementById('operator-id').value.trim()
+    const pin = document.getElementById('pin').value.trim()
+    const shift = document.getElementById('shift').value
+    const status = document.getElementById('status-message')
+    const error = document.getElementById('error-message')
+    status.hidden = true
+    error.hidden = true
+    if (VALID[operator] === pin) {
+      status.textContent = 'Signed in as ' + operator + ' on the ' + shift + ' shift'
+      status.hidden = false
+    } else {
+      error.textContent = 'Unknown operator ID or PIN'
+      error.hidden = false
+    }
+  })
+</script>

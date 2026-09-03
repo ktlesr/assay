@@ -1,0 +1,157 @@
+# anthropics/skills — mcp-builder, TAMAMLAMA seti.
+#
+# Tetiklenme seti skill'in ne zaman seçildiğini ölçüyor. Bu set, seçildikten
+# sonra ortaya gerçekten bir sunucu çıkıp çıkmadığını ölçüyor.
+#
+# mcp-builder'ın SKILL.md'si dört fazlı bir süreç tarif ediyor ve ilk fazı
+# "derin araştırma": modelcontextprotocol.io'yu getirmesini istiyor. Ağ
+# kapalı (adaptör WebFetch/WebSearch'ü reddediyor), yani bu vakalar aynı
+# zamanda şunu ölçüyor: araştırma adımı yapılamadığında ajan işi bitiriyor
+# mu, yoksa orada mı duruyor?
+#
+# `trigger.negative.near_neighbor.*` bir tamamlama vakası değil: değişmez #5
+# gereği her suite en az bir negatif taşımak zorunda.
+
+version: 1
+
+target:
+  skill: mcp-builder
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [mcp-builder]
+
+runs: 10
+
+cases:
+  - id: complete.typescript_server
+    prompt: |
+      `api/statuspage-api.md` documents our internal status API. Build an MCP
+      server that wraps it so an agent can read and update incidents.
+
+      Write it in TypeScript with the official MCP SDK, stdio transport.
+      Two files, both under `out/`:
+
+      - `out/server.ts` — the server. Register at least three tools:
+        listing incidents, creating an incident, and listing components.
+        Prefix the tool names with `statuspage_`. Read the bearer token from
+        `STATUSPAGE_TOKEN`.
+      - `out/package.json` — valid JSON with `@modelcontextprotocol/sdk` in
+        `dependencies` and a `build` script.
+
+      No need to install or run anything — I want the source to review.
+      Write only under `out/`.
+    setup: { fixtures: ./fixtures/mcp-api }
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/server.ts }
+        - { type: file_exists, path: out/package.json }
+        - { type: file_valid, path: out/package.json, format: json }
+        - type: json_schema
+          path: out/package.json
+          schema:
+            type: object
+            required: [dependencies, scripts]
+            properties:
+              dependencies:
+                type: object
+                required: ['@modelcontextprotocol/sdk']
+              scripts:
+                type: object
+                required: [build]
+        - type: file_content_matches
+          path: out/server.ts
+          matches: 'statuspage_'
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  - id: complete.python_server_with_manifest
+    prompt: |
+      Same API as documented in `api/statuspage-api.md`, but I need the Python
+      version. Use FastMCP.
+
+      Three files under `out/`:
+
+      - `out/server.py` — the FastMCP server. Tools for listing incidents
+        (with the `status` and `limit` filters), fetching one incident by id,
+        and patching an incident's status. Handle the 429 `Retry-After`
+        case with an error message that tells the caller what to do.
+      - `out/requirements.txt` — pinned dependencies.
+      - `out/tools.json` — a JSON array; one object per tool with `name`,
+        `description` and `input_schema` keys, so I can review the surface
+        without reading the code.
+
+      No need to install or run anything. Write only under `out/`.
+    setup: { fixtures: ./fixtures/mcp-api }
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/server.py }
+        - { type: file_exists, path: out/requirements.txt }
+        - { type: file_exists, path: out/tools.json }
+        - { type: file_valid, path: out/tools.json, format: json }
+        - type: json_schema
+          path: out/tools.json
+          schema:
+            type: array
+            minItems: 3
+            items:
+              type: object
+              required: [name, description, input_schema]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                input_schema: { type: object }
+        - type: file_content_matches
+          path: out/server.py
+          matches: '@mcp\.tool'
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  - id: complete.server_with_eval_cases
+    prompt: |
+      Build a small MCP server for our on-call rota and write the evaluation
+      cases for it in the same pass.
+
+      The rota lives in one JSON file on disk at a path given by
+      `ROTA_PATH`. Shape: `{ "weeks": [{ "starting": "2026-09-07",
+      "primary": "ada", "secondary": "lin" }] }`.
+
+      Under `out/`:
+
+      - `out/server.ts` — TypeScript, stdio transport. Tools: who is on call
+        for a given date, list the rota for a month, and swap two people for
+        one week.
+      - `out/evals.json` — valid JSON, an array of at least four evaluation
+        cases. Each one needs `prompt`, `expected_tool` and
+        `expected_result` keys.
+
+      No need to run anything. Write only under `out/`.
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/server.ts }
+        - { type: file_exists, path: out/evals.json }
+        - { type: file_valid, path: out/evals.json, format: json }
+        - type: json_schema
+          path: out/evals.json
+          schema:
+            type: array
+            minItems: 4
+            items:
+              type: object
+              required: [prompt, expected_tool, expected_result]
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  # Tamamlama vakası değil — değişmez #5'in zorunlu kıldığı negatif.
+  - id: trigger.negative.near_neighbor.configure_existing
+    prompt: |
+      I already have the GitHub MCP server installed. Show me the
+      `.mcp.json` entry that points it at our enterprise host and passes a
+      token from the environment, and tell me where that file goes.
+    expect: { triggered: false }

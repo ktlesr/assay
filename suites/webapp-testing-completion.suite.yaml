@@ -1,0 +1,172 @@
+# anthropics/skills — webapp-testing, TAMAMLAMA seti.
+#
+# Tetiklenme seti skill'in ne zaman seçildiğini ölçüyor. Bu set, seçildikten
+# sonra sayfanın gerçekten sürülüp sürülmediğini ve elde bir betik + bir bulgu
+# kalıp kalmadığını ölçüyor.
+#
+# İLK TASLAK BİR KUSUR ÜRETTİ, kayda geçsin: istemler "playwright kurulu değil,
+# çalıştırmaya kalkma" diyordu. Bu cümle skill'in varlık sebebini (tarayıcıyı
+# sürmek) istemden siliyordu; ajan işi skill'siz bitiriyordu ve altı denemenin
+# altısında da tetiklenme 0/6 çıktı — ölçülen şey skill değil, benim yazdığım
+# kısıttı. Ölçüm makinesine Python playwright + chromium kuruldu ve istemler
+# gerçek doğrulama isteyecek biçimde yeniden yazıldı.
+#
+# `trigger.negative.near_neighbor.unit_tests` bir tamamlama vakası değil:
+# değişmez #5 gereği her suite en az bir negatif taşımak zorunda.
+
+version: 1
+
+target:
+  skill: webapp-testing
+  source: anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [webapp-testing]
+
+runs: 10
+
+cases:
+  - id: complete.signin_flow_verified
+    prompt: |
+      `app/index.html` is the sign-in page for our warehouse tablets. Nobody
+      has ever exercised it. Drive it in a browser and tell me whether it
+      actually works.
+
+      Two things to check: operator `4471` with PIN `8823` on the night shift
+      must land on a success message that names both the operator and the
+      shift; the same operator with PIN `0000` must show the error message
+      instead and no success message.
+
+      Leave two things behind under `out/`:
+
+      - `out/test_signin.py` — the automation, so we can re-run it in CI.
+      - `out/result.json` — valid JSON, `{"checks": [{"name": ..., "passed":
+        true|false, "observed": "..."}]}`, one entry per check, `observed`
+        holding the text you actually saw on the page.
+
+      Write only under `out/`.
+    setup: { fixtures: ./fixtures/webapp-static }
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/test_signin.py }
+        - { type: file_exists, path: out/result.json }
+        - { type: file_valid, path: out/result.json, format: json }
+        - type: json_schema
+          path: out/result.json
+          schema:
+            type: object
+            required: [checks]
+            properties:
+              checks:
+                type: array
+                minItems: 2
+                items:
+                  type: object
+                  required: [name, passed, observed]
+        - type: file_content_matches
+          path: out/test_signin.py
+          matches: 'playwright'
+          flags: i
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  - id: complete.bug_root_cause_report
+    prompt: |
+      Clicking Calculate on `app/index.html` does nothing. The total never
+      updates and nothing appears on screen. Find out why — actually load the
+      page and watch what the browser does when the button is clicked, do not
+      just guess from reading.
+
+      Write your findings to `out/findings.md`. Name the root cause in plain
+      language, quote the exact offending line with its line number, and give
+      the browser error message you captured verbatim. Add a `## Fix` section
+      with the one-line patch.
+
+      Also leave `out/repro.py` — the script that reproduces it, capturing the
+      page error and asserting the total is unchanged after the click.
+
+      Write only under `out/`.
+    setup: { fixtures: ./fixtures/webapp-broken }
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/findings.md }
+        - { type: file_exists, path: out/repro.py }
+        - type: file_content_matches
+          path: out/findings.md
+          matches: 'teir'
+        - type: file_content_matches
+          path: out/findings.md
+          matches: '^##\s+Fix\s*$'
+          flags: mi
+        - type: file_content_matches
+          path: out/repro.py
+          matches: 'pageerror|page_error|on\("console"|on\(''console'''
+          flags: i
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  - id: complete.regression_suite_green
+    prompt: |
+      `app/index.html` is the freight estimator and QA gets it on Monday. I
+      want a regression suite around the pricing maths, driven through the UI,
+      and I want it green before you hand it over.
+
+      The rates are in the page: 18.50 per pallet, 0.42 per km, express
+      multiplies the total by 1.65.
+
+      Write `out/test_estimator.py` — at least three cases that fill the
+      inputs, click Calculate and assert the exact rendered total. Work the
+      expected numbers out yourself and put them in as literals. Then run it
+      and make sure every case passes.
+
+      Also write `out/cases.json` — valid JSON, an array with one object per
+      case holding `pallets`, `distance`, `tier` and `expected_total`, plus
+      `out/run.txt` containing the output of the run.
+
+      Write only under `out/`.
+    setup: { fixtures: ./fixtures/webapp-working }
+    expect:
+      triggered: true
+      assertions:
+        - { type: file_exists, path: out/test_estimator.py }
+        - { type: file_exists, path: out/cases.json }
+        - { type: file_exists, path: out/run.txt }
+        - { type: file_valid, path: out/cases.json, format: json }
+        - type: json_schema
+          path: out/cases.json
+          schema:
+            type: array
+            minItems: 3
+            items:
+              type: object
+              required: [pallets, distance, tier, expected_total]
+              properties:
+                pallets: { type: number }
+                distance: { type: number }
+                tier: { type: string }
+                expected_total: { type: number }
+        - type: file_content_matches
+          path: out/test_estimator.py
+          matches: 'calculate'
+          flags: i
+        - { type: trace, rule: no_swallowed_errors }
+        - { type: side_effect, writes_within: [out], network: deny }
+
+  # Tamamlama vakası değil — değişmez #5'in zorunlu kıldığı negatif.
+  - id: trigger.negative.near_neighbor.unit_tests
+    prompt: |
+      Write unit tests for this pure function. Vitest, table-driven, cover the
+      empty array and the single-element cases.
+
+      export function median(xs) {
+        if (xs.length === 0) return null
+        const s = [...xs].sort((a, b) => a - b)
+        const m = Math.floor(s.length / 2)
+        return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
+      }
+    expect: { triggered: false }
