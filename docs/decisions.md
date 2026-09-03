@@ -1648,3 +1648,26 @@ Ayrım komut bandıyla yapılıyor: yazılan satır bir tık açık zemin ve tam
 kontrast mürekkep, çıktı daha sessiz — gerçek bir terminalde girdi ile
 program çıktısı aynı şey değil.
 Geri dönüş maliyeti: düşük (token + CSS)
+
+## 2026-09-03 — Yapışkan başlık ve buzlu cam; camın altında mürekkep güçlenir
+
+Bağlam: Başlık yapışkan olsun ve "buzlu/premium" bir zemin taşısın istendi.
+Craft floor "dekor olarak cam" yasaklıyor.
+Karar: Cam uygulandı ama dekor olarak değil: yapışkan bir başlığın altından
+içerik akıyor ve başlık hem okunabilir kalmalı hem altındakini gizlememeli.
+`backdrop-filter` bu belirli soruna verilen belirli cevap. Gradient ve gölge
+yok; derinlik yine hairline ile.
+Ölçüm, karardan daha önemli çıktı: ilk deneme `surface %72` idi ve koyu
+terminal başlığın altından geçtiğinde cam #b8b8b8'e düşüyordu. `--text-faint`
+orada 2.4:1 veriyor — 4.5 eşiğinin çok altında. Üstelik o token düz beyazda
+bile 4.86:1 ile sınırda; değişken zeminde sınırda bir değer, sınırın altına
+düşen bir değerdir.
+İki değişiklik birlikte: opaklık %86'ya (koyu temada %88) çıkarıldı ve
+başlıktaki bağlantıların mürekkebi `--text-faint`ten `--text-muted`e alındı.
+Sabit zeminli bir başlıkta faint yeterliydi; camın zemini içerikle değişiyor.
+`saturate(0.8)`: kaydırırken bir verdict rengi camın altından geçtiğinde
+başlığı boyamıyor — kroma ölçüme ait, başlığa değil.
+Yedekler: `backdrop-filter` desteklenmiyorsa ve
+`prefers-reduced-transparency: reduce` iken zemin opak. Okunabilirlik efektin
+önünde.
+Geri dönüş maliyeti: düşük

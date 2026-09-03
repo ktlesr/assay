@@ -14,7 +14,7 @@ export async function UserMenu() {
     return (
       <Link
         href="/signin"
-        className="text-xs uppercase tracking-[0.09em] text-text-faint no-underline hover:text-text"
+        className="text-xs uppercase tracking-[0.09em] text-text-muted no-underline hover:text-text"
       >
         Sign in
       </Link>
@@ -31,14 +31,14 @@ export async function UserMenu() {
       {session.user.role === 'ADMIN' ? (
         <Link
           href="/admin"
-          className="text-xs uppercase tracking-[0.09em] text-text-faint no-underline hover:text-text"
+          className="text-xs uppercase tracking-[0.09em] text-text-muted no-underline hover:text-text"
         >
           Admin
         </Link>
       ) : null}
       <Link
         href="/settings/tokens"
-        className="text-xs uppercase tracking-[0.09em] text-text-faint no-underline hover:text-text"
+        className="text-xs uppercase tracking-[0.09em] text-text-muted no-underline hover:text-text"
       >
         Tokens
       </Link>

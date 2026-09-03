@@ -505,11 +505,18 @@ body {
   gap: var(--space-2);
 }
 /* Başlıktaki tek gezinme bağlantısı. Kelime markasıyla yarışmıyor. */
+/*
+ * Başlıktaki mürekkep `--text-faint` DEĞİL `--text-muted`.
+ *
+ * Sabit zeminli bir başlıkta faint yeterliydi; camın zemini altından geçen
+ * içerikle değişiyor ve faint token'ı düz beyazda bile 4.86:1 ile sınırda.
+ * Değişken zeminde sınırda bir değer, sınırın altına düşen bir değerdir.
+ */
 .head-link {
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-muted);
   text-decoration: none;
   white-space: nowrap;
   transition: color var(--tick) linear;
@@ -1835,8 +1842,7 @@ body {
   }
 }
 
-/* İçerik alanın üstünde; kabuk ve ana sütun kendi yığın bağlamını alıyor. */
-.page-head,
+/* İçerik alanın üstünde; ana sütun kendi yığın bağlamını alıyor. */
 main {
   position: relative;
   z-index: 1;
@@ -2537,4 +2543,83 @@ main {
     padding-left: 2ch;
     white-space: nowrap;
   }
+}
+
+/* ===========================================================================
+ * BAŞLIK — yapışkan, buzlu cam
+ *
+ * Blur burada süs değil, işlev: yapışkan bir başlığın altından içerik akıyor
+ * ve başlık hem okunabilir kalmalı hem altındakini gizlememeli. Craft floor
+ * "dekor olarak cam" yasaklıyor; bu onun tersi — belirli bir soruna verilen
+ * belirli bir cevap.
+ *
+ * "Buzlu" bu palete zaten ait: zemin soğuk kâğıt, mürekkep soğuk grafit. Cam
+ * o soğukluğu bir tık daha ileri götürüyor, `saturate` ile arkadaki kromayı
+ * (yalnızca ölçüm renkleri) hafifçe kısarak — kaydırırken bir verdict rengi
+ * camın altından geçtiğinde başlığı boyamıyor.
+ *
+ * Gradient yok, gölge yok: derinlik yine çizgiyle. Camın alt kenarı zaten
+ * hairline; kaydırma başlayınca o çizgi belirginleşiyor.
+ * ======================================================================== */
+
+.page-head {
+  position: sticky;
+  top: 0;
+  /* Alan (fixed, z-index 0) ile içeriğin (z-index 1) üstünde. */
+  z-index: 20;
+  /*
+   * %86, %72 değil. Ölçüldü: koyu terminal başlığın altından geçtiğinde %72
+   * beyaz siyah üstünde #b8b8b8 veriyor ve `--text-faint` orada 2.4:1'e
+   * düşüyor — 4.5 eşiğinin çok altında. Cam, altından ne geçerse geçsin
+   * okunabilir kalmak zorunda; efekt okunabilirliğin önüne geçemez.
+   */
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(0.8);
+  -webkit-backdrop-filter: blur(18px) saturate(0.8);
+  border-bottom: var(--hairline) solid var(--rule);
+  transition: background var(--tick) linear;
+}
+
+/*
+ * Cam desteklenmiyorsa opak zemine düşüyor. Yarı saydam ama bulanıklaşmayan
+ * bir başlık, altından geçen metni okunmaz yapardı — okunabilirlik
+ * efektten önce gelir.
+ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .page-head {
+    background: var(--surface);
+  }
+}
+
+/*
+ * Şeffaflığı azaltılmış sistemlerde de opak. Kullanıcı bunu erişilebilirlik
+ * için açıyor; estetik tercih onun tercihini geçmez.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .page-head {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/*
+ * Koyu temada cam daha koyu ve biraz daha opak: aynı %72 açık zeminde
+ * yeterken koyu zeminde altındaki metni yeterince ayırmıyordu.
+ */
+[data-theme='dark'] .page-head {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .page-head {
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+  }
+}
+
+/*
+ * Yapışkan başlığın altına kayan bağlantılar başlığın arkasında kaybolmasın:
+ * sayfa içi hedefler başlık yüksekliği kadar aşağıdan başlıyor.
+ */
+:root {
+  scroll-padding-top: 4.5rem;
 }
