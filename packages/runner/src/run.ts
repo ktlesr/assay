@@ -348,7 +348,9 @@ async function runAttempt<S extends AgentSession>(
     ...(triggerVerdict === null ? [] : [triggerVerdict]),
     ...assertions,
   ]
-  const combined = combineVerdicts(parts)
+  // "check", "assertion" değil: `parts` tetiklenme kontrolünü de içeriyor ve o
+  // bir assertion değil. Sayı ile `assertions` listesinin uyuşmaması bundandı.
+  const combined = combineVerdicts(parts, 'check')
 
   const reason =
     skippedFiles.length === 0
@@ -361,6 +363,9 @@ async function runAttempt<S extends AgentSession>(
     startedAt,
     finishedAt: now().toISOString(),
     trigger,
+    // Gözlemin beklentiyle karşılaştırılması kendi alanında: `assertions`
+    // yalnızca vaka setinde beyan edilenleri taşır, sentetik üye almaz.
+    ...(triggerVerdict === null ? {} : { triggerCheck: triggerVerdict }),
     assertions,
     verdict: combined.verdict,
     reason: redact(reason),

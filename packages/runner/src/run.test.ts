@@ -261,3 +261,44 @@ describe('RunStore', () => {
     await expect(new RunStore({ root }).load('x')).rejects.toThrow('store version 999')
   })
 })
+
+/**
+ * Kayıt kendi içinde tutarlı olmalı.
+ *
+ * Kusur gerçek bir koşumda görüldü: tetiklenme vakalarında `assertions` boştu
+ * ama `reason` "all 1 assertion(s) passed" diyordu; tamamlama vakasında dört
+ * assertion listeleniyordu ve `reason` "all 5" diyordu. Tetiklenme kontrolü
+ * sayıya giriyor ama hiçbir listede görünmüyordu.
+ *
+ * Bu JSON'u ileride başkaları okuyup rapor üretecek. Sayının neyi saydığı
+ * kayıttan anlaşılabilir olmalı.
+ */
+describe('runSuite — kayıt kendi içinde tutarlı', () => {
+  const countIn = (reason: string): number | null => {
+    const match = /^all (\d+) check\(s\) passed$/.exec(reason)
+    return match === null ? null : Number(match[1])
+  }
+
+  it('geçen attempt sayısı listelenen kontrollerle uyuşur', async () => {
+    const result = await run(new MockAdapter({ scenarios: [triggered(), notTriggered] }))
+    const attempts = result.cases.flatMap((c) => c.attempts)
+    expect(attempts.length).toBeGreaterThan(0)
+
+    for (const attempt of attempts) {
+      if (attempt.verdict !== 'pass') continue
+      const counted = countIn(attempt.reason)
+      expect(counted).not.toBeNull()
+      const listed = attempt.assertions.length + (attempt.triggerCheck === undefined ? 0 : 1)
+      expect(counted).toBe(listed)
+    }
+  })
+
+  it('tetiklenme kontrolü kendi alanında, assertions listesinde değil', async () => {
+    const result = await run(new MockAdapter({ scenarios: [triggered(), notTriggered] }))
+    const attempt = result.cases[0]?.attempts[0]
+    // Vaka yalnızca `expect.triggered` beyan ediyor: assertion yok, kontrol var.
+    expect(attempt?.assertions).toEqual([])
+    expect(attempt?.triggerCheck?.verdict).toBe('pass')
+    expect(attempt?.reason).toBe('all 1 check(s) passed')
+  })
+})

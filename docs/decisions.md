@@ -1596,3 +1596,31 @@ uygulanıyor. Referans bölümlerinde gövde üç sütunlu bir bileşen ızgaras
 onu dar sütuna sokmak öksüz bir üçüncü kart bırakıyordu — ekran görüntüsü
 yakaladı.
 Geri dönüş maliyeti: düşük (token ve CSS)
+
+## 2026-09-03 — Tetiklenme kontrolü kayıtta kendi alanında
+
+Bağlam: Gerçek bir koşum kaydında sayı ile liste uyuşmuyordu. Tetiklenme
+vakalarında `assertions: []` boştu ama `reason` "all 1 assertion(s) passed"
+diyordu; tamamlama vakasında dört assertion listeleniyor, `reason` "all 5"
+diyordu. Sebep: `runAttempt` tetiklenme kontrolünü `combineVerdicts`'e
+veriyor ama kayda yalnızca assertion'ları yazıyordu; `combineVerdicts` ise
+başarı cümlesinde saydığı her şeye "assertion" diyordu.
+Seçenekler: (a) tetiklenme kontrolünü `assertions` listesine sentetik bir üye
+olarak eklemek · (b) sayımdan çıkarmak · (c) kayda kendi alanı olarak eklemek
+ve sayılan şeyin adını düzeltmek
+Karar: (c). `Attempt.triggerCheck?: VerdictDetail` eklendi; `combineVerdicts`
+ikinci bir `noun` parametresi aldı ve runner ona `'check'` geçiyor. Kayıttaki
+sayı artık `assertions.length + (triggerCheck ? 1 : 0)`'a eşit.
+Gerekçe: (a) `assertions` listesini kirletirdi — o liste vaka setinde BEYAN
+EDİLEN assertion'ların sonucu ve her üyesi `Assertion` birleşiminden bir tip
+taşıyor. Sentetik bir üye, `assertion.type` üzerinden dallanan her tüketiciyi
+kırar ve kayıt artık suite'i yansıtmazdı. (b) gerçekten koşan bir kontrolü
+görünmez yapardı ve yalnızca tetiklenme ölçen bir vakada "all 0" ya da
+"nothing was asserted" derdi — oysa bir şey ölçülmüştü.
+Kayıt zaten `trigger` alanında ham gözlemi taşıyordu; eksik olan, o gözlemin
+beklentiyle karşılaştırılmasıydı. İkisi ayrı: biri ne olduğunu, diğeri
+beklenenin olup olmadığını söylüyor. Ekranda da ayrı gösteriliyor.
+Testle sabitlendi: geçen her attempt'te `reason`'daki sayı listelenen kontrol
+sayısına eşit. Kaydı ileride okuyup rapor üretecek biri buna güvenebilmeli.
+Geri dönüş maliyeti: düşük (kayda opsiyonel alan; eski kayıtlar okunmaya
+devam ediyor, `storeVersion` değişmedi)

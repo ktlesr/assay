@@ -299,9 +299,32 @@ export interface Attempt {
   caseId: string
   startedAt: string
   finishedAt: string
+  /** Host'tan okunan ham gözlem: tetiklendi mi, liste tam mı. */
   trigger: TriggerObservation
+  /**
+   * Gözlemin vakanın beklentisiyle karşılaştırılması.
+   *
+   * `trigger` ne olduğunu söylüyor; bu alan beklenenin olup olmadığını.
+   * Vaka `expect.triggered` ya da `expect.not_triggered` beyan etmiyorsa yok.
+   *
+   * Kendi alanında duruyor, `assertions` içinde değil: `assertions` vaka
+   * setinde BEYAN EDİLEN assertion'ların sonucu ve her biri `Assertion`
+   * birleşiminden bir tip taşıyor. Tetiklenme kontrolü öyle bir tip değil;
+   * listeye sentetik bir üye eklemek, `assertion.type` üzerinden dallanan
+   * her tüketiciyi kırardı ve kayıt artık suite'i yansıtmazdı.
+   */
+  triggerCheck?: VerdictDetail
+  /** Vaka setinde beyan edilen assertion'ların sonucu. */
   assertions: readonly AssertionResult[]
-  /** Attempt'in bileşik sonucu. */
+  /**
+   * Attempt'in bileşik sonucu: `triggerCheck` ve `assertions` birlikte.
+   *
+   * `reason` başarıda kaç KONTROL geçtiğini sayar ve o sayı
+   * `assertions.length + (triggerCheck ? 1 : 0)`'a eşittir. Eskiden sayı
+   * "assertion" diye adlandırılıyordu ve tetiklenme kontrolünü de içeriyordu;
+   * kayıt kendi içinde tutarsızdı — boş bir `assertions` listesinin yanında
+   * "all 1 assertion(s) passed" yazıyordu.
+   */
   verdict: Verdict
   reason: string
   latencyMs?: number

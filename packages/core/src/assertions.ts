@@ -433,7 +433,18 @@ export function evaluateAssertions(
  * Bir `fail` varsa `fail`. Hiç `fail` yok ama `unknown` varsa `unknown` —
  * ölçülemeyen bir şey geçmiş sayılmaz. Hepsi `pass` ise `pass`.
  */
-export function combineVerdicts(results: readonly VerdictDetail[]): VerdictDetail {
+export function combineVerdicts(
+  results: readonly VerdictDetail[],
+  /**
+   * Başarı cümlesinde sayılan şeyin adı.
+   *
+   * Varsayılan `assertion` çünkü çağıranların çoğu yalnızca assertion
+   * birleştiriyor. Runner buraya tetiklenme kontrolünü de katıyor ve o bir
+   * assertion DEĞİL — kayıtta `assertions` listesinde görünmüyor, kendi
+   * alanında duruyor. Sayı ile listenin uyuşmaması için tek sebep bu kelimeydi.
+   */
+  noun = 'assertion',
+): VerdictDetail {
   const failed = results.filter((r) => r.verdict === 'fail')
   if (failed.length > 0) {
     return { verdict: 'fail', reason: failed.map((r) => r.reason).join(' | ') }
@@ -445,5 +456,5 @@ export function combineVerdicts(results: readonly VerdictDetail[]): VerdictDetai
   if (results.length === 0) {
     return { verdict: 'unknown', reason: 'nothing was asserted' }
   }
-  return { verdict: 'pass', reason: `all ${results.length} assertion(s) passed` }
+  return { verdict: 'pass', reason: `all ${results.length} ${noun}(s) passed` }
 }

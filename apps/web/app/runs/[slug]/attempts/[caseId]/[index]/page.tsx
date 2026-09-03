@@ -81,6 +81,22 @@ export default async function AttemptPage({
                 fired&rdquo; cannot be claimed from this observation.
               </p>
             )}
+            {/*
+              Gözlem ile beklenti ayrı iki şey: yukarısı ne olduğunu söylüyor,
+              bu satır beklenenin olup olmadığını. Kayıtta da öyle duruyor
+              (`trigger` ve `triggerCheck`), ekranda da öyle dursun.
+            */}
+            {attempt.triggerCheck === undefined ? null : (
+              <div className="note mt-6">
+                <span className="note-mark">
+                  <Badge verdict={attempt.triggerCheck.verdict} showLabel={false} />
+                </span>
+                <div className="note-body">
+                  <p className="mark text-text-muted">did that match the case?</p>
+                  <p className="note-text">{attempt.triggerCheck.reason}</p>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <Callout tone="warning" title="Trigger signal unavailable">
