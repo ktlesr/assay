@@ -2634,3 +2634,159 @@ main {
 :root {
   scroll-padding-top: 4.5rem;
 }
+
+/* ===========================================================================
+ * KOLOFON — belgenin künyesi
+ *
+ * Bir sertifika bağlantı listesiyle değil künyeyle biter: yöntem, sürüm,
+ * lisans. Dört sütunluk jenerik SaaS footer'ı (sosyal ikonlar, bülten kutusu)
+ * bu belgenin dili değil ve buraya girmiyor.
+ *
+ * Yeni token yok, yeni renk yok, gölge yok. Ayrım yine çizgide: üstte kalın
+ * kural, künye damgasının üstünde hairline.
+ * ======================================================================== */
+
+.colophon {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--space-16);
+  border-top: 2px solid var(--rule-strong);
+  background: var(--surface);
+}
+
+.colophon-inner {
+  margin-inline: auto;
+  max-width: var(--page);
+  padding: var(--space-12) var(--space-6) var(--space-8);
+  display: grid;
+  gap: var(--space-12);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.colophon-word {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: 1;
+  color: var(--text);
+}
+.colophon-line {
+  margin: var(--space-4) 0 0;
+  max-width: 34ch;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+.colophon-cols {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.colophon-col ul {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  border-top: var(--hairline) solid var(--rule);
+}
+.colophon-col li {
+  border-bottom: var(--hairline) solid var(--rule);
+}
+
+/*
+ * Bağlantı satırı: dolgu ya da ok yok. Üzerine gelince mürekkep tam kontrasta
+ * çıkıyor ve sol kenarda bir işaret beliriyor — satır işaretinin aynısı.
+ */
+/*
+ * Sabit satır yüksekliği: sütunlardaki cetvel çizgileri birbirini tutmalı.
+ * Uzun bir etiket iki satıra düştüğünde o sütunun tüm çizgileri kayıyor ve
+ * ruled-document görünümü bozuluyordu.
+ */
+.colophon-link {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  position: relative;
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--tick) linear;
+}
+.colophon-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--space-2);
+  height: var(--hairline);
+  background: var(--rule-strong);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--tick) linear;
+}
+.colophon-link:hover,
+.colophon-link:focus-visible {
+  color: var(--text);
+}
+.colophon-link:hover::before,
+.colophon-link:focus-visible::before {
+  transform: scaleX(1);
+}
+
+/* Künye damgası — sayfanın son satırı, sertifikanın altındaki kayıt. */
+.colophon-stamp {
+  margin: 0;
+  margin-inline: auto;
+  max-width: var(--page);
+  padding: var(--space-4) var(--space-6) var(--space-12);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  border-top: var(--hairline) solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+.colophon-stamp-mark {
+  display: inline-flex;
+  color: var(--rule-strong);
+}
+/*
+ * Paket adları AD ARASINDA sarıyor, adın ortasından değil. `overflow-wrap:
+ * anywhere` mobilde `@ktlsr/assay-` / `runner` diye bölüyordu; bir paket adı
+ * bölününce kimlik olmaktan çıkıyor.
+ */
+.colophon-stamp-packages {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.colophon-stamp-packages > span {
+  white-space: nowrap;
+}
+
+@media (min-width: 56rem) {
+  .colophon-inner {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    gap: var(--space-16);
+    align-items: start;
+  }
+}
+
+@media (max-width: 40rem) {
+  .colophon-cols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+  .colophon-inner,
+  .colophon-stamp {
+    padding-inline: var(--space-4);
+  }
+}

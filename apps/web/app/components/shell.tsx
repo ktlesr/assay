@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { Footer } from './footer'
 import { Mark } from './mark'
 import { ThemeToggle } from './theme-toggle'
 import { UserMenu } from './user-menu'
@@ -60,6 +61,7 @@ export function Shell({
         </div>
       </header>
       <main className="mx-auto max-w-[var(--page)] px-6 pb-24 pt-10">{children}</main>
+      <Footer />
     </div>
   )
 }
