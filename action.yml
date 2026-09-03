@@ -73,7 +73,10 @@ inputs:
   assay-version:
     description: Version of the @ktlsr/assay CLI to install.
     required: false
-    default: '0.1.1'
+    # 0.1.2 `assay scrub` komutunu getirdi; eylem artefaktı yüklemeden önce
+    # onu çağırıyor. Daha eski bir sürüm verilirse adım uyarı yazıp geçiyor
+    # ve yüklenen kayıtlar maskelenmemiş kalıyor.
+    default: '0.1.2'
   claude-code-version:
     description: Version of @anthropic-ai/claude-code to install as the host.
     required: false
@@ -178,7 +181,7 @@ runs:
 
     - name: Upload report and runs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: assay-runs
         path: |

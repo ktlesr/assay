@@ -1,5 +1,51 @@
 # @ktlsr/assay-runner
 
+## 0.1.2
+
+### Patch Changes
+
+- Mask home-directory paths, add `assay scrub`, and stop counting an unread pin as held.
+  
+  **Home-directory paths are masked.** Run records carry absolute paths from the
+  agent's tool calls, and those paths carry the operating system username.
+  Records are uploaded as CI artifacts, printed into the HTML report and can be
+  published to a hosted instance — so a skill author sharing a run was sharing
+  their machine's username. `C:\Users\ada\...` now becomes
+  `C:\Users\<user>\...`; macOS and Linux home directories are covered too, and
+  generic accounts like `runner` and `root` are left alone because they are not
+  identities. The path shape survives, so the trace stays readable as a
+  measurement; only the identity is removed.
+  
+  Masking runs at three points, not one: when a record is written, when it is
+  read back, and when the HTML report escapes a value. Write-time alone would
+  only protect records created after this release.
+  
+  **New: `assay scrub [dir]`.** Rewrites stored records in place through the
+  same masking. A record store is a set of files, not a display surface — CI
+  uploads it, people zip it and attach it to bug reports. The bytes need to be
+  clean when they leave the machine, not when they are rendered. The GitHub
+  Action runs this before uploading its artifact.
+  
+  **`comparePins` now reports a third state.** A pin whose value is a
+  placeholder (`not-provided-by-host`, or empty) is no longer counted as *held*.
+  Two runs both carrying the same placeholder were being treated as measured
+  under identical conditions, which handed the comparison a guarantee nobody had
+  made. Such a pin is now reported as `unavailable`, and a comparison resting on
+  one returns `unknown`.
+  
+  To keep comparison working on hosts that do not publish a system prompt hash,
+  `Pins` gained an optional `environmentHash`: the adapter already derived it
+  from the host's reported environment but the runner never stored it. When both
+  runs carry an equal environment hash, pin 3 counts as covered and the
+  comparison proceeds.
+  
+  Note for existing users: runs recorded before this release have no environment
+  hash, so comparing two of them now returns `unknown` rather than a verdict.
+  That is the truthful answer — for those runs it genuinely is not known whether
+  the host environment held.
+- Updated dependencies
+  - @ktlsr/assay-core@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
