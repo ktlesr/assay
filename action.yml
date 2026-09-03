@@ -156,12 +156,22 @@ runs:
       if: always()
       shell: bash
       run: |
-        if [ -d .assay/runs ]; then
-          if [ -f packages/cli/dist/bin.js ]; then
-            node packages/cli/dist/bin.js scrub .assay/runs
-          else
-            assay scrub .assay/runs
-          fi
+        if [ ! -d .assay/runs ]; then
+          exit 0
+        fi
+        if [ -f packages/cli/dist/bin.js ]; then
+          CLI="node packages/cli/dist/bin.js"
+        else
+          CLI="assay"
+        fi
+        # `scrub` CLI'a sonradan eklendi. Eski bir sürüm kurulmuşsa komut yok
+        # ve adım hata verip işi düşürürdü — ölçüm başarılıyken. Yine de
+        # SESSİZCE geçilmiyor: maskeleme gerçek bir koruma ve yokluğu
+        # görünmeli, çünkü artefakt herkesin indirebildiği bir dosya.
+        if $CLI --help 2>/dev/null | grep -q 'assay scrub'; then
+          $CLI scrub .assay/runs
+        else
+          echo "::warning::This assay CLI has no 'scrub' command, so the uploaded records keep their raw home-directory paths. Set the assay-version input to a release that includes it."
         fi
 
     - name: Upload report and runs
