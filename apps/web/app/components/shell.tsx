@@ -26,6 +26,14 @@ export function Shell({
               <Mark size={18} />
               <span>Assay</span>
             </Link>
+            {/*
+              Metodoloji yazısı başlıkta duruyor, tanıtım sayfasının dibinde
+              değil: sayfanın konusu ürünün tek satılabilir iddiası ve her
+              ekrandan bir tık uzakta olmalı.
+            */}
+            <Link href="/methodology" className="head-link">
+              Method
+            </Link>
             {breadcrumbs.length === 0 ? null : (
               <nav aria-label="Breadcrumb" className="crumbs">
                 {breadcrumbs.map((crumb) => (

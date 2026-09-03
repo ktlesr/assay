@@ -620,7 +620,8 @@ mesajlarda hiç anılmadığını yakaladı.
 kullanıcıya söylüyor mu? Dört denemede söylemedi.
 
 Buradan çıkan ikinci ve daha rahatsız edici gözlem: `out/run.txt` bu vakada
-10 denemenin 9'unda **var**, oysa testler çoğunlukla çalıştırılamadı. Artefakt
+10 denemenin 8'inde **var**, oysa 10 denemenin 10'unda da en az bir kabuk
+çağrısı onay beklerken reddedildi. Artefakt
 assertion'ı "dosya var ve şu deseni içeriyor" diyor; "bu dosya gerçekten bir
 koşumdan geldi" diyemiyor. Tamamlama katmanının bugünkü tavanı bu ve rapora
 yazılması gerekiyor: **bir dosyanın varlığı, içeriğinin kazanılmış olduğunun
