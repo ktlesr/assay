@@ -69,6 +69,7 @@ export {
   type Flakiness,
   type Totals,
   type RunSummary,
+  type Discrimination,
 } from './scoring.js'
 
 export type { HostAdapter, AgentSession, RunConfig, SessionResult } from './adapter.js'

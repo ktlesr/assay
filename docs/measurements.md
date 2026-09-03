@@ -321,26 +321,41 @@ Paket npm'den `npx` ile kuruldu ve altı koşumun tamamını yürüttü: 540 att
 0 `unknown`, doğru çıkış kodları. Ölçüm zinciri dışarıdan kurulmuş hâliyle
 çalışıyor — yerel derlemeye hiç dokunulmadı.
 
-Görülen kusurlar:
+Görülen kusurlar — **ikisi de 0.1.1'de düzeltildi:**
 
-**1. `assay init` bir dizin verilince ham yığın izi ile çöküyor.**
+**1. `assay init` bir dizin verilince ham yığın izi ile çöküyordu.**
 Yardım metni "write an example suite next to a skill" diyor ve argüman
 `init [path]`; bu ifade doğal olarak skill dizinini işaret ediyor. Oysa
 argüman bir **dosya** yolu. Dizin verildiğinde yakalanmamış bir istisna
-çıkıyor (`EISDIR: illegal operation on a directory`) ve Node yığın izi
-basılıyor. Diğer kullanım hataları düzgün biçimde exit 2 ve tek satırlık
-mesaj üretiyor; burada o sözleşme bozuluyor. Düzeltme küçük: hedefi yazmadan
-önce dizin mi diye bakmak ve `EXIT.usage` döndürmek. Yardım metni de
-"write an example suite file" olmalı.
+çıkıyordu (`EISDIR: illegal operation on a directory`) ve Node yığın izi
+basılıyordu; diğer kullanım hataları düzgün biçimde exit 2 ve tek satırlık
+mesaj üretirken burada o sözleşme bozuluyordu.
 
-**2. Rapor 90/90 geçen bir suite ile zayıf bir suite'i ayırt etmiyor.**
-Yukarıdaki yöntem bulgusunun araç tarafındaki karşılığı. `assay` bugün
-"tüm negatifler geçti" durumunu bir uyarı olarak işaretlemiyor.
+> 0.1.1: `init` artık yazmadan önce `stat` ile bakıyor ve dizin görürse
+> `EXIT.usage` ile tek satır dönüyor:
+> `error <path> is a directory; pass the suite file to write, e.g. <path>/assay.suite.yaml`.
+> Yardım metni `assay init [file]  write an example suite file` oldu.
+
+**2. Rapor 90/90 geçen bir suite ile zayıf bir suite'i ayırt etmiyordu.**
+Yukarıdaki yöntem bulgusunun araç tarafındaki karşılığı: `assay` "tüm
+negatifler geçti" durumunu işaretlemiyordu.
+
+> 0.1.1: `RunSummary.discrimination` alanı eklendi (`cases`, `attempts`,
+> `falsePositives`, `untested`). Hiçbir negatif kırılmadıysa terminal ve HTML
+> raporunda **no negative case broke** notu çıkıyor ve ölçülen negatif vaka
+> ve deneme sayısını yazıyor. Bu bir **not**, verdict değil: `webapp-testing`
+> taban koşumu hâlâ `FAIL` (bir pozitif kaçtı) ve notu da taşıyor. Sızıntı
+> olan koşumlarda not hiç çıkmıyor.
 
 Bunun dışında `validate`, `run`, `report`, `--html`, `--store`, `--repeat` ve
 `setup.fixtures` beklendiği gibi çalıştı. `--repeat 1` uyarısı yerinde ve
 kayıtta işaretli. Hiçbir oran N ve güven aralığı olmadan basılmadı; altı
 koşumda da `unknown` üretilmedi.
+
+**Kapsam notu.** Not şimdilik SDK tarafında: terminal ve HTML raporu. Hosted
+dashboard (`apps/web`) aynı `RunSummary`'yi okuyor ama notu henüz
+göstermiyor; yayımlanmayan bir paket olduğu için 0.1.1'in kapsamı dışında
+tutuldu.
 
 ---
 

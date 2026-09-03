@@ -153,6 +153,14 @@ describe('init', () => {
     expect(err).toContain('already exists')
   })
 
+  it('dizin verilirse usage döner, çökmez', async () => {
+    // Yardım metni argümanı dosya diye tarif ediyor; dizin verilince eskiden
+    // writeFile yakalanmamış EISDIR fırlatıp yığın izi basıyordu.
+    const dir = await scratch()
+    expect(await main(['init', dir])).toBe(EXIT.usage)
+    expect(err).toContain('is a directory')
+  })
+
   it('üretilen şablon doğrulamadan geçer', async () => {
     const dir = await scratch()
     const path = join(dir, 'a.suite.yaml')

@@ -56,6 +56,20 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
       </ul>
     </section>`
 
+  // Not, verdict değil: hiçbir negatif kırılmadıysa ölçülen şey yanlış
+  // tetiklenme oranıdır, setin ayrım gücünün nerede bittiği değil.
+  const discriminationNote = !summary.discrimination.untested
+    ? ''
+    : `    <section class="callout">
+      <h2>No negative case broke</h2>
+      <p>${summary.discrimination.cases} negative case(s), ${summary.discrimination.attempts}
+      measured attempt(s), 0 false positives. That bounds the false-positive rate, not this
+      set's discriminating power: the negatives may differ from the positives on some axis
+      other than the one under test, which makes any skill look perfect. Tighten the near
+      neighbours before reading this as a clean bill.</p>
+      <p class="note">A note, not a verdict — it does not change the run result.</p>
+    </section>`
+
   const f1 =
     summary.trigger.f1 === null ? 'not measurable' : summary.trigger.f1.toFixed(2)
   const cost =
@@ -96,6 +110,12 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
   td.num, th.num { text-align: right; width: 4rem; }
   td.rate { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .warn { color: var(--unknown); font-weight: 600; }
+  .callout {
+    border: 1px solid var(--line); border-left: 3px solid var(--unknown);
+    border-radius: 8px; padding: .25rem 1rem 1rem; margin-top: 2rem;
+  }
+  .callout h2 { margin-bottom: .4rem; }
+  .callout p { font-size: .85rem; margin: .4rem 0 0; }
   .pill {
     display: inline-block; padding: .1rem .5rem; border-radius: 999px;
     font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
@@ -141,6 +161,7 @@ ${rows}
   <p class="note">Every rate carries its observation count and 95% Wilson confidence
   interval. A rate without them would hide how little three runs can tell you.</p>
 
+${discriminationNote}
 ${unknownList}
 
   <h2>Pins</h2>

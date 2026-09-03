@@ -1341,3 +1341,28 @@ Onu susturmak fixture'ı bozar. Globals tanımlamak da yanlış olurdu —
 bu dosyalar bizim kaynak kodumuz değil, ölçüm girdisi. `tools/fixtures/**`
 zaten aynı gerekçeyle muaftı.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Ayrım gücü notu `core`'da, ve verdict'i etkilemiyor
+
+Bağlam: Ölçüm raporu (docs/measurements.md) aracın 90/90 geçen bir suite ile
+zayıf bir suite'i ayırt etmediğini buldu. Uyarının nereye konacağı ve ne kadar
+sert olacağı belirsizdi.
+Seçenekler: (a) uyarıyı yalnızca terminal renderer'ında hesaplamak ·
+(b) `core`'da `RunSummary`'ye türetilmiş alan · (c) uyarıyı verdict'e veya
+çıkış koduna bağlamak
+Karar: (b) — `RunSummary.discrimination { cases, attempts, falsePositives,
+untested }`. Not terminal ve HTML raporunda gösteriliyor; `verdict` ve çıkış
+kodu değişmiyor.
+Gerekçe: (a) iki tüketici (terminal, HTML) ve ileride hosted taraf için aynı
+hesabı üç yere kopyalamak demekti; üçü er geç ayrışırdı. (c) daha cazipti ama
+yanlış: "negatiflerin hepsi geçti" bir ölçüm başarısızlığı değil, ölçümün
+kapsamı hakkında bir bilgi. CI'ı bu yüzden kırmak, kullanıcıyı negatifleri
+zayıflatmaya değil suite'i susturmaya iter. Ayrıca `unknown` ile karışırdı:
+`unknown` "ölçemedik" demek, bu ise "ölçtük ama neyi ölçtüğümüz sınırlı".
+Kanıt: `webapp-testing` taban koşumu hâlâ `FAIL` (bir pozitif kaçtı) ve notu
+da taşıyor — ikisi bağımsız.
+Ölçülemeyen negatif attempt'ler paydaya girmiyor: okunamamış bir negatif
+ayrım gücü hakkında da bir şey söylemez (değişmez #1 ile aynı mantık).
+Kapsam: `apps/web` aynı alanı okuyabiliyor ama notu göstermiyor; yayımlanmayan
+bir paket olduğu için 0.1.1'in dışında bırakıldı.
+Geri dönüş maliyeti: düşük (türetilmiş alan, kayıt şeması değişmedi)

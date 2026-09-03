@@ -7,7 +7,7 @@
  * Argüman ayrıştırması `node:util.parseArgs` ile — bağımlılık eklemeye değmez.
  */
 
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { ClaudeCodeAdapter } from '@ktlsr/assay-adapters'
@@ -36,7 +36,7 @@ export const EXIT = {
 const USAGE = `assay — a CI test runner for Agent Skills
 
 Usage
-  assay init [path]                 write an example suite next to a skill
+  assay init [file]                 write an example suite file
   assay validate <suite.yaml>       check a suite without running it
   assay run <suite.yaml>            run the suite and store the result
   assay report [run-id]             print a stored run, newest by default
@@ -171,7 +171,16 @@ cases:
 
 async function init(target?: string): Promise<number> {
   const path = target ?? 'assay.suite.yaml'
-  const existing = await readFile(path, 'utf8').catch(() => null)
+  // Argüman yazılacak DOSYA. Dizin verilirse `writeFile` EISDIR fırlatır;
+  // yakalanmazsa yığın izi basar, oysa kullanım hatası tek satır olmalı.
+  const existing = await stat(path).catch(() => null)
+  if (existing?.isDirectory() === true) {
+    process.stderr.write(
+      `${style.red('error')} ${path} is a directory; pass the suite file to write, ` +
+        `e.g. ${path}/assay.suite.yaml\n`,
+    )
+    return EXIT.usage
+  }
   if (existing !== null) {
     process.stderr.write(`${style.red('error')} ${path} already exists\n`)
     return EXIT.usage

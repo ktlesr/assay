@@ -230,4 +230,62 @@ describe('summarize', () => {
     expect(summary.passRate.n).toBe(2)
     expect(summary.counts.unknown).toBe(1)
   })
+  // --- ayrım gücü notu ---------------------------------------------------
+  //
+  // docs/measurements.md: aynı skill, aynı model ve aynı pinlerle iki set
+  // %100 ve %51 precision verdi. Fark yalnızca negatiflerin kurulumundaydı.
+  // `untested` o durumu görünür kılıyor; verdict'i DEĞİŞTİRMİYOR.
+
+  it('hiçbir negatif kırılmadıysa ayrım gücü ölçülmemiş sayılır', () => {
+    const summary = summarize(
+      [
+        attempt('trigger.positive.x', 'pass', true),
+        attempt('trigger.negative.a', 'pass', false),
+        attempt('trigger.negative.b', 'pass', false),
+        attempt('trigger.negative.b', 'pass', false),
+      ],
+      expected,
+    )
+    expect(summary.discrimination).toEqual({
+      cases: 2,
+      attempts: 3,
+      falsePositives: 0,
+      untested: true,
+    })
+  })
+
+  it('bir negatif sızdıysa ayrım gücü ölçülmüş sayılır', () => {
+    const summary = summarize(
+      [attempt('trigger.negative.a', 'pass', false), attempt('trigger.negative.a', 'fail', true)],
+      expected,
+    )
+    expect(summary.discrimination.falsePositives).toBe(1)
+    expect(summary.discrimination.untested).toBe(false)
+  })
+
+  it('not verdicti değiştirmez', () => {
+    // Pozitif kaçtı, negatiflerin hepsi tuttu: verdict fail, not yine de var.
+    const summary = summarize(
+      [attempt('trigger.positive.x', 'fail', false), attempt('trigger.negative.a', 'pass', false)],
+      expected,
+    )
+    expect(summary.verdict).toBe('fail')
+    expect(summary.discrimination.untested).toBe(true)
+  })
+
+  it('negatif yoksa not çıkmaz', () => {
+    const summary = summarize([attempt('trigger.positive.x', 'pass', true)], expected)
+    expect(summary.discrimination.cases).toBe(0)
+    expect(summary.discrimination.untested).toBe(false)
+  })
+
+  it('ölçülemeyen negatif ayrım gücü saymaz', () => {
+    // Tek negatif okunamadıysa "hiçbiri kırılmadı" demek yanlış olur.
+    const summary = summarize(
+      [attempt('trigger.positive.x', 'pass', true), attempt('trigger.negative.a', 'unknown', null)],
+      expected,
+    )
+    expect(summary.discrimination.attempts).toBe(0)
+    expect(summary.discrimination.untested).toBe(false)
+  })
 })

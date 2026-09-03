@@ -204,6 +204,32 @@ export interface RunSummary {
   totals: Totals
   /** Koşumun bileşik verdict'i: bir fail varsa fail, yoksa unknown varsa unknown. */
   verdict: Verdict
+  /** Negatif tarafın ayrım gücü ölçülebildi mi (bkz. `Discrimination`). */
+  discrimination: Discrimination
+}
+
+/**
+ * Negatif vakaların ayrım gücü hakkında bir NOT — verdict değil.
+ *
+ * Bir tetiklenme suite'inde hiçbir negatif hiçbir denemede kırılmadıysa
+ * ölçülen şey "skill bu negatiflerde tetiklenmiyor"dur. Setin ayrım gücünün
+ * nerede bittiği ölçülmemiştir: negatifler pozitiflerden ölçülmek istenen
+ * özellikte değil, başka bir eksende uzak olabilir ve bu fark sonucu
+ * kusursuz gösterir (bkz. docs/measurements.md).
+ *
+ * Bu yüzden `untested` bir hata değil, bir uyarıdır ve `verdict`'i
+ * etkilemez. Değişmez #5 negatif bulunmasını şart koşar; bu alan
+ * negatiflerin gerçekten sınandığını söyler.
+ */
+export interface Discrimination {
+  /** Tetiklenmemesi beklenen ayrık vaka sayısı. */
+  cases: number
+  /** Bu vakalarda ölçülebilmiş attempt sayısı (unknown sayılmaz). */
+  attempts: number
+  /** Beklenmediği hâlde tetiklenen attempt sayısı. */
+  falsePositives: number
+  /** En az bir negatif ölçüldü ve hiçbiri kırılmadı. */
+  untested: boolean
 }
 
 /**
@@ -220,13 +246,20 @@ export function summarize(
   const counts = countVerdicts(attempts.map((a) => a.verdict))
 
   const points: TriggerObservationPoint[] = []
+  const negativeCases = new Set<string>()
+  let negativeAttempts = 0
+  let falsePositives = 0
   for (const attempt of attempts) {
     const expected = expectedTrigger(attempt.caseId)
     if (expected === undefined) continue
-    points.push({
-      expected,
-      observed: attempt.trigger.available ? attempt.trigger.triggered : null,
-    })
+    const observed = attempt.trigger.available ? attempt.trigger.triggered : null
+    points.push({ expected, observed })
+    if (expected) continue
+    negativeCases.add(attempt.caseId)
+    // Ölçülemeyen attempt ayrım gücü hakkında hiçbir şey söylemiyor.
+    if (observed === null) continue
+    negativeAttempts += 1
+    if (observed) falsePositives += 1
   }
 
   return {
@@ -235,6 +268,12 @@ export function summarize(
     trigger: triggerAccuracy(points),
     totals: totals(attempts),
     verdict: counts.fail > 0 ? 'fail' : counts.unknown > 0 ? 'unknown' : 'pass',
+    discrimination: {
+      cases: negativeCases.size,
+      attempts: negativeAttempts,
+      falsePositives,
+      untested: negativeAttempts > 0 && falsePositives === 0,
+    },
   }
 }
 

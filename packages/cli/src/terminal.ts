@@ -122,6 +122,29 @@ export function renderRun(run: Run, summary: RunSummary): string {
     ),
   )
 
+  // Not, verdict değil: hiçbir negatif kırılmadıysa ölçülen şey yanlış
+  // tetiklenme oranıdır, setin ayrım gücünün nerede bittiği değil.
+  if (summary.discrimination.untested) {
+    const { cases, attempts } = summary.discrimination
+    out.push('')
+    out.push(style.bold('  note      no negative case broke'))
+    out.push(
+      style.grey(
+        `    ${cases} negative case(s), ${attempts} measured attempt(s), 0 false positives.`,
+      ),
+    )
+    out.push(
+      style.grey("    That bounds the false-positive rate, not the set's discriminating"),
+    )
+    out.push(
+      style.grey('    power: the negatives may differ from the positives on some axis'),
+    )
+    out.push(
+      style.grey('    other than the one under test. Tighten the near neighbours before'),
+    )
+    out.push(style.grey('    reading this as a clean bill.'))
+  }
+
   if (summary.counts.unknown > 0) {
     out.push('')
     out.push(
