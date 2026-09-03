@@ -1421,3 +1421,67 @@ Yan doğrulamalar: `npx @ktlsr/assay@0.1.1 init <dizin>` tek satır mesajla
 exit 2 veriyor; `report` çıktısı "no negative case broke" notunu gerçek bir
 kayıtta gösteriyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Tamamlama setleri `suites/` altında, ayrı dosyalar
+
+Bağlam: Tamamlama vakaları istendi; mevcut tetiklenme setlerine dokunulmaması
+şart koşuldu. Depodaki konvansiyon `examples/measurements/`, istenen yol
+`suites/<skill>-completion.suite.yaml`.
+Seçenekler: konvansiyona uyup `examples/measurements/` altına koymak ·
+istenen yolu kullanmak
+Karar: İstenen yol. Ayrıca `tools/examples.test.ts` glob'u
+`suites/**/*.suite.yaml` kapsayacak şekilde genişletildi (18 → 23 dosya).
+Gerekçe: Yol açık bir talimattı. Ama testin glob'u genişletilmeseydi yeni
+setler şema koruması dışında kalırdı — 2026-09-03'te alt dizinler için
+düzeltilen kusurun aynısı, bir dizin ötede. Tek satırlık ek.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Tamamlama setine de negatif kondu
+
+Bağlam: İstenen tasarım "her vakada `expect.triggered: true`" idi. Değişmez #5
+negatifsiz her suite'i **reddediyor** (doğrulayıcı `error` üretiyor), yani
+yalnızca pozitif tamamlama vakalarından oluşan bir set hiç koşamazdı.
+Seçenekler: doğrulayıcıyı "tamamlama seti" için gevşetmek · her sete bir
+yakın-komşu negatifi eklemek
+Karar: İkincisi. Her sette bir `trigger.negative.near_neighbor.*` vakası var
+ve dosyada tamamlama vakası olmadığı yorumla yazılı.
+Gerekçe: Değişmez #5 "uygulamadan önce dur ve bildir" listesinde; ölçüm
+aracının kendi kuralını kendi rahatlığı için gevşetmesi tam olarak bu
+listenin engellediği şey. Negatifin bedeli set başına 10 attempt; karşılığı,
+setin "her istekte tetiklenen skill" durumunu hâlâ görebilmesi.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Tamamlama isteminin açılışı tetiklenme setinden kopyalanır
+
+Bağlam: İlk taslak tamamlama istemleri sıfırdan yazılmıştı ve
+`doc-coauthoring` altı denemenin altısında da tetiklenmedi (0/6);
+`webapp-testing` de 0/6. Ölçülen şey skill değil, istemin tonuydu.
+Seçenekler: sonucu olduğu gibi raporlamak · istemleri tetiklenme setindeki
+bilinen-tetikleyen cümlelerle açacak biçimde yeniden yazmak
+Karar: İkincisi. Her tamamlama istemi, tetiklenme setinde 10/10 tetikleyen
+açılışla başlıyor; üzerine YALNIZCA teslim edilecek dosya ekleniyor.
+Ayrıca `webapp-testing` istemlerindeki "playwright kurulu değil,
+çalıştırmaya kalkma" kısıtı kaldırıldı ve ölçüm makinesine python
+playwright + chromium kuruldu.
+Gerekçe: 2026-09-03'teki "yakın komşu tek eksende ayrılmalı" kuralının
+pozitif taraftaki karşılığı. Bir tamamlama vakası, tetikleyen bir istemden
+yalnızca artefakt talebiyle ayrılmalı; başka hiçbir şeyle değil. Aksi hâlde
+"tetiklenmedi" sonucu skill hakkında değil, istem hakkında bir ifade olur.
+"Çalıştırma" kısıtı da aynı hatanın bir başka biçimiydi: tarayıcı sürme
+aracının varlık sebebini istemden siliyordu.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Kontrol vakası suite'in içinde, dışında değil
+
+Bağlam: "Dosya istemek `doc-coauthoring`'in tetiklenmesini düşürüyor"
+iddiasının kanıtı, ayrı bir geçici koşumdaydı (scratchpad).
+Seçenekler: ayrı koşumu raporda anlatmak · kontrolü suite'e vaka olarak
+koymak
+Karar: `control.design_doc_no_artifact` — `complete.design_doc_with_outline`
+ile kelimesi kelimesine aynı istem, yalnızca dosya isteyen son paragraf yok.
+Gerekçe: Ayrı koşumdaki kontrol farklı pinler ve farklı bir kayıt demek;
+"aynı koşulda" iddiasını okuyucunun bana güvenerek kabul etmesi gerekirdi.
+Aynı suite'te yan yana duran iki vaka, aynı kayıtta, aynı dört pinle
+karşılaştırılabilir. 2026-09-03'teki "öneri bir iddiadır, koşum bir
+ölçümdür" kararının aynısı.
+Geri dönüş maliyeti: düşük
