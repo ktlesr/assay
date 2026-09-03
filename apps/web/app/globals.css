@@ -2150,13 +2150,8 @@ main {
  * kalktı; ayrım artık çizgide, tıpkı verinin geri kalanı gibi.
  */
 .specimen,
-.auth-panel,
-.term {
+.auth-panel {
   background: transparent;
-}
-.term {
-  border-inline: none;
-  border-bottom: var(--hairline) solid var(--rule);
 }
 
 /*
@@ -2377,4 +2372,169 @@ main {
   color: var(--text-faint);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* ===========================================================================
+ * TERMİNAL — kendi zeminine oturan tek ekran yüzeyi
+ *
+ * Kusur temel bir karardan geliyordu: blok sayfanın zeminini kullanıyordu, bu
+ * yüzden arkadaki milimetrik ızgara içinden geçiyor ve blok boşta duruyordu.
+ * Bitiş incelemesindeki "kart yok" kuralı buraya yanlış uygulanmıştı — o kural
+ * VERİ blokları için. Terminal bir kart değil, farklı bir malzeme: kâğıdın
+ * üstündeki ekran.
+ *
+ * Karar: terminal her iki temada da koyu. Açık temada beyaz sayfanın tek koyu
+ * nesnesi, koyu temada sayfadan bir tık daha derin. Renkler koyu paletten
+ * birebir; yeni renk yok, yazı tipi hâlâ mono, pencere süsü yok.
+ * ======================================================================== */
+
+.term {
+  margin-top: var(--space-8);
+  position: relative;
+  /* Opak zemin: ızgara artık içinden geçmiyor. */
+  background: var(--term-bg);
+  border: 1px solid var(--term-edge);
+  border-radius: var(--radius);
+  overflow: hidden;
+  color: var(--term-muted);
+}
+
+/* Kaydırma iç kapta: kenar ve zemin sabit kalıyor, içerik kayıyor. */
+.term-body {
+  overflow-x: auto;
+  padding: 0;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+
+/*
+ * Komut bandı. Gerçek bir terminalde yazdığınız satır ile programın çıktısı
+ * aynı şey değil; biri girdi, diğeri sonuç. Ayrım bir tık açık zemin ve tam
+ * kontrast mürekkeple, altında da bir kural çizgisiyle yapılıyor.
+ */
+.term-command,
+.term-tail {
+  background: var(--term-band);
+  margin-inline: 0;
+  padding-inline: var(--space-6);
+}
+.term-command {
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--term-rule);
+  color: var(--term-ink);
+}
+.term-tail {
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--term-rule);
+}
+
+/* Çıktı satırları bandın dışında ve daha sessiz. */
+.term-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-inline: var(--space-6);
+  white-space: nowrap;
+}
+.term-body > .term-line:not(.term-command):not(.term-tail):first-of-type {
+  padding-top: var(--space-4);
+}
+.term-blank {
+  height: 0.7em;
+  padding: 0;
+}
+
+/* İşaret sütunu sabit genişlikte: tik ve çarpı hizadan çıkmıyor. */
+.term-mark {
+  flex: none;
+  width: 1ch;
+  text-align: center;
+  color: var(--term-faint);
+}
+.term-prompt {
+  color: var(--term-muted);
+}
+.term-typed {
+  color: var(--term-ink);
+}
+.term-text {
+  color: var(--term-muted);
+}
+
+/* Oran sütunu sağa yaslı ve tabular: rakamlar sütun hâlinde hizalanıyor. */
+.term-rate {
+  margin-left: auto;
+  padding-left: var(--space-6);
+  color: var(--term-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kroma yalnızca ölçümde — koyu yüzeyin kendi verdict renkleriyle. */
+.term-pass .term-mark {
+  color: var(--term-pass);
+}
+.term-fail .term-mark,
+.term-fail .term-text {
+  color: var(--term-fail);
+}
+.term-unknown .term-mark {
+  color: var(--term-unknown);
+}
+.term-plain .term-text {
+  color: var(--term-ink);
+}
+.term-dim .term-text {
+  color: var(--term-faint);
+}
+
+.term-cursor {
+  display: inline-block;
+  width: 1ch;
+  height: 1.05em;
+  transform: translateY(0.15em);
+  background: var(--term-ink);
+  animation: term-blink 1.1s steps(1, end) infinite;
+}
+
+/*
+ * Mobil: satır sarmıyor, oran kendi satırına iniyor. Sarmak oranı
+ * parçalıyordu ve N ile güven aralığı bölünüyordu (değişmez #4).
+ */
+@media (max-width: 40rem) {
+  .term-body {
+    font-size: 0.6875rem;
+  }
+  /*
+   * Asılı girinti: sarılan çıktı, işaret sütununun altına değil METNİN
+   * altına iniyor. Aksi hâlde ikinci satır sol kenardan başlıyor ve
+   * hangi satıra ait olduğu kayboluyor.
+   */
+  .term-line {
+    padding-inline: var(--space-4);
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+  /* Asılı girinti YALNIZCA çıktı satırlarında: komut bandındaki `$` kendi
+     yerinde kalmalı, yoksa kenara yapışıyor. */
+  .term-line:not(.term-command):not(.term-tail) {
+    padding-left: calc(var(--space-4) + 2ch);
+  }
+  .term-line:not(.term-command):not(.term-tail) .term-mark {
+    margin-left: -2ch;
+  }
+  .term-command,
+  .term-tail {
+    padding-inline: var(--space-4);
+  }
+  .term-text {
+    overflow-wrap: anywhere;
+  }
+  .term-rate {
+    flex-basis: 100%;
+    margin-left: 0;
+    padding-left: 2ch;
+    white-space: nowrap;
+  }
 }

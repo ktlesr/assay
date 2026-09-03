@@ -64,7 +64,7 @@ export function RunTerminal({ run }: { run: Run }) {
 
           if (line.kind === 'command') {
             return (
-              <div key={i} className="term-line">
+              <div key={i} className="term-line term-command">
                 <span className="term-mark term-prompt">{MARK.command}</span>
                 <span
                   className="term-typed"
@@ -100,7 +100,7 @@ export function RunTerminal({ run }: { run: Run }) {
 
         {/* İmleç son satırda kalıyor: koşum bitti, istem geri döndü. */}
         <div
-          className="term-line term-reveal"
+          className="term-line term-reveal term-tail"
           style={
             {
               animationDelay: `${typeMs + 240 + lines.length * LINE_STEP_MS}ms`,

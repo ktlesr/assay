@@ -176,6 +176,53 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Terminal — sayfanın tek ekran yüzeyi
+ *
+ * Sayfanın malzemesi kâğıt. Terminal kâğıt DEĞİL, bir ekran; iki farklı
+ * malzeme. Bu yüzden terminal her iki temada da kendi koyu zeminine oturuyor:
+ * açık temada beyaz kâğıdın üstündeki tek koyu nesne, koyu temada sayfadan
+ * bir tık daha derin. Terminal her yerde koyudur; bu bir tema tutarsızlığı
+ * değil, malzeme farkı.
+ *
+ * Yeni renk ÜRETİLMEDİ. Aşağıdaki değerlerin hepsi koyu temanın kendi
+ * paletinden birebir alındı — palet büyümüyor, yalnızca iki temada da
+ * kullanılıyor. Ölçüm renkleri de koyu temanınki, çünkü yüzey koyu.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  --term-bg: #0b0d0e;
+  --term-band: #121617;
+  --term-ink: #edf1f2;
+  --term-muted: #9aa4a7;
+  --term-faint: #6d7779;
+  --term-rule: #1f2527;
+  --term-edge: #3a4346;
+
+  --term-pass: #58c091;
+  --term-fail: #ec8172;
+  --term-unknown: #92a4c2;
+}
+
+/*
+ * Koyu temada sayfa zaten koyu; terminal ondan AYRIŞMALI. Zemin bir tık
+ * daha derine iniyor ve kenar belirginleşiyor, yoksa blok sayfanın içinde
+ * eriyor — bildirilen kusur tam olarak buydu.
+ */
+[data-theme='dark'] {
+  --term-bg: #060809;
+  --term-band: #0f1314;
+  --term-edge: #2b3336;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --term-bg: #060809;
+    --term-band: #0f1314;
+    --term-edge: #2b3336;
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * Tipografi rolleri
  *
  * Instrument Serif — sertifika başlığı. Yüksek kontrastlı, kazınmış hissi.

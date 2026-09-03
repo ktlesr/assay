@@ -1624,3 +1624,27 @@ Testle sabitlendi: geçen her attempt'te `reason`'daki sayı listelenen kontrol
 sayısına eşit. Kaydı ileride okuyup rapor üretecek biri buna güvenebilmeli.
 Geri dönüş maliyeti: düşük (kayda opsiyonel alan; eski kayıtlar okunmaya
 devam ediyor, `storeVersion` değişmedi)
+
+## 2026-09-03 — Terminal her iki temada da kendi koyu zemininde
+
+Bağlam: Hero'daki terminal bloğu terminale benzemiyordu: sayfanın zeminini
+kullanıyordu, arkadaki milimetrik ızgara içinden geçiyordu ve blok boşta
+duruyordu. Sebep bir detay değil, benim daha önce verdiğim yanlış bir karardı:
+bitiş incelemesindeki "kart yok" kuralını (DESIGN.md) `.term`e de uygulayıp
+dolgusunu kaldırmıştım.
+Seçenekler: sayfa zemininin bir tonunu kullanmak · yalnızca koyu temada koyu
+olmak · her iki temada da kendi koyu zeminine oturmak
+Karar: Üçüncüsü. Terminal her iki temada da koyu; açık temada beyaz sayfanın
+tek koyu nesnesi, koyu temada sayfadan bir tık daha derin.
+Gerekçe: "Kart yok" kuralı VERİ blokları için — veri kutuda değil çizgide
+durur. Terminal bir veri bloğu değil, farklı bir malzeme: sayfanın malzemesi
+kâğıt, terminal bir ekran. Kâğıdın üstünde bir ekran göstermek sertifika
+konseptiyle çelişmiyor, onu tamamlıyor (bir rapora yapıştırılmış konsol
+çıktısı). Terminal her yerde koyudur; bu bir tema tutarsızlığı değil.
+Palet BÜYÜMEDİ: `--term-*` tokenlarının değerleri koyu temanın kendi
+paletinden birebir alındı, ölçüm renkleri dahil. Yeni renk üretilmedi, yazı
+tipi mono kaldı, pencere süsü (mac noktaları, başlık çubuğu) eklenmedi.
+Ayrım komut bandıyla yapılıyor: yazılan satır bir tık açık zemin ve tam
+kontrast mürekkep, çıktı daha sessiz — gerçek bir terminalde girdi ile
+program çıktısı aynı şey değil.
+Geri dönüş maliyeti: düşük (token + CSS)
