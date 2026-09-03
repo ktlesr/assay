@@ -98,3 +98,49 @@ Açmak için: Seçenekler ve bedelleri [operations.md](operations.md) içinde
 "`EOTP` — token 2FA'yı atlayamıyor" başlığı altında. Kalıcı çözüm trusted
 publishing ama o paketin var olmasını gerektiriyor, yani ilk sürüm bu iki
 yoldan biriyle çıkmalı.
+
+## 2026-09-03 — 0.1.1 yayımlanamıyor: npm'de trusted publisher tanımlı değil
+
+**Ne gerekiyor:** npmjs.com üzerinde dört paket için trusted publisher kaydı.
+Her paket → Settings → Trusted Publisher → GitHub Actions; organization
+`ktlesr`, repository `assay`, workflow `release.yml`. Dördü ayrı ayrı:
+`@ktlsr/assay`, `@ktlsr/assay-core`, `@ktlsr/assay-runner`,
+`@ktlsr/assay-adapters`.
+
+**Ne yapıldı (dört yayın denemesi, hiçbiri paketi göndermedi):**
+
+1. İlk iki deneme `E404 PUT /@ktlsr%2fassay-core`. Kök sebep: `c1adebd`
+   `NODE_AUTH_TOKEN`'ı kaldırmıştı ve Node 22 ile gelen npm 10.9.8 trusted
+   publishing yapamıyor (>= 11.5.1 gerekiyor). Yani hatta hiçbir kimlik
+   bilgisi yoktu. Yayımlanan 0.1.0'ın `_npmVersion` alanı 10.9.8 olduğu için
+   0.1.0'ın da aslında token ile yayımlandığı kanıtlandı
+   (bkz. docs/decisions.md düzeltmesi).
+2. `npm install -g npm@latest` + sürüm kapısı eklendi (npm 12.0.2). Hata
+   sürdü ama mesaj netleşti: "could not be found **or you do not have
+   permission to access it**".
+3. `setup-node`'dan `registry-url` kaldırıldı: o satır
+   `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` içeren bir `.npmrc`
+   yazıyordu ve token'sız hatta BOŞ bir kimlik bilgisine çözülüyordu; npm
+   "kimlik zaten var" sanıp OIDC değişimini hiç denemiyordu.
+4. Son deneme: `ENEEDAUTH — need auth This command requires you to be logged
+   in`. npm artık kimlik bilgisi olmadığını dürüstçe söylüyor ve OIDC
+   değişimini deneyip registry'den olumlu yanıt alamıyor.
+
+Hata dizisi E404 → ENEEDAUTH, hattaki iki gerçek kusurun kapandığını ve geriye
+yalnızca registry tarafındaki kaydın kaldığını gösteriyor.
+
+**Neden izole edildi:** Trusted publisher kaydı npm hesabı erişimi istiyor;
+sır ve hesap ayarı uydurulmaz (sözleşme 1). Yayın geri alınamaz bir işlem
+olduğu için tahminle daha fazla deneme yapılmadı.
+
+**Hasar yok:** Registry'de dört paket de `["0.1.0"]`. `core` bağımlılık
+sırasında ilk sırada olduğu için diğer üçü hiç denenmedi; kısmi yayın
+oluşmadı.
+
+**Açmak için:** Kayıtlar tanımlandıktan sonra
+`gh workflow run Release -f confirm=yayimla`. Kod değişikliği gerekmiyor.
+
+**Alternatif (tercih edilmiyor):** `NPM_TOKEN` secret'ı tanımlanıp iş akışına
+`NODE_AUTH_TOKEN` geri konabilir — ama o zaman `setup-node`'a `registry-url`
+da geri eklenmeli, çünkü `.npmrc`'yi o yazıyor. Bu, token'sız hat kararını
+geri alır ve 90 günlük yenileme döngüsünü geri getirir.
