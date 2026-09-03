@@ -77,11 +77,16 @@ jobs:
       # hatasıyla düşürüyor — tek doğruluk kaynağı `packageManager`.
       - uses: pnpm/action-setup@v4
 
+      # DİKKAT: `registry-url` verilmiyor. Verilince setup-node bir .npmrc
+      # yazıp içine `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`
+      # koyuyor; token'sız hatta bu satır BOŞ bir kimlik bilgisine çözülüyor
+      # ve npm "zaten kimlik var" sanıp trusted publishing (OIDC) değişimini
+      # hiç denemiyor. Sonuç: kimlik bilgisiz PUT ve E404. Registry varsayılanı
+      # zaten registry.npmjs.org.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
-          registry-url: https://registry.npmjs.org
 
       # Trusted publishing (OIDC) npm >= 11.5.1 ister; Node 22 ile gelen npm
       # 10.9.x bunu YAPMAZ. 0.1.0 aslında NODE_AUTH_TOKEN ile yayımlanmıştı,
