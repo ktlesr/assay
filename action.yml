@@ -12,7 +12,9 @@
 
 name: Assay — Agent Skill measurement
 description: >
- Measure whether an Agent Skill fires when it should, stays quiet when it shouldn't, and still does
+  Measure whether an Agent Skill fires when it should, stays quiet when it
+  shouldn't, and still does tomorrow what it did today. Every rate reports its
+  sample size and confidence interval.
 author: Assay contributors
 
 branding:
