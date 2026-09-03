@@ -2,7 +2,13 @@
 
 import type { ReactNode } from 'react'
 import { IconAlert, IconFail, IconInfo, IconPass, IconUnknown } from './icons'
-import { countSentence, intervalGloss, pct, type Measurement } from './format'
+import {
+  countSentence,
+  formatBounds,
+  intervalGloss,
+  pct,
+  type Measurement,
+} from './format'
 
 export type { Measurement }
 
@@ -146,22 +152,21 @@ export function IntervalRule({
         aria-hidden="true"
       />
       {showBounds ? (
-        <>
-          <span
-            className="interval-bound interval-bound-start"
-            style={{ left: `${low}%` }}
-            aria-hidden="true"
-          >
-            {pct(value.ci.low)}
-          </span>
-          <span
-            className="interval-bound interval-bound-end"
-            style={{ left: `${high}%` }}
-            aria-hidden="true"
-          >
-            {pct(value.ci.high)}
-          </span>
-        </>
+        /*
+         * Tek etiket, aralığın ortasında. İki uca ayrı ayrı konumlanan
+         * etiketler aralık daraldığında üst üste biniyordu. `clamp` etiketi
+         * rayın içinde tutuyor: aralık uçlardan birine yaslandığında dışarı
+         * taşmıyor.
+         */
+        <span
+          className="interval-bound"
+          style={{
+            left: `clamp(2.4rem, ${clamp(low + width / 2)}%, calc(100% - 2.4rem))`,
+          }}
+          aria-hidden="true"
+        >
+          {formatBounds(value)}
+        </span>
       ) : null}
     </div>
   )
@@ -187,7 +192,11 @@ export function MetricValue({
   return (
     <div className="metric-row">
       <span className="col-label">{label}</span>
-      <IntervalRule value={value} delayMs={delayMs} {...(tone === undefined ? {} : { tone })} />
+      <IntervalRule
+        value={value}
+        delayMs={delayMs}
+        {...(tone === undefined ? {} : { tone })}
+      />
       <span className="metric-figure">
         {value.rate === null ? (
           <span className="text-unknown">not measured</span>
@@ -231,9 +240,7 @@ export function MeasurementBlock({
       <p className="col-label">{label}</p>
       <p className="measure-count">{countSentence(value, verb)}</p>
       <div className="measure-figure">
-        <span className="measure-pct">
-          {value.rate === null ? '—' : pct(value.rate)}
-        </span>
+        <span className="measure-pct">{value.rate === null ? '—' : pct(value.rate)}</span>
         <div className="measure-instrument">
           <IntervalRule
             value={value}

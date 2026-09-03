@@ -29,6 +29,23 @@ export function formatMeasurement(value: Measurement): string {
 }
 
 /**
+ * Aralığın uç değerleri, tek etiket.
+ *
+ * Uçlar ayrı ayrı, aralığın iki ucuna konumlandırılıyordu. Aralık daraldığında
+ * iki etiket üst üste biniyordu — dar bir aralık tam da güvenin YÜKSEK olduğu
+ * yer, yani kusur en çok okunmak istenen sayıda ortaya çıkıyordu (`%89–%100`
+ * çakışıyordu). Eşikle çözmek çalışmıyor: aynı bileşen 6rem'lik bir satırda da
+ * kullanılıyor, geniş bir karnede de; piksel eşiği yüzdeyle ifade edilemiyor.
+ *
+ * Tek etiket her genişlikte doğru: aralık zaten tek bir olgu ve çubuğun kendisi
+ * nerede durduğunu zaten gösteriyor.
+ */
+export function formatBounds(value: Measurement): string | null {
+  if (value.ci === null) return null
+  return `${pct(value.ci.low)}–${pct(value.ci.high)}`
+}
+
+/**
  * Sayımın düz cümlesi. Yüzdeyi okumadan önce okunan satır.
  *
  * "20 denemenin 14'ünde tetiklendi" cümlesi, istatistik bilmeyen okuyucuya

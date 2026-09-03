@@ -22,6 +22,7 @@ export {
  */
 export {
   countSentence,
+  formatBounds,
   formatMeasurement,
   intervalGloss,
   type Measurement,

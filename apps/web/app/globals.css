@@ -1187,15 +1187,6 @@ body {
 }
 
 /* Uç değer etiketleri eksenin dışına taşmasın. */
-.interval-bound {
-  transform: translateX(-50%);
-}
-.interval-bound-end {
-  transform: translateX(-100%);
-}
-.interval-bound-start {
-  transform: translateX(0);
-}
 
 /* Kayan koşul satırı — karşılaştırmada hangi pinin oynadığı. */
 .pin-row-drifted dd,
@@ -2343,4 +2334,14 @@ main {
     position: sticky;
     top: var(--space-12);
   }
+}
+
+/*
+ * Aralık etiketi tek ve ortada. İki uca ayrı ayrı konumlanan etiketler dar
+ * aralıkta üst üste biniyordu — ve dar aralık tam da sayının en çok okunmak
+ * istendiği yer.
+ */
+.interval-bound {
+  transform: translateX(-50%);
+  font-variant-numeric: tabular-nums;
 }

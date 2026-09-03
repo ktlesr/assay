@@ -1,7 +1,7 @@
 import { proportion, type Proportion } from '@ktlsr/assay-core'
 import type { Measurement } from '@ktlsr/assay-ui'
 import { describe, expect, it } from 'vitest'
-import { formatMeasurement } from '@ktlsr/assay-ui'
+import { formatBounds, formatMeasurement } from '@ktlsr/assay-ui'
 import { formatProportion } from '@ktlsr/assay-core'
 
 /**
@@ -51,5 +51,33 @@ describe('ui ⇄ core sözleşmesi', () => {
       ...(pkg.peerDependencies ?? {}),
     }).filter((d) => d.startsWith('@ktlsr/assay'))
     expect(assayDeps).toEqual([])
+  })
+})
+
+/**
+ * Aralık etiketi tek parça.
+ *
+ * Uçlar ayrı ayrı konumlandığında dar aralıkta üst üste biniyorlardı ve dar
+ * aralık tam da sayının en çok okunmak istendiği yer. Eşikle çözülemez: aynı
+ * bileşen 6rem'lik bir satırda da, geniş bir karnede de kullanılıyor.
+ */
+describe('aralık uç etiketi', () => {
+  const measurement = (low: number, high: number) => ({
+    successes: 1,
+    n: 1,
+    rate: (low + high) / 2,
+    ci: { low, high, level: 0.95 as const },
+  })
+
+  it('iki ucu tek etikette birleştirir', () => {
+    expect(formatBounds(measurement(0.89, 1))).toBe('89%–100%')
+  })
+
+  it('dar aralıkta da tek etiket üretir — çakışacak iki etiket yok', () => {
+    expect(formatBounds(measurement(0.72, 0.74))).toBe('72%–74%')
+  })
+
+  it('ölçüm yoksa etiket de yok', () => {
+    expect(formatBounds({ successes: 0, n: 0, rate: null, ci: null })).toBeNull()
   })
 })
