@@ -1755,21 +1755,35 @@ body {
  * bir kalın çizgi, tıpkı gerçek grafik kâğıdı gibi. Çok yavaş sürükleniyor:
  * hareketi fark etmiyorsunuz, durduğunda fark ediyorsunuz.
  */
+/*
+ * TEK ÖLÇEK, iki değil.
+ *
+ * Alan önce 14rem kaba + 1.75rem ince olmak üzere iki ölçek taşıyordu. İnce
+ * kafes 1280px'lik bir ekranda binbeşyüz hücre çiziyordu ve zemin "milimetrik
+ * kâğıt"tan çıkıp gürültüye dönüyordu — özellikle metnin arkasında.
+ *
+ * İnce kafes kaldırıldı; geriye tek bir cetvel ızgarası kaldı. Bu zaten
+ * tasarımın kendi dili: sayfa hairline üzerine kurulu, kafes üzerine değil.
+ * Kaba ölçek 14rem'den 9rem'e indi ki tek başına kaldığında "rastgele çizgi"
+ * değil "cetvel" olarak okunsun.
+ */
 .field-grid {
   position: absolute;
   inset: -8rem;
   background-image:
     linear-gradient(to right, var(--rule) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--rule) 1px, transparent 1px),
-    linear-gradient(to right, var(--rule) 1px, transparent 1px),
     linear-gradient(to bottom, var(--rule) 1px, transparent 1px);
   background-size:
-    14rem 14rem,
-    14rem 14rem,
-    1.75rem 1.75rem,
-    1.75rem 1.75rem;
-  opacity: 0.5;
-  mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 78%);
+    9rem 9rem,
+    9rem 9rem;
+  opacity: 0.45;
+  /*
+   * Maske hero'nun arkasında yoğun, içeriğe inerken kayboluyor. Önceki hâli
+   * (%135 genişlik, %92'de biten) sayfanın tamamını kaplıyordu; o değeri
+   * "koyu temada alan görünmüyor" bulgusunu düzeltirken açmıştım ve açık
+   * temayı tekrar kontrol etmemiştim. Yoğunluk oradan geliyordu.
+   */
+  mask-image: radial-gradient(100% 62% at 50% 8%, #000 22%, transparent 82%);
   animation: field-drift 90s linear infinite;
 }
 
@@ -2227,17 +2241,14 @@ main {
  * başlığın altında algılanamaz hâle geliyordu. Koyu tema daha çok mürekkep
  * istiyor, çünkü kontrast yönü ters.
  */
+/* Tek ölçekte kafesle yarışan bir şey yok; koyu temada 0.9 fazlaydı. */
 [data-theme='dark'] .field-grid,
 :root:not([data-theme='light']) .field-grid {
-  opacity: 0.9;
+  opacity: 0.7;
 }
 [data-theme='dark'] .field-interval,
 :root:not([data-theme='light']) .field-interval {
   opacity: 0.5;
-}
-/* Maske daha geç kapanıyor: alan sayfanın alt yarısında da yaşıyor. */
-.field-grid {
-  mask-image: radial-gradient(135% 115% at 50% 22%, #000 45%, transparent 92%);
 }
 
 /*
