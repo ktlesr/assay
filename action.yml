@@ -10,7 +10,7 @@
 # depoda çalışıyordu. Artık ikisini de kendi kuruyor ve kimlik bilgisini
 # girdi olarak alıyor.
 
-name: Assay — Agent Skill measurement
+name: Assay — Agent Skill measurements
 description: >
   Measure whether an Agent Skill triggers on the request it claims, stays quiet
   on the one next to it, and still completes the way it did before. Every rate
