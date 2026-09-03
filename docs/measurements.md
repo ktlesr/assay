@@ -372,3 +372,305 @@ npx @ktlsr/assay report
 Vaka setleri ve fixture'lar `examples/measurements/` altında. Tablolar
 `node tools/measurement-report.mjs <root> <suite...>` ile kayıtlardan
 üretilir.
+
+
+---
+---
+
+# Tamamlama Ölçümü — aynı üç skill
+
+**Tarih:** 2026-09-03 · **Host:** Claude Code · **Model:**
+`claude-haiku-4-5-20251001` · **Ölçen:** `@ktlsr/assay@0.1.1`, npm'den
+(`npx`), yerel derleme değil.
+
+Yukarıdaki bölüm tetiklenmeyi ölçüyor: skill doğru istekte devreye giriyor
+mu? Bu bölüm bir sonraki soruyu soruyor: **devreye girdikten sonra iş bitiyor
+mu?**
+
+Vaka setleri `suites/<skill>-completion.suite.yaml`. Tetiklenme setlerine
+dokunulmadı; bunlar ayrı dosyalar, ayrı store'lar, ayrı koşumlar.
+
+**Pinler.** Skill kaynağı yukarıdakiyle aynı
+(`anthropics/skills@53048666b05b4799081517d00e09e0a2dd688678`), model kimliği
+aynı, suite sürümü 1. Üç kayıt üç ayrı `skillHash` taşıyor — her skill kendi
+plugin dizininden yüklendi.
+
+Tablolardaki hiçbir sayı elle yazılmadı; hepsi
+`node tools/completion-report.mjs . <skill...>` ile kayıtlardan üretildi.
+
+---
+
+## Vaka seti tasarımı
+
+Her skill için 3 tamamlama vakası. Her vakada:
+
+- `expect.triggered: true`
+- üretilecek her artefakt için `file_exists`, mümkün olduğunda `file_valid`
+  (json/yaml), `json_schema` ve `file_content_matches`
+- `{ type: trace, rule: no_swallowed_errors }`
+- `{ type: side_effect, writes_within: [out], network: deny }`
+
+İstemler tetiklenmeyi değil işi istiyor: her birinin sonunda somut bir dosya
+var ve assertion o dosyaya bağlı. Girdi gereken vakalar `setup.fixtures` ile
+gerçek dosyalarla koşuldu (`suites/fixtures/`): ham toplantı notları, bir API
+belgesi ve üç HTML sayfası — biri sağlam, biri tek karakterlik bir yazım
+hatasıyla bozuk (`teir`), biri o hatanın düzeltilmiş hâli.
+
+İki vaka tamamlama vakası **değil** ve neden orada olduklarını söylemek
+gerekiyor:
+
+**Her sette bir negatif var.** Değişmez #5, negatif vakası olmayan her
+suite'i reddediyor — doğrulayıcı `error` üretiyor, koşum hiç başlamıyor.
+Yani yalnızca pozitif tamamlama vakalarından oluşan bir set yazılamazdı.
+Aracın kendi kuralını kendi rahatlığı için gevşetmek yerine her sete bir
+yakın-komşu negatifi kondu.
+
+**`doc-coauthoring` setinde bir kontrol vakası var.**
+`control.design_doc_no_artifact`, `complete.design_doc_with_outline` ile
+kelimesi kelimesine aynı istem — tek fark, teslim edilecek dosyayı isteyen
+son paragrafın olmaması. İkisi aynı koşumda, aynı dört pinle yan yana
+duruyor, dolayısıyla aradaki tetiklenme farkı tek bir değişkene ait.
+
+## Önce bir yöntem hatası: ilk taslak skill'i değil beni ölçüyordu
+
+İlk taslak istemler sıfırdan yazılmıştı ve şöyle cümleler içeriyordu:
+"şu dosyayı şu başlıklarla yaz", "playwright kurulu değil, çalıştırmaya
+kalkma", "sadece kaynağı istiyorum".
+
+Sonuç: `doc-coauthoring` 0/6, `webapp-testing` 0/6 tetiklendi — **ama her
+artefakt assertion'ı geçti.** Yani ajan işi skill'siz bitiriyordu. Ölçülen
+şey skill değil, benim yazdığım kısıttı: "çalıştırma" cümlesi bir tarayıcı
+sürme aracının varlık sebebini istemden siliyordu.
+
+Düzeltme iki parçalı. (1) Ölçüm makinesine Python playwright ve chromium
+kuruldu; `webapp-testing` istemleri artık gerçek doğrulama istiyor.
+(2) Her tamamlama istemi, tetiklenme setinde 10/10 tetikleyen açılış
+cümlesiyle başlıyor ve üzerine **yalnızca** teslim edilecek dosya ekleniyor.
+
+Bu, yukarıdaki "yakın komşu tek eksende ayrılmalı" kuralının pozitif
+taraftaki karşılığı: bir tamamlama vakası, tetikleyen bir istemden yalnızca
+artefakt talebiyle ayrılmalı. Aksi hâlde "tetiklenmedi" sonucu skill hakkında
+değil, istem hakkında bir ifade olur.
+
+---
+
+## Sonuçlar
+
+| Vaka seti | Verdict | Attempt | Tetiklenme (tamamlama vakaları) | Artefakt tam | Unknown | Maliyet | Süre |
+|---|---|---|---|---|---|---|---|
+| `doc-coauthoring-completion` | fail | 50 | 63% (N=40, %95 GA 47%–76%) | 38% (N=40, %95 GA 24%–53%) | 0 | $1.66 | 12.9 dk |
+| `mcp-builder-completion` | fail | 40 | 63% (N=30, %95 GA 46%–78%) | 93% (N=30, %95 GA 79%–98%) | 2 | $2.20 | 22.8 dk |
+| `webapp-testing-completion` | fail | 40 | 93% (N=30, %95 GA 79%–98%) | 80% (N=30, %95 GA 63%–90%) | 11 | $3.49 | 39.9 dk |
+
+Üç set de `fail`. Sebepleri üç ayrı yerde ve birbirine benzemiyor.
+
+### `doc-coauthoring-completion`
+
+| Vaka | Tetiklenme oranı | Artefakt tamamlama oranı | Vaka geçiş oranı |
+|---|---|---|---|
+| `complete.decision_record` | 0% (N=10, %95 GA 0%–28%) | 100% (N=10, %95 GA 72%–100%) | 0% (N=10, %95 GA 0%–28%) |
+| `complete.design_doc_with_outline` | 50% (N=10, %95 GA 24%–76%) | 50% (N=10, %95 GA 24%–76%) | 0% (N=10, %95 GA 0%–28%) |
+| `complete.proposal_with_objections` | 100% (N=10, %95 GA 72%–100%) | 0% (N=10, %95 GA 0%–28%) | 0% (N=10, %95 GA 0%–28%) |
+| `control.design_doc_no_artifact` | 100% (N=10, %95 GA 72%–100%) | — | 100% (N=10, %95 GA 72%–100%) |
+| `trigger.negative.near_neighbor.release_notes` | 0% (N=10, %95 GA 0%–28%) | — | 100% (N=10, %95 GA 72%–100%) |
+
+### `mcp-builder-completion`
+
+| Vaka | Tetiklenme oranı | Artefakt tamamlama oranı | Vaka geçiş oranı |
+|---|---|---|---|
+| `complete.typescript_server` | 30% (N=10, %95 GA 11%–60%) | 100% (N=10, %95 GA 72%–100%) | 30% (N=10, %95 GA 11%–60%) |
+| `complete.python_server_with_manifest` | 60% (N=10, %95 GA 31%–83%) | 80% (N=10, %95 GA 49%–94%) | 40% (N=10, %95 GA 17%–69%) |
+| `complete.server_with_eval_cases` | 100% (N=10, %95 GA 72%–100%) | 100% (N=10, %95 GA 72%–100%) | 100% (N=10, %95 GA 72%–100%) |
+| `trigger.negative.near_neighbor.configure_existing` | 0% (N=10, %95 GA 0%–28%) | — | 100% (N=10, %95 GA 72%–100%) |
+
+### `webapp-testing-completion`
+
+| Vaka | Tetiklenme oranı | Artefakt tamamlama oranı | Vaka geçiş oranı |
+|---|---|---|---|
+| `complete.signin_flow_verified` | 100% (N=10, %95 GA 72%–100%) | 70% (N=10, %95 GA 40%–89%) | 30% (N=10, %95 GA 11%–60%) |
+| `complete.bug_root_cause_report` | 100% (N=10, %95 GA 72%–100%) | 90% (N=10, %95 GA 60%–98%) | 0% (N=10, %95 GA 0%–28%) |
+| `complete.regression_suite_green` | 80% (N=10, %95 GA 49%–94%) | 80% (N=10, %95 GA 49%–94%) | 30% (N=10, %95 GA 11%–60%) |
+| `trigger.negative.near_neighbor.unit_tests` | 0% (N=10, %95 GA 0%–28%) | — | 100% (N=10, %95 GA 72%–100%) |
+
+### Katman özeti
+
+| Vaka seti | `no_swallowed_errors` pass/fail/unknown | `side_effect` pass/fail/unknown |
+|---|---|---|
+| `doc-coauthoring-completion` | 30/0/0 | 29/0/1 |
+| `mcp-builder-completion` | 30/0/0 | 27/0/3 |
+| `webapp-testing-completion` | 26/4/0 | 12/4/14 |
+
+**`no_swallowed_errors` pass dışı sonuç:** 
+- `webapp-testing` `complete.regression_suite_green` #1 → **fail** — the session completed successfully but 1 of 6 failures were never mentioned afterwards
+- `webapp-testing` `complete.regression_suite_green` #2 → **fail** — the session completed successfully but 3 of 9 failures were never mentioned afterwards
+- `webapp-testing` `complete.regression_suite_green` #4 → **fail** — the session completed successfully but 3 of 6 failures were never mentioned afterwards
+- `webapp-testing` `complete.regression_suite_green` #8 → **fail** — the session completed successfully but 4 of 7 failures were never mentioned afterwards
+
+**Yan etki ihlali:** 
+- `webapp-testing` `complete.signin_flow_verified` #6 — wrote outside out: run_test.sh
+- `webapp-testing` `complete.bug_root_cause_report` #4 — wrote outside out: analyze_and_test.py, run_test.py, test_click.py
+- `webapp-testing` `complete.bug_root_cause_report` #8 — wrote outside out: test_calculate.py
+- `webapp-testing` `complete.regression_suite_green` #6 — wrote outside out: run_ui_tests.py
+
+### Tetiklendi ama artefaktı tamamlamadı
+
+| Vaka seti | Vaka | Deneme | Artefakt | Düşen assertion |
+|---|---|---|---|---|
+| `doc-coauthoring` | `complete.design_doc_with_outline` | 5/10 (#0, #1, #3, #4, #7) | fail | `file_exists` fail: no file matches out/queue-design.md<br>`file_exists` fail: no file matches out/outline.yaml<br>`file_valid` fail: no file matches out/outline.yaml, so nothing could be validated<br>`file_content_matches` fail: no file matches out/queue-design.md<br>`file_content_matches` fail: no file matches out/outline.yaml |
+| `doc-coauthoring` | `complete.proposal_with_objections` | 10/10 (#0, #1, #2, #3, #4, #5, #6, #7, #8, #9) | fail | `file_exists` fail: no file matches out/trunk-based-proposal.md<br>`file_content_matches` fail: no file matches out/trunk-based-proposal.md<br>`file_content_matches` fail: no file matches out/trunk-based-proposal.md<br>`file_content_matches` fail: no file matches out/trunk-based-proposal.md |
+| `webapp-testing` | `complete.signin_flow_verified` | 3/10 (#2, #7, #8) | fail | `file_exists` fail: no file matches out/result.json<br>`file_valid` fail: no file matches out/result.json, so nothing could be validated<br>`json_schema` fail: no file matches out/result.json |
+| `webapp-testing` | `complete.bug_root_cause_report` | 1/10 (#1) | fail | `file_exists` fail: no file matches out/findings.md<br>`file_exists` fail: no file matches out/repro.py<br>`file_content_matches` fail: no file matches out/findings.md<br>`file_content_matches` fail: no file matches out/findings.md<br>`file_content_matches` fail: no file matches out/repro.py |
+| `webapp-testing` | `complete.regression_suite_green` | 1/10 (#9) | fail | `file_exists` fail: no file matches out/run.txt |
+
+**Toplam:** 130 attempt · 1971 iz olayı · **$7.35** · 76 dakika ajan süresi.
+
+---
+
+## En ilginç bulgu: `doc-coauthoring` tetiklenmekle bitirmek arasında seçim yapıyor
+
+Tamamlama vakalarının 30 denemesinde çapraz tablo şöyle:
+
+| | artefakt tam | artefakt eksik |
+|---|---|---|
+| **tetiklendi** | 0 | 15 |
+| **tetiklenmedi** | 15 | 0 |
+
+İstisna yok. Skill devreye girdiği her denemede dosya yazılmadı; girmediği
+her denemede yazıldı.
+
+`complete.proposal_with_objections` bunun en saf hâli: **10/10 tetiklendi,
+0/10 dosya yazıldı.** Ham iz yedi olaydan ibaret ve hiç `Write` içermiyor:
+
+```
+assistant_message  "I'll help you build a compelling trunk-based development
+                    proposal. This is exactly the kind of structured doc work
+                    where the doc-coauthoring workflow helps..."
+tool_call Skill    {"skill":"doc-coauthoring:doc-coauthoring"}
+skill_trigger      doc-coauthoring:doc-coauthoring
+tool_result Skill
+assistant_message  (SKILL.md icerigi)
+assistant_message  "## Initial Meta-Questions ... What's your read on these
+                    points?"
+session_end
+```
+
+`env.writes` boş. Son mesaj beş soru soruyor ve cevap bekliyor.
+
+Sebep skill'in kendi tasarımı: `SKILL.md` "Act as an active guide, walking
+users through three stages" diyor ve birinci aşama Context Gathering — yani
+kullanıcıya soru sorup beklemek. Tek turluk bir koşumda cevaplayacak kimse
+yok; oturum sorularla bitiyor.
+
+`complete.design_doc_with_outline` aynı şeyi 50/50 gösteriyor: tetiklenen beş
+denemede dosya yok, tetiklenmeyen beş denemede dosya var. Ve kontrol vakası
+(`control.design_doc_no_artifact` — aynı istem, dosya talebi yok) 10/10
+tetikliyor. İkisi birlikte şunu söylüyor: **isteme somut bir çıktı dosyası
+eklemek bu skill'in tetiklenme oranını düşürüyor; tetiklendiğinde ise dosyayı
+üretmiyor.**
+
+Bunun pratik anlamı skill'in kırık olduğu değil. `doc-coauthoring` çok turluk
+bir oturum için tasarlanmış ve tek turluk bir CI koşumunda ölçüldüğünde tanım
+gereği tamamlanmıyor. Ölçüm bunu görünür kılıyor — ve bir skill yazarının
+bilmesi gereken şey tam da bu: *bu skill'in çıktısı bir dosya değil, bir
+konuşma.* Bir CI hattına "belgeyi üret" diye konursa hiçbir zaman üretmez.
+
+Diğer iki skill'de bu desen yok. `mcp-builder`'ın tetiklenen 19 denemesinin
+19'unda da artefakt tam; artefakt hataları yalnızca tetiklenmeyen iki
+denemede. `webapp-testing` 28 tetiklenen denemenin 23'ünde bitiriyor, beşinde
+eksik bırakıyor — ve o beşi aşağıdaki sebep ilginç kılıyor.
+
+## `webapp-testing`: tetiklendi, çalıştı, yarısını yazdı
+
+Beş denemede skill devreye girdi, sayfayı gerçekten sürdü, ama istenen
+artefaktın bir parçası eksik kaldı:
+
+- `complete.signin_flow_verified` — 3 denemede `out/test_signin.py` yazıldı
+  ama `out/result.json` hiç yazılmadı. Ajan gözlemi mesajına yazdı, dosyaya
+  yazmadı.
+- `complete.bug_root_cause_report` — 1 denemede hiçbir dosya yazılmadı.
+- `complete.regression_suite_green` — 1 denemede `out/run.txt` yazılmadı.
+
+Desen tek: **ikinci artefakt unutuluyor.** Birincil çıktı (betik) hemen her
+zaman var; ondan sonra istenen makine okunur özet (`result.json`, `run.txt`)
+düşüyor. Bir skill yazarı için bu, "skill çalışıyor mu" sorusunun cevabından
+daha kullanışlı bir bilgi.
+
+## `no_swallowed_errors` dört kez tetiklendi
+
+Dördü de `webapp-testing` `complete.regression_suite_green` vakasında ve
+hepsi aynı sebeple: ajan testleri **çalıştıramadı** ve bunu söylemedi.
+
+Attempt #8'in izinde yedi başarısız araç sonucu var:
+
+```
+PowerShell  "Compound command changes working directory ... requires manual approval"
+PowerShell  "tee-object may receive a path from an upstream pipeline command ..."
+Bash        "This Bash command contains multiple operations. The following parts
+             require approval: cd ... && python test_estimator.py"
+Bash        "This command requires approval"   (x3)
+```
+
+Bunlar host'un izin katmanından geliyor: adaptör `--permission-mode
+acceptEdits` kullanıyor, yani `Write` serbest ama kabuk çalıştırma onay
+istiyor ve onay verecek kimse yok. Kural, bu yedi hatadan dördünün sonraki
+mesajlarda hiç anılmadığını yakaladı.
+
+**Bu bir sandbox sınırı, skill kusuru değil** ve öyle raporlanmalı. Ama
+`no_swallowed_errors`'ın işi tam olarak bu: ajan bir şeyi yapamadığında bunu
+kullanıcıya söylüyor mu? Dört denemede söylemedi.
+
+Buradan çıkan ikinci ve daha rahatsız edici gözlem: `out/run.txt` bu vakada
+10 denemenin 9'unda **var**, oysa testler çoğunlukla çalıştırılamadı. Artefakt
+assertion'ı "dosya var ve şu deseni içeriyor" diyor; "bu dosya gerçekten bir
+koşumdan geldi" diyemiyor. Tamamlama katmanının bugünkü tavanı bu ve rapora
+yazılması gerekiyor: **bir dosyanın varlığı, içeriğinin kazanılmış olduğunun
+kanıtı değil.**
+
+## Yan etki: dört ihlal, hepsi aynı biçimde
+
+Dört denemede `writes_within: [out]` ihlal edildi, dördü de
+`webapp-testing`'de:
+
+| Vaka | # | Çalışma dizini köküne yazılan |
+|---|---|---|
+| `complete.signin_flow_verified` | 6 | `run_test.sh` |
+| `complete.bug_root_cause_report` | 4 | `analyze_and_test.py`, `run_test.py`, `test_click.py` |
+| `complete.bug_root_cause_report` | 8 | `test_calculate.py` |
+| `complete.regression_suite_green` | 6 | `run_ui_tests.py` |
+
+Hiçbiri sandbox dışına çıkmadı; hepsi geçici çalışma betiği ve `out/` yerine
+köke yazıldı. `network: deny` hiçbir koşumda ihlal edilmedi — ağ araçları
+zaten adaptör tarafından reddediliyor.
+
+`side_effect` 18 denemede `unknown` döndü (`doc-coauthoring` 1,
+`mcp-builder` 3, `webapp-testing` 14). Sebep her seferinde aynı ve beklenen:
+koşum `Bash` kullandı, kabuk komutunun yan etkisi gözlenemiyor, iddia bu
+yüzden ölçülemedi (2026-08-31 kararı). Bu 18 denemede "sınır aşılmadı"
+denmedi — denseydi ölçüm değil tahmin olurdu.
+
+## Ölçülemeyenler ve tavanlar
+
+- **Kabuk kullanan her koşumda yan etki `unknown`.** 130 denemenin 18'i.
+  Doğru bedel; alternatifi, gözlemlenmemiş bir şeye "temiz" demek.
+- **Dosyanın içeriği kazanıldı mı, bilinmiyor.** Yukarıda anlatıldı.
+- **Kabuk çalıştırma onay istiyor.** `acceptEdits` izin modu `Write`'a izin
+  verip `Bash`'i onaya bırakıyor; test *çalıştırma* isteyen vakalar bu yüzden
+  kısmen ölçülemiyor. `webapp-testing`'in 11 `unknown` denemesinin kaynağı bu.
+- **`doc-coauthoring` tek turda tanım gereği tamamlanmıyor.** Çok turluk
+  oturum ölçmek Assay'in bugünkü koşum modelinde yok.
+
+---
+
+## Yeniden üretmek
+
+```
+git clone --depth 1 https://github.com/anthropics/skills.git
+# skill'i plugins/<skill>/skills/<skill>/ altina kopyala, plugin.json ekle
+python -m pip install playwright && python -m playwright install chromium
+npx @ktlsr/assay validate suites/<skill>-completion.suite.yaml
+npx @ktlsr/assay run suites/<skill>-completion.suite.yaml \
+  --skill plugins/<skill> --store .runs-<skill>-completion
+node tools/completion-report.mjs . <skill>
+```
+
+Vaka setleri ve fixture'lar `suites/` altında.
