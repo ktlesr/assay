@@ -1405,3 +1405,19 @@ adımın ortasında patlayabiliyordu. Sürüm kapısı o boşluğu dolduruyor.
 Şans eseri hasar yok: `core` bağımlılık sırasında ilk yayımlanan paket
 olduğu için dördü de gitmedi; kısmi yayın olmadı.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — 0.1.1 trusted publishing ile yayımlandı, hat token'sız kaldı
+
+Bağlam: Dört paket için npm'de trusted publisher kaydı yapıldıktan sonra
+yayın tekrar tetiklendi (koşum `33711487808`).
+Seçenekler: `NPM_TOKEN`'ı geri koymak · yalnızca OIDC ile devam etmek
+Karar: OIDC. Hatta hiçbir npm kimlik bilgisi yok.
+Gerekçe: Üç bağımsız kanıt OIDC'nin gerçekten kullanıldığını gösteriyor —
+kütükte "No NPM_TOKEN found, but OIDC is available - using npm trusted
+publishing", registry'de `_npmVersion: 12.0.2` (0.1.0'ın 10.9.8'i OIDC
+yapamıyordu) ve dört pakette de provenance. Aracın kendi beyanına
+güvenmiyoruz: `verify-published.mjs` dördünü registry'den okudu.
+Yan doğrulamalar: `npx @ktlsr/assay@0.1.1 init <dizin>` tek satır mesajla
+exit 2 veriyor; `report` çıktısı "no negative case broke" notunu gerçek bir
+kayıtta gösteriyor.
+Geri dönüş maliyeti: düşük

@@ -99,7 +99,15 @@ Açmak için: Seçenekler ve bedelleri [operations.md](operations.md) içinde
 publishing ama o paketin var olmasını gerektiriyor, yani ilk sürüm bu iki
 yoldan biriyle çıkmalı.
 
-## 2026-09-03 — 0.1.1 yayımlanamıyor: npm'de trusted publisher tanımlı değil
+## 2026-09-03 — 0.1.1 yayımlanamıyor: npm'de trusted publisher tanımlı değil — ÇÖZÜLDÜ (aynı gün)
+
+**Çözüm:** Dört paket için npm tarafında trusted publisher kaydı yapıldı
+(GitHub Actions · `ktlesr/assay` · `release.yml` · yalnızca publish izni).
+Koşum `33711487808` yeşil: log "No NPM_TOKEN found, but OIDC is available -
+using npm trusted publishing" diyor, dört paket de 0.1.1 olarak registry'de
+ve `_npmVersion` 12.0.2 — yani gerçekten OIDC yeteneği olan npm yayımladı.
+Provenance dördünde de üretildi (`slsa.dev/provenance/v1`). Aşağısı, engel
+açıkken yazılmış kayıttır.
 
 **Ne gerekiyor:** npmjs.com üzerinde dört paket için trusted publisher kaydı.
 Her paket → Settings → Trusted Publisher → GitHub Actions; organization
