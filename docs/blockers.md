@@ -229,3 +229,87 @@ pinlenmiş ve görünür bir karar oluyor — bugünkü sessiz genel reddin ters
 kapsamı dışında. Sınırın kendisi bugün ölçüldü ve yazıldı; kapatılması
 0.2.0'ın işi. Bu arada rapor bunu bir sandbox sınırı olarak açıkça söylüyor
 (docs/measurements.md, "Ölçülemeyenler ve tavanlar").
+
+## 2026-09-03 — Oturum koşmadığında assertion katmanı `fail` üretiyor (değişmez #1)
+
+**Ne gerekiyor:** Kod değişikliği. Sır ya da erişim gerekmiyor; 0.1.3'e alındı
+([roadmap.md](roadmap.md)).
+
+**Sorun.** Aynı olay iki katmanda iki farklı verdict üretiyor. Token iptal
+edildiğinde (veya host başka bir sebeple oturumu hiç açamadığında):
+
+| Katman | Sonuç | Doğru mu |
+|---|---|---|
+| Tetiklenme | `unknown` | ✅ |
+| `file_exists` / `file_valid` / `json_schema` | **`fail`** | ❌ ölçülmedi, başarısız değil |
+| `side_effect` | **`pass`** | ❌ daha kötüsü: sessiz pass |
+
+Üçü de aynı koşumdan geliyor. Ölçüm yapılmadı; iki katman bunu ölçülmüş gibi
+raporluyor ve biri "geçti" diyor.
+
+**Kök sebep.** Tetiklenme katmanı oturumun durumuna bakıyor, assertion katmanı
+bakmıyor.
+
+`ClaudeCodeAdapter.readTriggerSignal` `sessionProblem(session)` çağırıyor ve
+sorun varsa `{ available: false, reason }` dönüyor — doğru davranış.
+
+`finalize` ise aynı sorunu görüp `outcome: 'error'` yazıyor ama `files`
+alanını hiç doldurmuyor. `runAttempt` bunu şöyle karşılıyor
+(`packages/runner/src/run.ts`):
+
+```ts
+const captured = result.files === undefined ? await capture(workspace.dir) : null
+evidence = {
+  files: result.files ?? captured?.files ?? [],
+  env: result.env ?? envDiff({ /* dokunulmamış çalışma dizini */ }),
+  ...
+}
+```
+
+Oturum hiç koşmadığı için çalışma dizini boş; `capture` boş bir dizi dönüyor.
+Yani `evidence.files` **var ama boş**.
+
+Sevk katmanının koruması (`packages/core/src/assertions.ts`) yalnızca alanın
+**varlığını** denetliyor:
+
+```ts
+for (const key of REQUIRES[assertion.type]) {
+  if (evidence[key] === undefined) return unknown(...)
+}
+```
+
+`[]` `undefined` değil. Bu yüzden `file_exists` değerlendiriliyor ve "no file
+matches out/…" diyerek `fail` üretiyor. Aynı şekilde `env` de dolu ve boş:
+`writes: []`, `network: []` → `side_effect` hiçbir ihlal görmüyor ve `pass`
+diyor.
+
+Kanıt bu oturumda görüldü: kimlik bilgisiz bir koşumda üç tamamlama vakası
+`fail`, negatif vaka `unknown` döndü — hepsi "Not logged in" hatasından.
+
+**Neden bu bir değişmez ihlali.** Değişmez #1 sessiz `pass`ı yasaklıyor ve
+gerekçesi "ölçemediğini raporlama". `fail` de aynı hatanın öbür yüzü:
+kullanıcı kırık bir skill arar, oysa sorun kimlik bilgisidir. `side_effect`in
+`pass`ı ise doğrudan yasaklanan şey.
+
+**Değerlendirilen seçenekler.**
+
+| # | Seçenek | Karar |
+|---|---|---|
+| A | Değerlendiricilerin her birine oturum kontrolü koymak | Hayır — yeni bir assertion tipi eklendiğinde unutulacak tek satır; sevk katmanı tam da bunu önlemek için var |
+| B | `Evidence`'a `sessionFailed` bayrağı ekleyip her değerlendiricide bakmak | Hayır — A'nın kılık değiştirmiş hâli |
+| C | Oturum çapraz kontrolden geçmediyse kanıt alanlarını **hiç doldurmamak** | **0.1.3** |
+
+**C — mevcut mekanizmayı olması gerektiği gibi kullanmak.** `runAttempt`,
+`SessionResult.outcome === 'error'` gördüğünde `files`, `env` ve `exitCode`
+alanlarını `undefined` bırakır. Sevk katmanının `REQUIRES` koruması zaten
+"alan yoksa `unknown`" diyor; tek eksik, boş bir çalışma dizininin "kanıt
+toplandı" sayılmasıydı. Yeni kod yolu yok, yeni bayrak yok — var olan koruma
+gerçek durumu görüyor.
+
+Dikkat edilecek tek yer: gerçekten koşup hiçbir şey yazmayan bir ajan ile hiç
+koşmayan bir oturum ayrılmalı. Ayrım `outcome`'da: birincisi `completed` ve
+boş bir workspace `fail` vermeye devam etmeli — orada gerçekten ölçüm var.
+
+**Neden şimdi kapatılmadı:** davranış değişikliği ve 0.1.2 yayımlandı. Bir
+sonraki yamada, testiyle birlikte: aynı olayın her katmanda `unknown`
+ürettiğini gösteren bir koşum testi.

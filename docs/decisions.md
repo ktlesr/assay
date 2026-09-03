@@ -1671,3 +1671,31 @@ Yedekler: `backdrop-filter` desteklenmiyorsa ve
 `prefers-reduced-transparency: reduce` iken zemin opak. Okunabilirlik efektin
 önünde.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-03 — Kanıtın yokluğu kanıt sayılamaz (0.1.3'e alındı)
+
+Bağlam: Token iptalinden sonra aynı koşum üç farklı verdict üretti:
+tetiklenme `unknown`, artefakt assertion'ları `fail`, `side_effect` `pass`.
+Ölçüm hiç yapılmamıştı.
+Sebep: tetiklenme katmanı `sessionProblem()` ile oturumun durumuna bakıyor,
+assertion katmanı bakmıyor. Oturum koşmadığında çalışma dizini boş kalıyor,
+`capture()` boş bir dizi dönüyor ve `evidence.files` "var ama boş" oluyor.
+Sevk katmanının koruması yalnızca `undefined` denetliyor; `[]` ondan geçiyor.
+Seçenekler: (A) her değerlendiriciye oturum kontrolü · (B) `Evidence`'a
+`sessionFailed` bayrağı · (C) oturum çapraz kontrolden geçmediyse kanıt
+alanlarını hiç doldurmamak
+Karar: (C), 0.1.3'te.
+Gerekçe: (A) yeni bir assertion tipi eklendiğinde unutulacak tek satır — sevk
+katmanı tam da bunu önlemek için var (2026-08-31 kararı: "veri yokken pass
+yok" sevk katmanında zorlanıyor). (B) aynı hatanın kılık değiştirmiş hâli:
+kontrolü yine değerlendiricilere dağıtıyor. (C) hiç yeni mekanizma
+gerektirmiyor; `REQUIRES` koruması zaten doğru soruyu soruyor, yalnızca
+gerçeği görmüyordu.
+İki yönlü ihlal olduğu not edildi: `fail` kullanıcıyı kırık skill aramaya
+gönderiyor, `side_effect`in `pass`ı ise doğrudan değişmez #1'in yasakladığı
+sessiz geçiş — ve ikincisi daha tehlikeli.
+Ayrım korunacak: gerçekten koşup hiçbir şey yazmayan bir ajan (`completed` +
+boş workspace) `fail` vermeye devam etmeli; orada ölçüm var.
+Ayrı bir yama olmasının sebebi: davranış değişikliği. Bugün `fail` alan
+koşumlar `unknown` alacak, CI çıkış kodu 1'den 3'e kayacak.
+Geri dönüş maliyeti: düşük

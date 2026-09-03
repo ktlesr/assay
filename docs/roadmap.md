@@ -101,6 +101,36 @@ bundan sonra anlamlı.
 
 ---
 
+## 0.1.3 — Ölçülmeyen koşum her katmanda `unknown`
+
+**Amaç:** Aynı olayın iki katmanda iki farklı verdict üretmemesi.
+
+Token iptal edildiğinde tetiklenme `unknown`, artefakt assertion'ları `fail`,
+`side_effect` ise `pass` dönüyor. Üçü de aynı koşumdan geliyor ve ölçüm hiç
+yapılmadı. Sebep: tetiklenme katmanı oturumun durumuna bakıyor, assertion
+katmanı bakmıyor — oturum koşmadığında boş çalışma dizini "kanıt toplandı"
+sayılıyor ve `REQUIRES` koruması alanı dolu görüyor
+([blockers.md](blockers.md)).
+
+Değişmez #1'in iki yönlü ihlali: `fail` kullanıcıyı yanlış yere bakmaya
+gönderiyor, `side_effect`in `pass`ı ise doğrudan yasaklanan sessiz geçiş.
+
+| Adım | Çıktı |
+|---|---|
+| 0.1.3-a Kanıt yokluğu kanıt sayılmasın | `SessionResult.outcome === 'error'` iken `runAttempt` `files`, `env` ve `exitCode` alanlarını doldurmaz; sevk katmanının mevcut `REQUIRES` koruması `unknown` üretir |
+| 0.1.3-b Koşan ama yazmayan ajan ayrı kalsın | `outcome: 'completed'` ve boş workspace `fail` vermeye devam eder — orada gerçekten ölçüm var |
+| 0.1.3-c Test | Kimlik bilgisiz bir oturumu taklit eden koşum testi: her katman `unknown`, hiçbiri `fail` ya da `pass` |
+
+**Geçiş kriteri.** Host oturumu açamadığında bir attempt'in ürettiği her
+verdict `unknown`. Hiçbir katman `pass` vermiyor, hiçbir katman `fail`
+vermiyor, ve gerekçe kimlik/host sorununu adıyla söylüyor.
+
+**Neden ayrı bir yama.** 0.1.2 yayımlandı ve bu bir davranış değişikliği:
+bugün `fail` alan koşumlar `unknown` almaya başlayacak, yani CI çıkış kodu
+1'den 3'e kayacak. Doğru yön bu ama sürüm notunda yazılması gerekiyor.
+
+---
+
 ## 0.2.0 — Sandbox tavanı: reddedilen komut
 
 **Amaç:** Ölçümün "skill bunu yapamadı" ile "Assay buna izin vermedi"yi
