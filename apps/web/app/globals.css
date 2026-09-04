@@ -1712,11 +1712,11 @@ body {
 /* ===========================================================================
  * ÖLÇÜM ALANI — hareketli zemin
  *
- * Sayfanın arkasındaki katman ürünün kendi işaretlerinden yapıldı: milimetrik
- * kâğıt ızgarası ve yavaşça açılıp kapanan güven aralıkları. Gradient bulutu
- * ya da parlayan küre yok; bir ölçüm aracının zemini ölçümden yapılır.
+ * Sayfanın arkasındaki katman ürünün kendi işaretlerinden yapıldı: sabit bir
+ * cetvel ızgarası ve üzerinde dışa açılan ölçüm halkaları. Gradient bulutu ya
+ * da parlayan küre yok; bir ölçüm aracının zemini ölçümden yapılır.
  *
- * Hepsi compositor'da: transform, opacity, clip-path. Sıfır JS.
+ * Hepsi compositor'da: transform ve opacity.
  * ======================================================================== */
 
 .field {
@@ -1726,6 +1726,11 @@ body {
   overflow: hidden;
   pointer-events: none;
   contain: strict;
+  /*
+   * Halkanın çapı ekranla büyüyor ama tavanı var: 62vmin'lik bir halka küçük
+   * ekranda zemin, büyük ekranda dekor olurdu.
+   */
+  --ripple-size: min(30rem, 62vmin);
 }
 
 /*
@@ -1751,9 +1756,13 @@ body {
 }
 
 /*
- * Izgara: 1px hairline milimetrik kâğıt. İki ölçek — ince kare ve her sekizde
- * bir kalın çizgi, tıpkı gerçek grafik kâğıdı gibi. Çok yavaş sürükleniyor:
- * hareketi fark etmiyorsunuz, durduğunda fark ediyorsunuz.
+ * Izgara: 1px hairline cetvel ızgarası. ARTIK SÜRÜKLENMİYOR.
+ *
+ * Bildirilen kusur: "aşağı doğru olan belirip kaybolan grid parçaları".
+ * Sebep iki animasyonun birleşimiydi — ızgara sonsuz sürükleniyordu ve
+ * üzerindeki maske kenarları eritiyordu, yani her çizgi ekranın bir yerinde
+ * beliriyor, başka bir yerinde kayboluyordu. Kâğıdın kendisi kayan bir şey
+ * değil; kâğıt durur, üstünde olan biter hareket eder.
  */
 /*
  * TEK ÖLÇEK, iki değil.
@@ -1784,64 +1793,57 @@ body {
    * temayı tekrar kontrol etmemiştim. Yoğunluk oradan geliyordu.
    */
   mask-image: radial-gradient(100% 62% at 50% 8%, #000 22%, transparent 82%);
-  animation: field-drift 90s linear infinite;
 }
 
-.field-rules {
+.field-ripples {
   position: absolute;
   inset: 0;
 }
 
 /*
- * Aralık: uçları serifli yatay çizgi — `IntervalRule`'un devasa ve sessiz
- * hâli. Ölçülen noktadan dışa açılıyor, duruyor, kapanıyor. Sayfanın tek
- * yazılı hareketi burada da aynı cümleyi kuruyor, yalnızca çok daha yavaş.
+ * Halka kümesi: ölçülen tek bir noktada duruyor, üç eşmerkezli çember ondan
+ * dışa açılıyor. Kutu boyutsuz — konumu JS veriyor, geri kalan her şey CSS.
  */
-.field-interval {
+.field-ripple {
   position: absolute;
   display: block;
-  height: 9px;
-  border-top: 1px solid var(--rule-strong);
-  opacity: 0.28;
-  clip-path: inset(0 50% 0 50%);
-  animation: field-open var(--dur, 26s) var(--ease-settle) var(--delay, 0s) infinite;
+  width: 0;
+  height: 0;
 }
-.field-interval::before,
-.field-interval::after {
-  content: '';
+
+/*
+ * Halka: hairline çember. Büyüme `transform: scale` ile yapılıyor,
+ * `width`/`height` ile değil — ikincisi her karede layout tetikler ve zeminin
+ * bütçesi metnin bütçesinden çalınamaz. Kenar kalınlığı da ölçekle birlikte
+ * geliyor: halka ince başlayıp tam 1px'e oturuyor, gerilmiş görünmüyor.
+ *
+ * Renk yok, mürekkep var. Kroma ölçüme ayrılmıştır (DESIGN.md).
+ */
+.field-ring {
   position: absolute;
-  top: -1px;
-  width: 1px;
-  height: 9px;
-  background: var(--rule-strong);
-}
-.field-interval::before {
+  top: 0;
   left: 0;
-}
-.field-interval::after {
-  right: 0;
+  display: block;
+  width: var(--ripple-size);
+  height: var(--ripple-size);
+  margin: calc(var(--ripple-size) / -2) 0 0 calc(var(--ripple-size) / -2);
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  opacity: 0;
+  animation: field-ripple 2.9s var(--ease-settle) var(--delay, 0s) forwards;
 }
 
-@keyframes field-open {
+@keyframes field-ripple {
   0% {
-    clip-path: inset(0 50% 0 50%);
+    transform: scale(0.04);
+    opacity: 0;
   }
-  22%,
-  62% {
-    clip-path: inset(0 0 0 0);
+  12% {
+    opacity: 0.42;
   }
-  90%,
   100% {
-    clip-path: inset(0 50% 0 50%);
-  }
-}
-
-@keyframes field-drift {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-14rem, -14rem, 0);
+    transform: scale(1);
+    opacity: 0;
   }
 }
 
@@ -1863,14 +1865,18 @@ main {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .field-grid,
   .field-light,
-  .field-interval {
+  .field-ring {
     animation: none;
   }
-  /* Duran alan yine de bir alan: aralıklar açık kalıyor, kaybolmuyor. */
-  .field-interval {
-    clip-path: inset(0 0 0 0);
+  /*
+   * Halkalar bu modda zaten hiç doğmuyor (bileşen `matchMedia` ile
+   * susuyor); buradaki kural, tercih koşum ortasında değişirse yarım kalmış
+   * bir animasyonun donmasını sağlıyor. Görünmez kalmaları doğru: duran bir
+   * halka bir ölçüm değil, artık.
+   */
+  .field-ring {
+    opacity: 0;
   }
 }
 
@@ -2246,9 +2252,28 @@ main {
 :root:not([data-theme='light']) .field-grid {
   opacity: 0.7;
 }
-[data-theme='dark'] .field-interval,
-:root:not([data-theme='light']) .field-interval {
-  opacity: 0.5;
+/*
+ * Halkalar koyu temada da görünür kalmalı; `--rule-strong` orada (#3a4346)
+ * zeminden az ayrışıyor. Tepe opaklığı animasyonun içinde olduğu için
+ * geçersiz kılma da orada: ayrı bir keyframe yerine tek değişkenlik fark.
+ */
+[data-theme='dark'] .field-ring,
+:root:not([data-theme='light']) .field-ring {
+  animation-name: field-ripple-dark;
+}
+
+@keyframes field-ripple-dark {
+  0% {
+    transform: scale(0.04);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.62;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 
 /*

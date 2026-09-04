@@ -1699,3 +1699,43 @@ boş workspace) `fail` vermeye devam etmeli; orada ölçüm var.
 Ayrı bir yama olmasının sebebi: davranış değişikliği. Bugün `fail` alan
 koşumlar `unknown` alacak, CI çıkış kodu 1'den 3'e kayacak.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-04 — Zeminin hareketi sürüklenen ızgaradan ölçüm halkalarına geçti
+
+Bağlam: Kullanıcı arka planı beğenmediğini bildirdi; özellikle "aşağı doğru
+olan belirip kaybolan grid parçaları". Kusur iki animasyonun birleşimiydi:
+`field-drift` ızgarayı sonsuz sürüklüyor, üstündeki radyal maske de kenarları
+eritiyordu — yani her çizgi ekranın bir yerinde beliriyor, başka bir yerinde
+kayboluyordu. `field-interval` yatay çizgileri de açılıp kapanıyordu;
+"belirip kaybolan"ın ikinci kaynağı oydu. Örnek olarak etkileşimli bir ripple
+(halka) arka plan bileşeni verildi.
+Seçenekler: (a) verilen bileşeni olduğu gibi almak · (b) hareketi tamamen
+kaldırmak · (c) ripple fikrini alıp ürünün diline çevirmek
+Karar: (c). Izgara **sabitlendi** (sürüklenme ve aralık çizgileri kaldırıldı);
+yerine ölçülen bir noktadan dışa açılan üç eşmerkezli hairline halka geldi.
+Halkalar kendiliğinden ~4.3 sn'de bir doğuyor, `pointerdown` olduğunda o
+noktada bir tane daha doğuyor.
+Gerekçe: (a) üç bağlayıcı yasağı birden çiğnerdi — verilen bileşen
+`from-indigo-50 via-purple-50 to-pink-50` gradienti ve mor/mavi/pembe halkalar
+kullanıyor; docs/design.md'de gradient yasak, marka vurgu rengi yok ve **kroma
+yalnızca ölçüme ayrılmış**. Renkli bir zemin, "ekranda gördüğün renk bir ölçüm
+sonucudur" kuralını sessizce bozardı. (b) istenen şey değildi; istenen daha
+iyi bir hareketti, hareketsizlik değil. (c) halkayı ürünün kendi işaretine
+bağlıyor: eşmerkezli üç halka güven aralığının radyal hâli — içteki değer,
+dıştakiler belirsizlik. Kâğıt durur, üstünde olan biter hareket eder.
+Uygulama farkları: halka `transform: scale` ile büyüyor (`width`/`height`
+animasyonu her karede layout tetiklerdi); `styled-jsx` yerine `globals.css`
+(depo konvansiyonu — bu depoda `components/ui` dizini ve `cn()` yardımcısı
+yok, web bileşenleri `apps/web/app/components/` altında ve stil tek bir
+global sayfada); dinleyici `window` üzerinde, alanın kendisinde değil — alan
+içeriğin ARKASINDA ve `pointer-events: none`, kendi üstünde dinleseydi ya hiç
+tetiklenmez ya da sayfanın tıklamalarını yutardı; aynı anda en fazla 6 halka
+kümesi yaşıyor; `prefers-reduced-motion` açıkken hiç halka doğmuyor.
+Bedeli: alan artık bir istemci bileşeni. Önceki hâli sıfır JS'ti ve bu bir
+kayıp; karşılığında sayfanın dokunulduğunu bilen tek katmanı oldu.
+Doğrulandı: `pnpm check` yeşil; dört sayfa (`/`, `/methodology`, `/signin`,
+`/compare`) iki temada ve 375px'te çekildi — hepsi 200, yatay taşma yok,
+konsolda hata yok. Tıklamadan 650 ms sonra üç halka canlı; 6 sn'de
+kendiliğinden doğan küme de sayıldı. Next geliştirme katmanındaki "1 issue"
+rozeti değişiklikten önce de vardı (stash'lenmiş taban koşumuyla karşılaştırıldı).
+Geri dönüş maliyeti: düşük (tek bileşen + tek CSS bloğu)

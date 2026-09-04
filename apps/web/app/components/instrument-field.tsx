@@ -1,67 +1,124 @@
+'use client'
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+
 /**
  * Ölçüm alanı — sayfanın arkasında duran hareketli zemin.
  *
  * Bu bir dekor değil, **ürünün kendi işaretleri**. Gradient bulutu ya da
- * parlayan küre yok; arkada duran şey milimetrik kâğıt ve üzerinde yavaşça
- * yerine oturan güven aralıkları. Bir ölçüm aracının zemini ölçümden yapılır.
+ * parlayan küre yok; arkada duran şey milimetrik kâğıt ve üzerinde açılan
+ * ölçüm halkaları. Bir ölçüm aracının zemini ölçümden yapılır.
  *
  * Üç katman, hepsi akromatik ve hepsi %2–6 mürekkep:
  *
- *  1. **Izgara** — hairline milimetrik kâğıt, çok yavaş sürükleniyor. Sayfanın
- *     kâğıt olduğunu söyleyen tek şey; beyaz zemin tek başına düz durur.
- *  2. **Aralıklar** — uçları serifli yatay çizgiler. Her biri ölçülen noktadan
- *     dışa açılıyor, bir süre duruyor, kapanıyor. `IntervalRule`'un devasa ve
- *     sessiz hâli: ekranın her yerinde aynı cümle kuruluyor.
+ *  1. **Izgara** — hairline cetvel ızgarası. Sabit: sürüklenmiyor, parça parça
+ *     belirip kaybolmuyor. Sayfanın kâğıt olduğunu söyleyen tek şey; beyaz
+ *     zemin tek başına düz durur. Kâğıt durur, üstünde olan biter hareket eder.
+ *  2. **Halkalar** — ölçülen bir noktadan dışa açılan üç eşmerkezli hairline
+ *     çember. Güven aralığının radyal hâli: içteki halka değeri, dıştakiler
+ *     belirsizliği çiziyor. Kendiliğinden seyrek aralıklarla doğuyor; işaretçi
+ *     bastığında o noktada bir tane daha doğuyor — sayfa dokunulduğunu
+ *     biliyor ama dokunulmayı beklemiyor.
  *  3. **Işık** — beyazın ortasında bir ton daha açık bir alan. Renk değil
  *     parlaklık; saf beyazın düz durmasını engelliyor.
  *
- * Maliyet: sıfır JS, sıfır istemci bileşeni, sıfır rAF. Yalnızca `transform`,
- * `opacity` ve `clip-path` animasyonu — üçü de compositor'da. `will-change`
- * bilerek yok: sürekli koşan bir katmanı GPU'ya sabitlemek pil yakar.
+ * Maliyet: halkalar yalnızca `transform` ve `opacity` animasyonu — ikisi de
+ * compositor'da. Aynı anda en fazla `MAX_RIPPLES` halka kümesi yaşıyor;
+ * hızlı tıklama bile DOM'u büyütmüyor. `will-change` bilerek yok: sürekli
+ * koşan bir katmanı GPU'ya sabitlemek pil yakar.
  *
- * `prefers-reduced-motion` tüm hareketi durduruyor ve alan son durumunda
- * kalıyor: kaybolan bir şey yok, yalnızca duran bir şey var.
+ * `prefers-reduced-motion` açıkken hiç halka doğmuyor — alan ızgara ve
+ * ışıktan ibaret, tamamen duruyor. Kaybolan bir şey yok, yalnızca duran
+ * bir şey var.
  */
 export function InstrumentField() {
+  const [ripples, setRipples] = useState<Ripple[]>([])
+  const nextId = useRef(0)
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>())
+
+  const spawn = useCallback((x: number, y: number) => {
+    const id = nextId.current++
+    setRipples((prev) => {
+      const next = [...prev, { id, x, y }]
+      // Tavan: eskisi düşer, yenisi girer. Sınırsız liste, hızlı tıklamada
+      // DOM'u büyütür ve zemin "ortam" olmaktan çıkar.
+      return next.length > MAX_RIPPLES ? next.slice(next.length - MAX_RIPPLES) : next
+    })
+    const timer = setTimeout(() => {
+      timers.current.delete(timer)
+      setRipples((prev) => prev.filter((r) => r.id !== id))
+    }, RIPPLE_LIFETIME_MS)
+    timers.current.add(timer)
+  }, [])
+
+  useEffect(() => {
+    // Hareket kısıtı varsa alan sessiz kalıyor: ne kendiliğinden halka doğuyor
+    // ne de işaretçi bir tane doğuruyor.
+    const reduced =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduced) return
+
+    const ambient = setInterval(() => {
+      // Kenarlardan uzak durulmuyor: yarısı ekran dışında kalan bir halka
+      // "ölçüm alanı sayfadan büyük" diyor, ki öyle.
+      spawn(Math.random() * window.innerWidth, Math.random() * window.innerHeight)
+    }, AMBIENT_INTERVAL_MS)
+
+    // Dinleyici `window` üzerinde: alan `pointer-events: none` ve içeriğin
+    // ARKASINDA duruyor. Kendi üstünde dinleseydi ya hiç tetiklenmezdi ya da
+    // sayfanın tıklamalarını yutardı — ikincisi çalışan bir şeyi bozardı.
+    const onPointerDown = (event: PointerEvent) => spawn(event.clientX, event.clientY)
+    window.addEventListener('pointerdown', onPointerDown, { passive: true })
+
+    const pending = timers.current
+    return () => {
+      clearInterval(ambient)
+      window.removeEventListener('pointerdown', onPointerDown)
+      for (const timer of pending) clearTimeout(timer)
+      pending.clear()
+    }
+  }, [spawn])
+
   return (
     <div className="field" aria-hidden="true">
       <div className="field-light" />
       <div className="field-grid" />
-      <div className="field-rules">
-        {INTERVALS.map((interval, index) => (
+      <div className="field-ripples">
+        {ripples.map((ripple) => (
           <span
-            key={interval.top + interval.left}
-            className="field-interval"
-            style={
-              {
-                top: `${interval.top}%`,
-                left: `${interval.left}%`,
-                width: `${interval.width}rem`,
-                '--i': index,
-                '--dur': `${interval.duration}s`,
-                '--delay': `${interval.delay}s`,
-              } as React.CSSProperties
-            }
-          />
+            key={ripple.id}
+            className="field-ripple"
+            style={{ left: `${ripple.x}px`, top: `${ripple.y}px` }}
+          >
+            {RING_DELAYS.map((delay) => (
+              <i
+                key={delay}
+                className="field-ring"
+                style={{ '--delay': `${delay}s` } as React.CSSProperties}
+              />
+            ))}
+          </span>
         ))}
       </div>
     </div>
   )
 }
 
+interface Ripple {
+  id: number
+  x: number
+  y: number
+}
+
 /**
- * Konumlar elle seçildi, rastgele üretilmedi: rastgele dağılım kümeleniyor ve
- * kümelenme dikkat çekiyor. Zemin dikkat çekmemeli. Süreler asal sayılara
- * yakın tutuldu ki hiçbir ikisi senkron atmasın — senkron atan bir alan
- * "animasyon" gibi okunur, "ortam" gibi değil.
+ * Üç halka, gecikmeleri eşit değil: 0 → 0.22 → 0.5. Eşit gecikme "animasyon"
+ * gibi okunur; artan gecikme dışa doğru genişleyen bir aralık gibi.
  */
-const INTERVALS = [
-  { top: 8, left: 62, width: 13, duration: 23, delay: 0 },
-  { top: 19, left: 8, width: 9, duration: 31, delay: 3.5 },
-  { top: 31, left: 71, width: 7, duration: 19, delay: 7 },
-  { top: 44, left: 4, width: 15, duration: 29, delay: 1.5 },
-  { top: 57, left: 55, width: 11, duration: 37, delay: 5 },
-  { top: 68, left: 14, width: 8, duration: 25, delay: 9 },
-  { top: 79, left: 66, width: 14, duration: 33, delay: 2 },
-  { top: 91, left: 26, width: 10, duration: 27, delay: 6.5 },
-] as const
+const RING_DELAYS = [0, 0.22, 0.5] as const
+
+/** CSS'teki `field-ripple` süresi + en geç halkanın gecikmesi + pay. */
+const RIPPLE_LIFETIME_MS = 3400
+/** Doğum aralığı asal saniyeye yakın: iki halka kümesi senkron atmasın. */
+const AMBIENT_INTERVAL_MS = 4300
+const MAX_RIPPLES = 6
