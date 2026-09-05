@@ -10,7 +10,12 @@
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { ClaudeCodeAdapter } from '@ktlsr/assay-adapters'
+import {
+  ClaudeCodeAdapter,
+  isPermissionMode,
+  PERMISSION_MODES,
+  type PermissionMode,
+} from '@ktlsr/assay-adapters'
 import {
   compareRuns,
   parseSuite,
@@ -58,6 +63,16 @@ Options
   --html <file>       also write a self-contained HTML report
   --store <dir>       run store root (default: .assay)
   --model <id>        override the suite's model
+  --permission-mode <mode>
+                      host permission mode (default: acceptEdits). A skill that
+                      declares allowed-tools cannot activate under acceptEdits.
+                      The mode is part of the measurement: it is written to the
+                      run record and to the environment hash, so runs measured
+                      under different modes do not compare.
+                      modes: ${PERMISSION_MODES.join(', ')}
+  --allow-bypass-permissions
+                      required to actually use bypassPermissions: that mode
+                      removes every boundary the sandbox observes
   --allow-unknown     do not fail CI when attempts could not be measured
   --json              print the run record as JSON instead of a summary
   --suite <file>      the case set the run was measured with (push)
@@ -83,6 +98,8 @@ export async function main(argv: readonly string[]): Promise<number> {
         html: { type: 'string' },
         store: { type: 'string' },
         model: { type: 'string' },
+        'permission-mode': { type: 'string' },
+        'allow-bypass-permissions': { type: 'boolean' },
         'allow-unknown': { type: 'boolean' },
         json: { type: 'boolean' },
         suite: { type: 'string' },
@@ -277,7 +294,30 @@ async function run(
       ? suite
       : { ...suite, environment: { ...suite.environment, model } }
 
-  const adapter = new ClaudeCodeAdapter()
+  // İzin modu ölçümün koşulu: yanlış yazılmış bir mod sessizce varsayılana
+  // düşerse kullanıcı ölçtüğünü sandığı şeyi ölçmemiş olur.
+  const requestedMode = options['permission-mode']
+  if (requestedMode !== undefined && !isPermissionMode(String(requestedMode))) {
+    process.stderr.write(
+      `${style.red('error')} unknown --permission-mode "${String(requestedMode)}"; expected one of ${PERMISSION_MODES.join(', ')}\n`,
+    )
+    return EXIT.usage
+  }
+  const permissionMode = requestedMode as PermissionMode | undefined
+  if (permissionMode === 'bypassPermissions' && options['allow-bypass-permissions'] !== true) {
+    process.stderr.write(
+      `${style.red('error')} --permission-mode bypassPermissions removes every boundary the sandbox observes; ` +
+        `pass --allow-bypass-permissions to state that you meant it\n`,
+    )
+    return EXIT.usage
+  }
+
+  const adapter = new ClaudeCodeAdapter({
+    ...(permissionMode === undefined ? {} : { permissionMode }),
+    ...(options['allow-bypass-permissions'] === true
+      ? { allowBypassPermissions: true }
+      : {}),
+  })
   const record = await runSuite(effective, adapter, {
     source,
     suitePath: loaded.path,

@@ -150,7 +150,7 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
       <section className="mb-12">
         <p className="rule-label mb-4">Conditions</p>
         <p className="mb-6 max-w-[62ch] text-sm text-text-muted">
-          Two runs are comparable only when all six of these are identical. A score that
+          Two runs are comparable only when all of these are identical. A score that
           moved because the model changed is not a regression in the skill.
         </p>
         <Pins run={run} />

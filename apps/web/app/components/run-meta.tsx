@@ -10,22 +10,55 @@ import type { Run } from '@ktlsr/assay-core'
  * "hangisi değişti" sorusunun cevabı listede duruyor, ayrı bir yerde değil.
  */
 export function Pins({ run, drifted = [] }: { run: Run; drifted?: readonly string[] }) {
-  const rows: ReadonlyArray<[key: string, label: string, value: string]> = [
-    ['skillSource', 'Skill version', run.pins.skillSource],
-    [
-      'skillHash',
-      'Skill hash',
-      run.pins.skillHash === '' ? 'not computed' : run.pins.skillHash,
-    ],
-    ['model', 'Model', run.pins.model],
-    ['systemPromptHash', 'Environment hash', run.pins.systemPromptHash],
-    ['suiteVersion', 'Case set version', String(run.pins.suiteVersion)],
-    ['suiteHash', 'Case set hash', run.pins.suiteHash],
+  /**
+   * `driftKey` satırın hangi pinden sorumlu olduğunu söyler.
+   *
+   * Ortam hash'i ve izin modu ayrı satırlar ama ikisi de pin 3'ün denetçisi:
+   * biri kayarsa `comparePins` `systemPromptHash` kaydı diyor. Aynı drift
+   * anahtarını paylaşmaları, "hangisi değişti" işaretinin doğru satırlara
+   * düşmesi için.
+   */
+  const rows: ReadonlyArray<{
+    key: string
+    driftKey: string
+    label: string
+    value: string
+  }> = [
+    { key: 'skillSource', driftKey: 'skillSource', label: 'Skill version', value: run.pins.skillSource },
+    {
+      key: 'skillHash',
+      driftKey: 'skillHash',
+      label: 'Skill hash',
+      value: run.pins.skillHash === '' ? 'not computed' : run.pins.skillHash,
+    },
+    { key: 'model', driftKey: 'model', label: 'Model', value: run.pins.model },
+    // Pin 3 ve denetçisi ayrı satırlarda: türetilmiş bir hash'i sistem promptu
+    // hash'i diye etiketlemek, kullanıcıya sahip olmadığı bir garanti satmak.
+    {
+      key: 'systemPromptHash',
+      driftKey: 'systemPromptHash',
+      label: 'System prompt hash',
+      value: run.pins.systemPromptHash,
+    },
+    {
+      key: 'environmentHash',
+      driftKey: 'systemPromptHash',
+      label: 'Environment hash',
+      value: run.pins.environmentHash ?? 'not reported by the host',
+    },
+    {
+      key: 'permissionMode',
+      driftKey: 'systemPromptHash',
+      label: 'Permission mode',
+      value: run.permissionMode ?? 'not reported by the host',
+    },
+    { key: 'suiteVersion', driftKey: 'suiteVersion', label: 'Case set version', value: String(run.pins.suiteVersion) },
+    { key: 'suiteHash', driftKey: 'suiteHash', label: 'Case set hash', value: run.pins.suiteHash },
   ]
   return (
     <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2">
-      {rows.map(([key, label, value]) => {
-        const moved = drifted.includes(key)
+      {rows.map(({ key, driftKey, label, value }) => {
+        const moved = drifted.includes(driftKey)
         return (
           <div key={key} className={`contents${moved ? ' pin-row-drifted' : ''}`}>
             <dt className="col-label py-0.5">

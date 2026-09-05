@@ -38,6 +38,7 @@ enum TraceEventKind {
   ASSISTANT_MESSAGE
   SKILL_TRIGGER
   SESSION_END
+  HOOK
 }
 
 enum SessionOutcome {
@@ -133,6 +134,14 @@ model Run {
   pinSuiteVersion     Int
   pinSuiteHash        String
 
+  /// Pin 3'ün denetçisi — host'un bildirdiği ortamdan türetilen hash.
+  /// Adaptör veremediyse null ve pin 3 "ölçülemedi" kalır.
+  pinEnvironmentHash String?
+
+  /// Host'un bildirdiği izin modu. Ölçümün koşulu: araçları kısıtlanmış bir
+  /// skill ile kısıtlanmamış olan aynı skill değil. Host bildirmediyse null.
+  permissionMode String?
+
   /// Vaka başına tekrar sayısı. Asla 1 varsayılan değil (#3).
   runsPerCase Int
 
@@ -200,6 +209,11 @@ model Attempt {
   triggerVia       String?
   triggerReason    String?
   triggerSkills    String[] @default([])
+  /// Hedef skill seçildi ama aktivasyonu doğrulanamadı — ne tetiklenme ne
+  /// tetiklenmeme. `true` iken `triggerTriggered = false` olmak zorunda.
+  triggerRefused   Boolean?
+  /// Aktivasyonu doğrulanamayan her çağrı, sebebiyle. Biçimi `RefusedActivation[]`.
+  triggerRefusals  Json     @default("[]")
 
   latencyMs    Int?
   inputTokens  Int?
@@ -235,6 +249,11 @@ model TraceEvent {
   acknowledgesError Boolean?
   skill             String?
   outcome           SessionOutcome?
+  /// İzin katmanı çağrıyı reddettiyse sebebi. "Skill bunu yapamadı" ile
+  /// "Assay buna izin vermedi" iki farklı ölçüm.
+  refusal           String?
+  /// `kind = HOOK` için host'un çalıştırdığı hook. Biçimi `HookRecord`.
+  hook              Json?
 
   @@unique([attemptId, seq])
   @@index([attemptId, kind])

@@ -115,6 +115,7 @@ export async function storeRun(
           data: {
             ...attemptRow,
             verdict: attemptRow.verdict as 'PASS' | 'FAIL' | 'UNKNOWN',
+            triggerRefusals: attemptRow.triggerRefusals as never,
             caseResultId: stored.id,
           },
         })
@@ -123,11 +124,16 @@ export async function storeRun(
           await tx.traceEvent.createMany({
             data: attempt.trace.map((event) => {
               const row = toTraceEventRow(event)
+              // `hook` anahtarı yokken SQL NULL yazılıyor; `null` geçilseydi
+              // Prisma bunu **JSON null** olarak yazar ve `hook IS NULL`
+              // yanlış çıkardı — kısıt bunu yakaladı.
+              const { hook, ...rest } = row
               return {
-                ...row,
+                ...rest,
                 kind: row.kind as never,
                 outcome: row.outcome as never,
                 args: row.args as never,
+                ...(hook === null || hook === undefined ? {} : { hook: hook as never }),
                 attemptId: storedAttempt.id,
               }
             }),

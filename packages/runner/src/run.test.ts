@@ -5,7 +5,12 @@ import { parseSuite, type Suite } from '@ktlsr/assay-core'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { runSuite, suiteHash } from './run.js'
 import { RunStore } from './store.js'
-import { BLIND_HOST, MockAdapter, type MockScenario } from './testing/mock-adapter.js'
+import {
+  BLIND_HOST,
+  MockAdapter,
+  REFUSED_ACTIVATION,
+  type MockScenario,
+} from './testing/mock-adapter.js'
 
 const SUITE_SOURCE = `
 version: 2
@@ -36,7 +41,15 @@ beforeAll(async () => {
 })
 
 const triggered = (skills: string[] = ['widget']): MockScenario => ({
-  trigger: { available: true, triggered: true, skills, complete: true, via: 'mock' },
+  trigger: {
+    available: true,
+    triggered: true,
+    skills,
+    refused: false,
+    refusals: [],
+    complete: true,
+    via: 'mock',
+  },
   trace: [
     { seq: 1, kind: 'skill_trigger', skill: 'widget' },
     { seq: 2, kind: 'session_end', outcome: 'completed' },
@@ -44,7 +57,15 @@ const triggered = (skills: string[] = ['widget']): MockScenario => ({
 })
 
 const notTriggered: MockScenario = {
-  trigger: { available: true, triggered: false, skills: [], complete: true, via: 'mock' },
+  trigger: {
+    available: true,
+    triggered: false,
+    skills: [],
+    refused: false,
+    refusals: [],
+    complete: true,
+    via: 'mock',
+  },
   trace: [{ seq: 1, kind: 'session_end', outcome: 'completed' }],
 }
 
@@ -393,6 +414,8 @@ cases:
         available: true,
         triggered: true,
         skills: ['widget'],
+        refused: false,
+        refusals: [],
         complete: true,
         via: 'mock',
       },
@@ -412,5 +435,70 @@ cases:
 
     expect(fileExists?.verdict).toBe('fail')
     expect(completion?.attempts[0]?.verdict).toBe('fail')
+  })
+})
+
+/**
+ * 0.2.0 — reddedilen aktivasyon uçtan uca `unknown`.
+ *
+ * 0.1.3'ün "kanıtın yokluğu kanıt sayılamaz" düzeltmesiyle aynı mantık, bir
+ * katman yukarıda: burada oturum KOŞTU, ama ölçülmek istenen şey (skill'in
+ * gövdesinin oturuma girmesi) hiç olmadı.
+ */
+describe('reddedilen aktivasyon her iki vakada da unknown', () => {
+  it('pozitif vaka fail almaz', async () => {
+    const result = await run(new MockAdapter({ scenarios: [REFUSED_ACTIVATION] }))
+    const positive = result.cases.find((c) => c.caseId === 'trigger.positive.explicit')
+    expect(positive?.failed).toBe(0)
+    expect(positive?.unknown).toBe(3)
+  })
+
+  it('negatif vaka pass almaz — sessiz geçiş yok', async () => {
+    const result = await run(new MockAdapter({ scenarios: [REFUSED_ACTIVATION] }))
+    const negative = result.cases.find(
+      (c) => c.caseId === 'trigger.negative.near_neighbor.readme',
+    )
+    expect(negative?.passed).toBe(0)
+    expect(negative?.unknown).toBe(3)
+  })
+
+  it('koşum verdicti unknown ve gerekçe reddi adıyla söyler', async () => {
+    const result = await run(new MockAdapter({ scenarios: [REFUSED_ACTIVATION] }))
+    expect(result.verdict).toBe('unknown')
+    const reasons = result.cases.flatMap((c) => c.attempts.map((a) => a.reason))
+    expect(reasons.every((r) => r.includes('activation was not confirmed'))).toBe(true)
+  })
+
+  it('gözlem kayda girer: hangi skill neden reddedildi', async () => {
+    const result = await run(new MockAdapter({ scenarios: [REFUSED_ACTIVATION] }))
+    const trigger = result.cases[0]?.attempts[0]?.trigger
+    expect(trigger?.available).toBe(true)
+    expect(trigger?.available === true && trigger.refusals[0]?.skill).toBe('docx')
+  })
+})
+
+describe('izin modu kayda girer', () => {
+  it("host'un bildirdiği mod koşum kaydında durur", async () => {
+    const adapter = new MockAdapter({
+      scenarios: [{ ...triggered(), result: { permissionMode: 'acceptEdits' } }],
+    })
+    expect((await run(adapter)).permissionMode).toBe('acceptEdits')
+  })
+
+  it('host bildirmediyse alan yok — uydurulmaz', async () => {
+    expect((await run(new MockAdapter({ scenarios: [triggered()] }))).permissionMode).toBe(
+      undefined,
+    )
+  })
+
+  it('mod koşum ortasında kayarsa hiçbir değer yazılmaz', async () => {
+    // İki farklı mod altında ölçülmüş attempt'ler tek bir modla etiketlenemez.
+    const adapter = new MockAdapter({
+      scenarios: [
+        { ...triggered(), result: { permissionMode: 'acceptEdits' } },
+        { ...triggered(), result: { permissionMode: 'plan' } },
+      ],
+    })
+    expect((await run(adapter)).permissionMode).toBeUndefined()
   })
 })

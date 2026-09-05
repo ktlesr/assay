@@ -144,15 +144,28 @@ başarısızlık aynı görünüyor. Ölçüldü: `webapp-testing` tamamlama ko�
 `no_swallowed_errors`'ı tetikledi ([measurements.md](measurements.md),
 [blockers.md](blockers.md)).
 
-| Adım | Çıktı |
-|---|---|
-| 0.2.0-a Reddi sınıflandır | `TraceEvent.refusal`; izin reddi yüzünden düşen artefakt assertion'ı `fail` değil `unknown` üretir |
-| 0.2.0-b Redde ayrı cümle | `no_swallowed_errors` "gerçek hata bildirilmedi" ile "Assay'in reddi bildirilmedi"yi ayrı raporlar |
-| 0.2.0-c Komut allowlist'i | Vaka seti `sandbox: { allow_commands: [...] }` beyan eder; runner host'un `--allowedTools` biçimine çevirir, izin genişlemesi `suiteHash`'e girer |
+Aynı ayrımın tetiklenme katmanındaki karşılığı 0.2.0-d'de bulundu ve daha
+ağırdı: adaptör `Skill` çağrısını görüp "tetiklendi" yazıyor, aktivasyonun
+gerçekleşip gerçekleşmediğine bakmıyordu. Bir pilot koşumda 4 kayıtlı
+tetiklenmenin 4'ü de reddedilmiş aktivasyondu ve rapor precision %100 dedi.
+
+| Adım | Çıktı | Durum |
+|---|---|---|
+| 0.2.0-a Reddi sınıflandır | `TraceEvent.refusal` ve `result.permission_denials` okunuyor; izin reddi yüzünden düşen artefakt assertion'ı `fail` değil `unknown` üretir | iz tarafı **tamam**; artefakt assertion'ı bekliyor |
+| 0.2.0-b Redde ayrı cümle | `no_swallowed_errors` "gerçek hata bildirilmedi" ile "Assay'in reddi bildirilmedi"yi ayrı raporlar | bekliyor |
+| 0.2.0-c Komut allowlist'i | Vaka seti `sandbox: { allow_commands: [...] }` beyan eder; runner host'un `--allowedTools` biçimine çevirir, izin genişlemesi `suiteHash`'e girer | bekliyor |
+| 0.2.0-d Tetiklenme = doğrulanmış aktivasyon | Reddedilen aktivasyon tetiklenme sayılmıyor; her katmanda `unknown` ve doğruluk matrisinin dışında | **tamam** |
+| 0.2.0-e İzin modu dışarı açıldı | `--permission-mode`, varsayılan değişmeden; mod kayda, rapora ve ortam hash'ine giriyor | **tamam** |
+| 0.2.0-f Hook olayları | `system/hook_started` ve `hook_response` kanonik ize giriyor | **tamam** |
 
 **Geçiş kriteri.** Bir kabuk çalıştıran tamamlama vakası, komut allowlist'i
 verildiğinde `pass`/`fail` üretebiliyor; verilmediğinde `unknown` üretiyor ve
 sebebini yazıyor. Hiçbir durumda izin reddi `fail` olarak raporlanmıyor.
+
+**Davranış değişikliği.** 0.2.0-d bugün `fail`/`pass` alan koşumları `unknown`a
+çeviriyor ve CI çıkış kodunu 1'den 3'e kaydırıyor. Ayrıca izin modu ortam
+hash'ine girdiği için 0.2.0 öncesi kayıtlar yeni kayıtlarla "ortam kaydı"
+olarak karşılaştırılıyor. İkisi de sürüm notunda yazılı.
 
 **Neden konteyner değil.** Konteyner sandbox (A1'in yükseltme yolu) bu üçünü de
 gereksiz kılmaz: konteynerin içinde de bir izin modeli seçmek gerekiyor. Sıra

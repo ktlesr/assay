@@ -55,7 +55,15 @@ const attempt = (caseId: string, verdict: Attempt['verdict']): Attempt => ({
   trigger:
     verdict === 'unknown'
       ? { available: false, reason: 'the trigger signal could not be read' }
-      : { available: true, triggered: true, skills: ['s'], complete: true, via: 'test' },
+      : {
+          available: true,
+          triggered: true,
+          skills: ['s'],
+          refused: false,
+          refusals: [],
+          complete: true,
+          via: 'test',
+        },
   assertions: [],
   verdict,
   reason: verdict === 'unknown' ? 'the trigger signal could not be read' : 'ok',
@@ -200,6 +208,64 @@ cases:
     )
     expect(await main(['validate', path])).toBe(EXIT.usage)
     expect(err).toContain('no negative case')
+  })
+})
+
+/**
+ * 0.2.0 — izin modu dışarı açıldı.
+ *
+ * `allowed-tools` beyan eden bir skill `acceptEdits` altında hiç aktive
+ * olamıyor; mod hardcoded kaldığı sürece o skill ölçülemez. Varsayılan
+ * DEĞİŞMEDİ: yalnızca seçilebilir oldu.
+ *
+ * Doğrulama gerçek koşumdan ÖNCE: yanlış yazılmış bir mod sessizce
+ * varsayılana düşseydi kullanıcı ölçtüğünü sandığı şeyi ölçmemiş olurdu.
+ */
+describe('--permission-mode', () => {
+  const validSuite = async () => {
+    const dir = await scratch()
+    const path = join(dir, 'ok.yaml')
+    await writeFile(
+      path,
+      `version: 1
+target: { skill: s, source: o/r@1 }
+environment: { host: h, model: m, system_prompt_hash: x }
+runs: 3
+cases:
+  - id: trigger.positive.a
+    prompt: p
+    expect: { triggered: true }
+  - id: trigger.negative.near_neighbor.b
+    prompt: p
+    expect: { triggered: false }
+`,
+      'utf8',
+    )
+    return { path, dir }
+  }
+
+  it('bilinmeyen mod sessizce varsayılana düşmez, usage ile reddedilir', async () => {
+    const { path, dir } = await validSuite()
+    expect(
+      await main(['run', path, '--skill', dir, '--permission-mode', 'acceptedits']),
+    ).toBe(EXIT.usage)
+    expect(err).toContain('unknown --permission-mode')
+    expect(err).toContain('acceptEdits')
+  })
+
+  it('bypassPermissions açık onay olmadan reddedilir', async () => {
+    const { path, dir } = await validSuite()
+    expect(
+      await main(['run', path, '--skill', dir, '--permission-mode', 'bypassPermissions']),
+    ).toBe(EXIT.usage)
+    expect(err).toContain('--allow-bypass-permissions')
+  })
+
+  it('kullanım metni modları ve ölçüme etkisini yazıyor', async () => {
+    await main(['--help'])
+    expect(out).toContain('--permission-mode')
+    expect(out).toContain('acceptEdits')
+    expect(out).toContain('allowed-tools')
   })
 })
 

@@ -157,16 +157,25 @@ async function insertAttempt(
     triggerAvailable: true,
     triggerTriggered: true,
     triggerComplete: true,
-    triggerVia: 'Skill tool call',
+    triggerVia: 'confirmed Skill activation',
     triggerReason: null,
+    triggerRefusals: '[]',
     costUsd: 0.01,
     ...overrides,
+    // Sinyal okunduysa red durumu da bilinir; okunmadıysa bilinmez. Test
+    // açıkça bir değer vermediyse şekle uyan değer türetiliyor.
+    triggerRefused:
+      'triggerRefused' in overrides
+        ? overrides['triggerRefused']
+        : overrides['triggerAvailable'] === false
+          ? null
+          : false,
   }
   await run(
     `INSERT INTO "Attempt" ("id","caseResultId","index","startedAt","finishedAt",
        "verdict","reason","triggerAvailable","triggerTriggered","triggerComplete",
-       "triggerVia","triggerReason","costUsd")
-     VALUES ($1,$2,$3,now(),now(),$4::"Verdict",$5,$6,$7,$8,$9,$10,$11)`,
+       "triggerVia","triggerReason","triggerRefused","triggerRefusals","costUsd")
+     VALUES ($1,$2,$3,now(),now(),$4::"Verdict",$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13)`,
     [
       id,
       caseResultId,
@@ -178,6 +187,8 @@ async function insertAttempt(
       values.triggerComplete,
       values.triggerVia,
       values.triggerReason,
+      values.triggerRefused,
+      values.triggerRefusals,
       values.costUsd,
     ],
   )
@@ -489,3 +500,101 @@ async function runSql(
     [next(), suiteId, verdict, unknownReason],
   ]
 }
+
+/**
+ * 0.2.0 — reddedilmiş bir aktivasyon tetiklenme olarak saklanamaz.
+ *
+ * Impeccable pilotunda tam olarak bu kayıt yazıldı: dört reddedilmiş
+ * aktivasyon `triggered: true` diye saklandı ve rapor precision %100 dedi.
+ * Uygulama katmanı bunu bir daha yazmasın diye kısıt.
+ */
+describe('değişmez #1 — reddedilen aktivasyon tetiklenme sayılamaz', () => {
+  let caseResultId: string
+
+  beforeAll(async () => {
+    const suiteId = await makeSuite()
+    const caseId = await makeCase(suiteId)
+    const runId = await makeRun(suiteId)
+    caseResultId = await makeCaseResult(runId, caseId)
+  })
+
+  it('hem reddedildi hem tetiklendi diyen kayıt reddedilir', async () => {
+    await expect(
+      insertAttempt(caseResultId, { triggerRefused: true, triggerTriggered: true }),
+    ).rejects.toThrow('attempt_refusal_shape')
+  })
+
+  it('sinyal okundu ama red durumu bilinmiyor → reddedilir', async () => {
+    await expect(
+      insertAttempt(caseResultId, { triggerAvailable: true, triggerRefused: null }),
+    ).rejects.toThrow('attempt_refusal_shape')
+  })
+
+  it('sinyal okunamadı ama red durumu yazılmış → reddedilir', async () => {
+    await expect(
+      insertAttempt(caseResultId, {
+        triggerAvailable: false,
+        triggerTriggered: null,
+        triggerComplete: null,
+        triggerVia: null,
+        triggerReason: 'unreadable',
+        triggerRefused: false,
+      }),
+    ).rejects.toThrow('attempt_refusal_shape')
+  })
+
+  it('reddedildi ve tetiklenmedi → kabul edilir', async () => {
+    await expect(
+      insertAttempt(caseResultId, {
+        triggerRefused: true,
+        triggerTriggered: false,
+        triggerRefusals: '[{"skill":"docx","reason":"the host denied permission"}]',
+      }),
+    ).resolves.toBeTypeOf('string')
+  })
+})
+
+/**
+ * 0.2.0 — hook olayı hook'suz olamaz.
+ *
+ * Kayıtta "bir hook koştu ama hangisi bilinmiyor" diyen bir satır, hook'u hiç
+ * kaydetmemekten daha kötü: bir şey ölçüldüğü izlenimi verir.
+ */
+describe('hook olayı kendi verisini taşımak zorunda', () => {
+  let attemptId: string
+
+  beforeAll(async () => {
+    const suiteId = await makeSuite()
+    const caseId = await makeCase(suiteId)
+    const runId = await makeRun(suiteId)
+    const caseResultId = await makeCaseResult(runId, caseId)
+    attemptId = await insertAttempt(caseResultId)
+  })
+
+  const insertEvent = (seq_: number, kind: string, hook: string | null) =>
+    run(
+      `INSERT INTO "TraceEvent" ("id","attemptId","seq","kind","hook")
+       VALUES ($1,$2,$3,$4::"TraceEventKind",$5::jsonb)`,
+      [next(), attemptId, seq_, kind, hook],
+    )
+
+  it('HOOK olayı hook verisi olmadan reddedilir', async () => {
+    await expect(insertEvent(901, 'HOOK', null)).rejects.toThrow('traceevent_hook_shape')
+  })
+
+  it('HOOK olmayan olaya hook verisi iliştirilemez', async () => {
+    await expect(
+      insertEvent(902, 'TOOL_CALL', '{"name":"H","event":"E","phase":"started"}'),
+    ).rejects.toThrow('traceevent_hook_shape')
+  })
+
+  it('hook verisi taşıyan HOOK olayı kabul edilir', async () => {
+    await insertEvent(
+      903,
+      'HOOK',
+      '{"name":"SessionStart:startup","event":"SessionStart","phase":"response","exitCode":0}',
+    )
+    const rows = await db.query(`SELECT "hook" FROM "TraceEvent" WHERE "seq"=903`)
+    expect(rows.rows).toHaveLength(1)
+  })
+})

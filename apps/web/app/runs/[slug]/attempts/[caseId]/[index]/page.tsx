@@ -146,6 +146,23 @@ export default async function AttemptPage({
             isError: event.isError,
             outcome: event.outcome,
             args: event.args as Record<string, unknown> | undefined,
+            refusal: event.refusal,
+            // Hook adımında satırın adı kancanın adı: `SessionStart:startup`
+            // bir araçtan da bir skill'den de daha çok şey söylüyor.
+            hook: event.hook === undefined ? undefined : `${event.hook.name}`,
+            ...(event.hook === undefined
+              ? {}
+              : {
+                  text: [
+                    event.hook.phase,
+                    event.hook.outcome,
+                    event.hook.exitCode === undefined
+                      ? undefined
+                      : `exit ${event.hook.exitCode}`,
+                  ]
+                    .filter((part) => part !== undefined)
+                    .join(' · '),
+                }),
           }))}
           {...(swallowed === undefined
             ? {}

@@ -104,8 +104,10 @@ const attempt = (index: number, verdict: 'pass' | 'fail' | 'unknown'): Attempt =
     available: true,
     triggered: true,
     skills: ['widget-manifest'],
+    refused: false,
+    refusals: [],
     complete: true,
-    via: 'Skill tool call in stream-json',
+    via: 'confirmed Skill activation in stream-json',
   },
   assertions: [
     {

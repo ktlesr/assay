@@ -89,8 +89,10 @@ const attempt = (
         available: true,
         triggered: verdict === 'pass',
         skills: ['docx'],
+        refused: false,
+        refusals: [],
         complete: true,
-        via: 'Skill tool call in stream-json',
+        via: 'confirmed Skill activation in stream-json',
       }
     : { available: false, reason: 'the host emitted no skill marker' },
   assertions: [],
@@ -465,5 +467,122 @@ describe('iz olayı dönüşümü', () => {
     expect(() => fromTraceEventRow({ seq: 1, kind: 'NOPE' } as never)).toThrow(
       'unknown trace event kind',
     )
+  })
+})
+
+/**
+ * 0.2.0 — yeni alanlar gidiş-dönüşte kaybolmuyor.
+ *
+ * Hosted taraf kaydı **alır**, kendi formatını dayatmaz: bir alan eşlemede
+ * düşerse ölçümün koşulu sessizce kaybolur. `pinEnvironmentHash` bunun canlı
+ * örneğiydi — yerel kayıtta vardı, veritabanında hiç saklanmıyordu ve pin 3
+ * yüklenen her koşumda "ölçülemedi" kalıyordu.
+ */
+describe('0.2.0 alanları — eşleme', () => {
+  const bareRun = (overrides: Partial<Run> = {}): Run => ({
+    id: 'r1',
+    skill: 'docx',
+    startedAt: '2026-09-05T00:00:00.000Z',
+    finishedAt: '2026-09-05T00:00:10.000Z',
+    host: 'claude-code',
+    pins: {
+      skillSource: 'o/r@1',
+      skillHash: 'sha256:a',
+      model: 'm',
+      systemPromptHash: 'not-provided-by-host',
+      suiteVersion: 1,
+      suiteHash: 'sha256:b',
+    },
+    runs: 10,
+    cases: [],
+    verdict: 'pass',
+    ...overrides,
+  })
+
+  it('reddedilen aktivasyon satıra ve geri kanonik hâle döner', () => {
+    const refusals = [{ skill: 'docx', reason: 'the host denied permission' }]
+    const row = toAttemptRow({
+      ...attempt(0, 'unknown', true),
+      trigger: {
+        available: true,
+        triggered: false,
+        skills: [],
+        refused: true,
+        refusals,
+        complete: true,
+        via: 'confirmed Skill activation in stream-json',
+      },
+    })
+    expect(row.triggerRefused).toBe(true)
+    expect(row.triggerRefusals).toEqual(refusals)
+
+    const back = fromAttemptRow(row, 'c', undefined, undefined)
+    expect(back.trigger.available === true && back.trigger.refused).toBe(true)
+    expect(back.trigger.available === true && back.trigger.refusals).toEqual(refusals)
+  })
+
+  it('sinyal okunamadıysa red durumu da null — "reddedilmedi" yazılmaz', () => {
+    const row = toAttemptRow({
+      ...attempt(0, 'unknown', false),
+      trigger: { available: false, reason: 'no signal' },
+    })
+    expect(row.triggerRefused).toBeNull()
+    expect(row.triggerRefusals).toEqual([])
+  })
+
+  it('hook olayı izde korunur', () => {
+    const hook = {
+      name: 'SessionStart:startup',
+      event: 'SessionStart',
+      phase: 'response' as const,
+      exitCode: 1,
+      outcome: 'cancelled',
+      stdout: 'x',
+    }
+    const row = toTraceEventRow({ seq: 1, kind: 'hook', hook })
+    expect(row.kind).toBe('HOOK')
+    expect(row.hook).toEqual(hook)
+    expect(fromTraceEventRow(row)).toEqual({ seq: 1, kind: 'hook', hook })
+  })
+
+  it('izin reddi araç sonucunda korunur', () => {
+    const event = {
+      seq: 2,
+      kind: 'tool_result' as const,
+      callId: 't1',
+      tool: 'Skill',
+      isError: true,
+      error: 'denied',
+      refusal: 'the host denied permission to use Skill',
+    }
+    expect(fromTraceEventRow(toTraceEventRow(event))).toEqual(event)
+  })
+
+  it('izin modu ve ortam hash"i koşum satırında durur', () => {
+    const run = bareRun({
+      pins: {
+        skillSource: 'o/r@1',
+        skillHash: 'sha256:a',
+        model: 'm',
+        systemPromptHash: 'not-provided-by-host',
+        suiteVersion: 1,
+        suiteHash: 'sha256:b',
+        environmentHash: 'sha256:env',
+      },
+      permissionMode: 'acceptEdits',
+    })
+    const row = toRunRow(run)
+    expect(row.permissionMode).toBe('acceptEdits')
+    expect(row.pinEnvironmentHash).toBe('sha256:env')
+
+    const back = fromRunRow(row, [])
+    expect(back.permissionMode).toBe('acceptEdits')
+    expect(back.pins.environmentHash).toBe('sha256:env')
+  })
+
+  it('host mod bildirmediyse alan geri okumada da yok — uydurulmaz', () => {
+    const row = toRunRow(bareRun())
+    expect(row.permissionMode).toBeNull()
+    expect(fromRunRow(row, [])).not.toHaveProperty('permissionMode')
   })
 })

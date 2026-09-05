@@ -1739,3 +1739,116 @@ konsolda hata yok. Tıklamadan 650 ms sonra üç halka canlı; 6 sn'de
 kendiliğinden doğan küme de sayıldı. Next geliştirme katmanındaki "1 issue"
 rozeti değişiklikten önce de vardı (stash'lenmiş taban koşumuyla karşılaştırıldı).
 Geri dönüş maliyeti: düşük (tek bileşen + tek CSS bloğu)
+
+## 2026-09-05 — Tetiklenme, çağrının varlığı değil aktivasyonun doğrulanması
+
+Bağlam: Ayrıştırıcı bir `Skill` `tool_use` bloğu gördüğü anda "tetiklendi"
+yazıyordu; eşleşen `tool_result`a hiç bakmıyordu. Impeccable pilotunda 4
+kayıtlı tetiklenmenin 4'ü de reddedilmiş aktivasyondu — hiçbiri koşmamıştı —
+ve rapor precision %100 dedi.
+Seçenekler: (a) olduğu gibi bırakıp raporda uyarı yazmak · (b) reddi
+`triggered: false` saymak · (c) reddi üçüncü bir durum yapmak
+Karar: (c). `TriggerObservation` artık `refused` ve `refusals` taşıyor; hedef
+skill seçilip aktive olmadıysa tetiklenme iddiası `unknown` üretiyor ve
+gözlem doğruluk matrisine hiç girmiyor.
+Gerekçe: (b) iki yönde de yanlış olurdu. Pozitif vaka `fail` alır ve kullanıcı
+kırık olmayan bir skill'i tamir etmeye gider; negatif vaka `pass` alır ve
+modelin skill'e uzandığı gizlenir — değişmez #1'in doğrudan yasakladığı sessiz
+geçiş, üstelik en sinsi biçimde çünkü her negatif vaka geçer. (a) ise ölçüm
+aracının kendi sayısına uyarı iliştirip yine o sayıyı basması olurdu.
+Aktivasyonun doğrulanması dört yapısal engelle yapılıyor (metin eşleştirmesi
+yok): host çağrıyı `permission_denials`'ta reddetti mi, `tool_result` hata
+döndü mü, sonuç gövdesiz mi, sonuç hiç geldi mi.
+Tavan: üçüncü engel, host'un başarılı bir `Skill` sonucunu her zaman gövdeyle
+döndürdüğü varsayımına dayanıyor. Varsayım bozulursa her aktivasyon reddedilmiş
+görünür ve her vaka `unknown` olur — gürültülü ama sessiz geçiş değil.
+Aynı skill bir çağrıda reddedilip başka bir çağrıda aktive olduysa ölçüm
+vardır ve `refused` false kalır.
+Geri dönüş maliyeti: düşük (tek modül + tek alan), ama davranış değişikliği:
+bugün `fail`/`pass` alan koşumlar `unknown` alacak.
+
+## 2026-09-05 — İzin modu dışarı açıldı, varsayılan değişmedi
+
+Bağlam: `--permission-mode` adaptörde `acceptEdits` olarak sabitti.
+`allowed-tools` beyan eden bir skill bu modda hiç aktive olamıyor, yani o
+skill Assay ile ölçülemiyordu.
+Seçenekler: varsayılanı gevşetmek · modu dışarı açmak · vaka setine taşımak
+Karar: CLI'da `--permission-mode`, adaptörde aynı adlı seçenek. **Varsayılan
+`acceptEdits` kaldı.** `bypassPermissions` ayrıca `--allow-bypass-permissions`
+istiyor. Bilinmeyen bir mod sessizce varsayılana düşmüyor, kullanım hatası
+veriyor.
+Gerekçe: Varsayılanı gevşetmek bugünkü koşumların anlamını sessizce
+değiştirirdi; istenen şey seçim hakkıydı, farklı bir varsayılan değil. Vaka
+setine taşımak 0.2.0-c'nin (`sandbox.allow_commands`) konusu ve ayrı bir şema
+değişikliği; mod önce çalışır olmalı. Yanlış yazılmış bir modun sessizce
+varsayılana düşmesi, kullanıcının ölçtüğünü sandığı şeyi ölçmemesi demekti.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-05 — İzin modu ortam hash'inin içine girdi
+
+Bağlam: Mod dışarı açılınca ölçümün bir koşulu oldu: araçları kısıtlanmış bir
+skill ile kısıtlanmamış olan iki farklı ölçümdür. Kayıt bunu taşımazsa iki
+farklı koşum karşılaştırılabilir görünür.
+Seçenekler: yalnızca kayda yazmak · beşinci bir pin açmak · pin 3'ün
+denetçisi olan `environmentHash`'e katmak
+Karar: Üçüncüsü, artı `Run.permissionMode` alanı raporda okunsun diye.
+Gerekçe: `init.permissionMode` zaten ayrıştırılıyordu ve hash'in dışında
+bırakılmıştı; hash'in işi tam olarak "host'un bildirdiği ortam kaydı mı"
+sorusunu cevaplamak. Beşinci bir pin açmak `comparePins`'in anahtar listesini
+büyütür ve eski kayıtları "pin eksik" diye tamamen karşılaştırılamaz yapardı.
+Hash'e katmak aynı işi yapıyor ve eski kayıtlar yalnızca "ortam kaydı" diyor.
+Alan ayrıca kayıtta duruyor çünkü bir hash raporda okunmaz, mod okunur.
+Bedeli: 0.2.0 öncesi kayıtlar yeni kayıtlarla karşılaştırıldığında `unknown`
+üretiyor. Bu yanlış bir alarm değil — o koşumların modu gerçekten kayıtlı
+değildi.
+Geri dönüş maliyeti: orta (hash tanımı değişti, eski karşılaştırmalar durdu)
+
+## 2026-09-05 — Hook olayları kanonik ize giriyor
+
+Bağlam: Ayrıştırıcı `system` olaylarından yalnızca `init`i okuyordu.
+`hook_started` ve `hook_response` akışta zaten var ve `stdout`, `stderr`,
+`exit_code`, `outcome` taşıyorlar.
+Seçenekler: yalnızca `ParsedStream`'e almak · ize `hook` türü eklemek ·
+hook'ları görmezden gelmeye devam etmek
+Karar: Yeni bir `TraceEventKind` değeri (`hook`) ve `TraceEvent.hook` alanı.
+Prisma tarafında `HOOK` enum değeri, `hook` jsonb sütunu ve "HOOK olayı
+hook'suz olamaz" kısıtı.
+Gerekçe: Yalnızca `ParsedStream`'de tutmak onları kayda hiç sokmazdı, yani
+görünmez kalırlardı. Hook'lar ölçümün görünmez değişkeni: bir `SessionStart`
+hook'u sistem promptuna metin enjekte edebiliyor, bir `PreToolUse` hook'u araç
+çağrısını reddedebiliyor. İkisi de skill'in davranışını değiştiriyor ve hiçbiri
+skill'in kendisi değil. Kayıtta durmazlarsa iki koşum arasındaki fark
+açıklanamaz kalır.
+`hook_progress` bilerek dışarıda: 0.2.0'ın kapsamı started ve response.
+Çıktı 2000 karakterde kesiliyor ve kesildiği metnin sonunda yazıyor — kayıt bir
+CI artefaktı ve hook stdout'u gerçek koşumlarda on binlerce karakter.
+Geri dönüş maliyeti: düşük (ek alan; eski kayıtlar okunmaya devam ediyor)
+
+## 2026-09-05 — `permission_denials` okunuyor, red izde kendi alanında
+
+Bağlam: `result.permission_denials` her koşumda geliyordu ve ayrıştırıcı yok
+sayıyordu. Reddedilen bir çağrı izde sıradan bir araç hatası gibi duruyordu.
+Seçenekler: yalnızca `Skill` reddi için okumak · her reddedilen çağrıyı
+işaretlemek
+Karar: İkincisi. `TraceEvent.refusal` reddin sebebini taşıyor ve red, çağrının
+sonucuna işleniyor; sonuç hiç gelmediyse çağrının kendisine.
+Gerekçe: "Skill bunu yapamadı" ile "Assay buna izin vermedi" iki farklı ölçüm
+ve ikisi de araç çağrısının düşmesiyle sonuçlanıyor. İzde ayırt edilemezlerse
+rapor okuyucusu yanlış yere bakar. Roadmap'teki 0.2.0-a maddesi bu; artefakt
+assertion'larının reddi ayrı ele alması (0.2.0-a'nın ikinci yarısı) ve
+`no_swallowed_errors`'ın redde ayrı cümle kurması (0.2.0-b) bu alanın üstüne
+gelecek — bu yamada yalnızca sinyal okunuyor ve saklanıyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-05 — `pinEnvironmentHash` hosted şemaya eklendi
+
+Bağlam: `Pins.environmentHash` yerel kayıtta vardı ama `RunRow`'da yoktu;
+yüklenen her koşumda pin 3 "ölçülemedi" kalıyor ve hosted karşılaştırma hep
+`unknown` üretiyordu. İzin modu bu hash'in içine girdiği için sessiz kayıp
+büyüyecekti.
+Seçenekler: ayrı bir yamaya bırakmak · aynı migration'a katmak
+Karar: Aynı migration.
+Gerekçe: Eksik olan alan tam da bu yamanın dayandığı alan; ayrı bırakmak, izin
+modunu hash'e koyup hash'i saklamamak olurdu. Zaten açılmış bir migration'a bir
+sütun eklemenin maliyeti yok.
+Geri dönüş maliyeti: düşük

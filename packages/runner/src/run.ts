@@ -100,11 +100,14 @@ export async function runSuite<S extends AgentSession>(
   // Attempt'ler farklı hash bildirirse ortam koşum ortasında kaymış demektir;
   // o durumda hiçbir değer yazılmıyor ve pin "ölçülemedi" kalıyor.
   const environmentHashes = new Set<string>()
+  // İzin modu da aynı mantıkla: attempt'ler ayrışırsa mod koşum ortasında
+  // kaymış demektir ve tek bir değer yazmak yanlış olur.
+  const permissionModes = new Set<string>()
 
   for (const testCase of suite.cases) {
     const attempts: Attempt[] = []
     for (let index = 0; index < repeat; index += 1) {
-      const { attempt, environmentHash } = await runAttempt(
+      const { attempt, environmentHash, permissionMode } = await runAttempt(
         suite,
         testCase,
         index,
@@ -113,6 +116,7 @@ export async function runSuite<S extends AgentSession>(
         now,
       )
       if (environmentHash !== undefined) environmentHashes.add(environmentHash)
+      if (permissionMode !== undefined) permissionModes.add(permissionMode)
       attempts.push(attempt)
       options.onProgress?.({
         caseId: testCase.id,
@@ -141,6 +145,9 @@ export async function runSuite<S extends AgentSession>(
       skillHash,
       environmentHashes.size === 1 ? [...environmentHashes][0] : undefined,
     ),
+    ...(permissionModes.size === 1
+      ? { permissionMode: [...permissionModes][0] as string }
+      : {}),
     runs: repeat,
     cases,
     verdict: allVerdicts.includes('fail')
@@ -211,6 +218,8 @@ function summarizeCase(
 interface AttemptResult {
   attempt: Attempt
   environmentHash?: string
+  /** Host'un bu attempt'te bildirdiği izin modu. */
+  permissionMode?: string
 }
 
 async function runAttempt<S extends AgentSession>(
@@ -224,6 +233,7 @@ async function runAttempt<S extends AgentSession>(
   const startedAt = now().toISOString()
   const began = Date.now()
   let environmentHash: string | undefined
+  let permissionMode: string | undefined
 
   let workspace: Awaited<ReturnType<typeof createWorkspace>> | undefined
   try {
@@ -291,6 +301,7 @@ async function runAttempt<S extends AgentSession>(
     latencyMs = result.latencyMs
     cost = result.cost
     environmentHash = result.environmentHash
+    permissionMode = result.permissionMode
 
     /*
      * Oturum çapraz kontrolden geçmediyse KANIT YOKTUR.
@@ -363,6 +374,7 @@ async function runAttempt<S extends AgentSession>(
         trace,
       ),
       ...(environmentHash === undefined ? {} : { environmentHash }),
+      ...(permissionMode === undefined ? {} : { permissionMode }),
     }
   }
 
@@ -407,7 +419,11 @@ async function runAttempt<S extends AgentSession>(
     ...(evidence.env === undefined ? {} : { env: redactDeep(evidence.env) }),
   }
 
-  return { attempt, ...(environmentHash === undefined ? {} : { environmentHash }) }
+  return {
+    attempt,
+    ...(environmentHash === undefined ? {} : { environmentHash }),
+    ...(permissionMode === undefined ? {} : { permissionMode }),
+  }
 }
 
 function unknownAttempt(

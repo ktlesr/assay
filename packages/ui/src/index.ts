@@ -48,6 +48,7 @@ export {
   IconCall,
   IconClose,
   IconEnd,
+  IconHook,
   IconFail,
   IconInfo,
   IconMessage,

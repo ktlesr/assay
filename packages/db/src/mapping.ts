@@ -15,7 +15,9 @@ import {
   type Attempt,
   type CaseResult,
   type EnvDiff,
+  type HookRecord,
   type NetworkRequest,
+  type RefusedActivation,
   type Run,
   type Suite,
   type SuiteCase,
@@ -40,6 +42,7 @@ const KIND_TO_DB = {
   assistant_message: 'ASSISTANT_MESSAGE',
   skill_trigger: 'SKILL_TRIGGER',
   session_end: 'SESSION_END',
+  hook: 'HOOK',
 } as const
 const KIND_FROM_DB: Record<string, TraceEvent['kind']> = Object.fromEntries(
   Object.entries(KIND_TO_DB).map(([k, v]) => [v, k as TraceEvent['kind']]),
@@ -89,6 +92,13 @@ export interface RunRow {
   pinSystemPromptHash: string
   pinSuiteVersion: number
   pinSuiteHash: string
+  /**
+   * Pin 3'ün denetçisi. Yerel kayıt bunu taşıyordu ama hosted tarafta hiç
+   * saklanmıyordu; sonuç, yüklenen her koşumda pin 3'ün "ölçülemedi" kalması
+   * ve karşılaştırmanın hep `unknown` üretmesiydi.
+   */
+  pinEnvironmentHash: string | null
+  permissionMode: string | null
   runsPerCase: number
   verdict: string
   unknownReason: string | null
@@ -119,6 +129,8 @@ export interface AttemptRow {
   triggerVia: string | null
   triggerReason: string | null
   triggerSkills: string[]
+  triggerRefused: boolean | null
+  triggerRefusals: unknown
   latencyMs: number | null
   inputTokens: number | null
   outputTokens: number | null
@@ -143,6 +155,8 @@ export interface TraceEventRow {
   acknowledgesError: boolean | null
   skill: string | null
   outcome: string | null
+  refusal: string | null
+  hook: unknown
 }
 
 export interface EnvDiffRow {
@@ -198,6 +212,8 @@ export function toRunRow(run: Run): RunRow {
     pinSystemPromptHash: run.pins.systemPromptHash,
     pinSuiteVersion: run.pins.suiteVersion,
     pinSuiteHash: run.pins.suiteHash,
+    pinEnvironmentHash: run.pins.environmentHash ?? null,
+    permissionMode: run.permissionMode ?? null,
     runsPerCase: run.runs,
     verdict: VERDICT_TO_DB[run.verdict],
     // Değişmez #1: `unknown` gerekçesiz saklanamaz; kısıt bunu zorluyor,
@@ -246,6 +262,8 @@ export function toAttemptRow(attempt: Attempt): AttemptRow {
     triggerVia: trigger.available ? trigger.via : null,
     triggerReason: trigger.available ? null : trigger.reason,
     triggerSkills: trigger.available ? [...trigger.skills] : [],
+    triggerRefused: trigger.available ? trigger.refused : null,
+    triggerRefusals: trigger.available ? [...trigger.refusals] : [],
     latencyMs: attempt.latencyMs ?? null,
     inputTokens: attempt.cost?.inputTokens ?? null,
     outputTokens: attempt.cost?.outputTokens ?? null,
@@ -268,6 +286,8 @@ export function toTraceEventRow(event: TraceEvent): TraceEventRow {
     acknowledgesError: event.acknowledgesError ?? null,
     skill: event.skill ?? null,
     outcome: event.outcome === undefined ? null : OUTCOME_TO_DB[event.outcome],
+    refusal: event.refusal ?? null,
+    hook: event.hook ?? null,
   }
 }
 
@@ -305,6 +325,12 @@ export function fromTraceEventRow(row: TraceEventRow): TraceEvent {
       : { acknowledgesError: row.acknowledgesError }),
     ...(row.skill === null ? {} : { skill: row.skill }),
     ...(row.outcome === null ? {} : { outcome: OUTCOME_FROM_DB[row.outcome] }),
+    ...(row.refusal === null || row.refusal === undefined
+      ? {}
+      : { refusal: row.refusal }),
+    ...(row.hook === null || row.hook === undefined
+      ? {}
+      : { hook: row.hook as HookRecord }),
   }
 }
 
@@ -337,6 +363,10 @@ export function fromAttemptRow(
           available: true,
           triggered: row.triggerTriggered ?? false,
           skills: row.triggerSkills,
+          refused: row.triggerRefused ?? false,
+          refusals: Array.isArray(row.triggerRefusals)
+            ? (row.triggerRefusals as RefusedActivation[])
+            : [],
           complete: row.triggerComplete ?? false,
           via: row.triggerVia ?? '',
         }
@@ -401,7 +431,9 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
       systemPromptHash: row.pinSystemPromptHash,
       suiteVersion: row.pinSuiteVersion,
       suiteHash: row.pinSuiteHash,
+      ...(row.pinEnvironmentHash === null ? {} : { environmentHash: row.pinEnvironmentHash }),
     },
+    ...(row.permissionMode === null ? {} : { permissionMode: row.permissionMode }),
     runs: row.runsPerCase,
     cases,
     verdict,

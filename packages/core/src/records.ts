@@ -162,9 +162,37 @@ export function comparePins(a: Pins, b: Pins): PinComparison {
 // ---------------------------------------------------------------------------
 
 export type TraceEventKind =
-  'tool_call' | 'tool_result' | 'assistant_message' | 'skill_trigger' | 'session_end'
+  | 'tool_call'
+  | 'tool_result'
+  | 'assistant_message'
+  | 'skill_trigger'
+  | 'session_end'
+  | 'hook'
 
 export type SessionOutcome = 'completed' | 'aborted' | 'error'
+
+/**
+ * Host'un koşum sırasında çalıştırdığı bir hook.
+ *
+ * Hook'lar ölçümün görünmez değişkenidir: bir `SessionStart` hook'u sistem
+ * promptuna metin enjekte edebilir, bir `PreToolUse` hook'u araç çağrısını
+ * reddedebilir. İkisi de skill'in davranışını değiştirir ve hiçbiri skill'in
+ * kendisi değildir. Kayıtta durmazlarsa iki koşum arasındaki fark
+ * açıklanamaz kalır.
+ */
+export interface HookRecord {
+  /** Host'un verdiği hook adı, ör. `SessionStart:startup`. */
+  name: string
+  /** Hangi olayda koştu, ör. `SessionStart`. */
+  event: string
+  /** Başlangıç mı yanıt mı. */
+  phase: 'started' | 'response'
+  exitCode?: number
+  /** Host'un bildirdiği sonuç, ör. `success`, `cancelled`. */
+  outcome?: string
+  stdout?: string
+  stderr?: string
+}
 
 /**
  * Host'tan okunan tek bir olay. Adaptörler ham transkripti buna normalize eder;
@@ -199,11 +227,35 @@ export interface TraceEvent {
   skill?: string
   /** `session_end` için oturumun nasıl bittiği. */
   outcome?: SessionOutcome
+  /**
+   * Çağrı yapılmadı çünkü izin katmanı reddetti — ve neden.
+   *
+   * "Skill bunu yapamadı" ile "Assay buna izin vermedi" iki farklı ölçümdür;
+   * ikisi de araç çağrısının düşmesiyle sonuçlanır ve izde aynı görünürlerse
+   * ayırt edilemezler. Bu alan reddi adıyla söyler.
+   */
+  refusal?: string
+  /** `hook` için host'un çalıştırdığı hook. */
+  hook?: HookRecord
 }
 
 // ---------------------------------------------------------------------------
 // Tetiklenme sinyali
 // ---------------------------------------------------------------------------
+
+/**
+ * Aktivasyonu istenmiş ama doğrulanamamış bir skill çağrısı.
+ *
+ * Model skill'i seçti — bu gözlendi. Ama gövdesi oturuma girmedi: izin
+ * katmanı reddetti, host hata döndürdü, ya da çağrının sonucu hiç gelmedi.
+ * Bu ne tetiklenmedir ne de tetiklenmemedir; ölçüm yapılmamıştır.
+ */
+export interface RefusedActivation {
+  /** Host'un bildirdiği skill adı. */
+  skill: string
+  /** Neden aktivasyon sayılmadı. Kullanıcıya gösterilir. */
+  reason: string
+}
 
 /**
  * Tetiklenme okunamadıysa bu tip "bilinmiyor"u görmezden gelinemez kılar:
@@ -212,10 +264,24 @@ export interface TraceEvent {
 export type TriggerObservation =
   | {
       available: true
-      /** Hedef skill tetiklendi mi. */
+      /**
+       * Hedef skill **aktive oldu** mu.
+       *
+       * Çağrının gözlenmesi yetmez: gövdesi oturuma enjekte edilmediyse
+       * skill koşmamıştır. Reddedilmiş bir çağrıyı tetiklenme saymak, ürünün
+       * ölçtüğünü iddia ettiği tek şeyi sahte kılar.
+       */
       triggered: boolean
-      /** Bu koşumda tetiklendiği gözlenen skill'ler. */
+      /** Bu koşumda aktive olduğu gözlenen skill'ler. */
       skills: readonly string[]
+      /**
+       * Hedef skill seçildi ama aktivasyonu doğrulanamadı ve hiç aktive
+       * olmadı. `true` iken tetiklenme iddiası `unknown` üretir — ne pass ne
+       * fail (değişmez #1).
+       */
+      refused: boolean
+      /** Aktivasyonu doğrulanamayan her çağrı, sebebiyle. */
+      refusals: readonly RefusedActivation[]
       /**
        * `skills` tetiklenen skill'lerin *tamamı* mı, yoksa yalnızca hedef mi?
        * `false` ise "şu skill tetiklenmedi" iddiası doğrulanamaz ve `unknown`
@@ -366,6 +432,17 @@ export interface Run {
    */
   skill: string
   pins: Pins
+  /**
+   * Koşumun izin modu — host'un bildirdiği hâliyle.
+   *
+   * `Pins` değil, ama pinlerin denetçisi olan `environmentHash`'in içinde:
+   * mod değişirse hash değişir ve karşılaştırma durur. Burada ayrıca duruyor
+   * çünkü bir hash raporda okunmaz, mod okunur.
+   *
+   * Attempt'ler farklı mod bildirdiyse (mod koşum ortasında kaydıysa) alan
+   * yazılmaz.
+   */
+  permissionMode?: string
   /** Suite'te beyan edilen tekrar sayısı. */
   runs: number
   cases: readonly CaseResult[]

@@ -176,7 +176,15 @@ describe('summarize', () => {
     trigger:
       triggered === null
         ? { available: false, reason: 'unreadable' }
-        : { available: true, triggered, skills: [], complete: true, via: 'test' },
+        : {
+            available: true,
+            triggered,
+            skills: [],
+            refused: false,
+            refusals: [],
+            complete: true,
+            via: 'test',
+          },
     assertions: [],
     verdict,
     reason: '',
@@ -296,5 +304,106 @@ describe('summarize', () => {
     )
     expect(summary.discrimination.attempts).toBe(0)
     expect(summary.discrimination.untested).toBe(false)
+  })
+})
+
+/**
+ * 0.2.0 — reddedilen aktivasyon doğruluk matrisine girmez.
+ *
+ * Impeccable pilotunda dört kayıtlı tetiklenmenin dördü de reddedilmiş
+ * aktivasyondu; hiçbiri koşmamıştı. Rapor precision %100 dedi çünkü
+ * `trigger.triggered` `true` idi. Sayı gerçek bir ölçümden gelmiyordu.
+ */
+describe('summarize — reddedilen aktivasyon ölçüm sayılmaz', () => {
+  const expected = (caseId: string) =>
+    caseId.startsWith('trigger.positive')
+      ? true
+      : caseId.startsWith('trigger.negative')
+        ? false
+        : undefined
+
+  const attempt = (
+    caseId: string,
+    verdict: Attempt['verdict'],
+    triggered: boolean | null,
+  ): Attempt => ({
+    index: 0,
+    caseId,
+    startedAt: '',
+    finishedAt: '',
+    trigger:
+      triggered === null
+        ? { available: false, reason: 'unreadable' }
+        : {
+            available: true,
+            triggered,
+            skills: [],
+            refused: false,
+            refusals: [],
+            complete: true,
+            via: 'test',
+          },
+    assertions: [],
+    verdict,
+    reason: '',
+  })
+
+  const refused = (caseId: string): Attempt => ({
+    index: 0,
+    caseId,
+    startedAt: '',
+    finishedAt: '',
+    trigger: {
+      available: true,
+      triggered: false,
+      skills: [],
+      refused: true,
+      refusals: [{ skill: 'docx', reason: 'the host denied permission' }],
+      complete: true,
+      via: 'test',
+    },
+    assertions: [],
+    verdict: 'unknown',
+    reason: '',
+  })
+
+  it('reddedilen pozitifler precision üretmez — N=0', () => {
+    const summary = summarize(
+      [
+        refused('trigger.positive.a'),
+        refused('trigger.positive.b'),
+        refused('trigger.positive.c'),
+        refused('trigger.positive.d'),
+      ],
+      expected,
+    )
+    expect(summary.trigger.truePositive).toBe(0)
+    expect(summary.trigger.unknown).toBe(4)
+    expect(summary.trigger.precision.n).toBe(0)
+    expect(summary.trigger.precision.rate).toBeNull()
+  })
+
+  it('reddedilen negatif "tetiklenmedi" sayılmaz', () => {
+    const summary = summarize([refused('trigger.negative.a')], expected)
+    expect(summary.trigger.trueNegative).toBe(0)
+    expect(summary.trigger.unknown).toBe(1)
+  })
+
+  it('reddedilen negatif ayrım gücü ölçüsüne de girmez', () => {
+    const summary = summarize(
+      [attempt('trigger.positive.a', 'pass', true), refused('trigger.negative.b')],
+      expected,
+    )
+    expect(summary.discrimination.attempts).toBe(0)
+    expect(summary.discrimination.untested).toBe(false)
+  })
+
+  it('gerçekten aktive olan tetiklenme hâlâ ölçülür', () => {
+    const summary = summarize(
+      [attempt('trigger.positive.a', 'pass', true), refused('trigger.positive.b')],
+      expected,
+    )
+    expect(summary.trigger.truePositive).toBe(1)
+    expect(summary.trigger.precision.n).toBe(1)
   })
 })

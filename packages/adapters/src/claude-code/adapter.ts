@@ -41,6 +41,20 @@ export interface ClaudeCodeSession extends AgentSession {
   readonly configDir: string
 }
 
+/** Claude Code'un kabul ettiği izin modları. */
+export const PERMISSION_MODES = [
+  'acceptEdits',
+  'default',
+  'dontAsk',
+  'plan',
+  'bypassPermissions',
+] as const
+
+export type PermissionMode = (typeof PERMISSION_MODES)[number]
+
+export const isPermissionMode = (value: string): value is PermissionMode =>
+  (PERMISSION_MODES as readonly string[]).includes(value)
+
 export interface ClaudeCodeAdapterOptions {
   /** `claude` çalıştırılabiliri. Varsayılan: PATH'teki `claude`. */
   binary?: string
@@ -51,11 +65,17 @@ export interface ClaudeCodeAdapterOptions {
    */
   credentials?: { oauthToken?: string; apiKey?: string }
   /**
-   * Host izin modu. Varsayılan `acceptEdits`: ajan sandbox çalışma dizininde
-   * dosya yazabilsin. `dontAsk` Write ve Bash'i reddediyor ve tamamlama
-   * vakalarını ölçülemez kılıyor — canlı koşumda görüldü.
+   * Host izin modu. Varsayılan `acceptEdits` — 0.2.0'da değişmedi: ajan
+   * sandbox çalışma dizininde dosya yazabilsin. `dontAsk` Write ve Bash'i
+   * reddediyor ve tamamlama vakalarını ölçülemez kılıyor (canlı koşumda
+   * görüldü).
+   *
+   * 0.2.0'da yalnızca **dışarı açıldı**: `allowed-tools` beyan eden bir skill
+   * `acceptEdits` altında aktive olamıyor ve ölçüm o skill için yapılamıyordu.
+   * Seçimi kullanıcının yapabilmesi gerekiyor; ama mod ölçümün koşulu olduğu
+   * için kayda ve ortam hash'ine giriyor.
    */
-  permissionMode?: 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
+  permissionMode?: PermissionMode
   /**
    * `bypassPermissions` ölçülen skill'e makinenin tamamını açar ve sandbox
    * iddiasını tamamen boşaltır. Bilerek istenmediği sürece reddedilir.
@@ -179,6 +199,16 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
     return this.#deniedTools
   }
 
+  /**
+   * İstenen izin modu.
+   *
+   * Kayda host'un bildirdiği mod yazılır; bu, adaptörün ne istediği. İkisi
+   * ayrışırsa fark gerçek bir bulgudur.
+   */
+  get permissionMode(): string {
+    return this.#permissionMode
+  }
+
   async start(config: RunConfig): Promise<ClaudeCodeSession> {
     const configDir = await mkdtemp(join(tmpdir(), 'assay-cc-'))
     const startedAt = new Date().toISOString()
@@ -250,7 +280,7 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
     const problem = sessionProblem(session)
     if (problem !== null) return { available: false, reason: problem }
 
-    const { init, triggeredSkills } = session.parsed
+    const { init, triggeredSkills, refusals } = session.parsed
     if (init === undefined) {
       return {
         available: false,
@@ -259,16 +289,23 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
       }
     }
 
+    const triggered = triggeredSkills.some((skill) =>
+      skillMatches(skill, session.targetSkill),
+    )
+
     return {
       available: true,
-      triggered: triggeredSkills.some((skill) =>
-        skillMatches(skill, session.targetSkill),
-      ),
+      triggered,
       skills: [...new Set(triggeredSkills)],
+      // Hedef skill seçildi ama gövdesi oturuma girmedi. Aynı skill başka bir
+      // çağrıda aktive olduysa red bir şey değiştirmiyor: ölçüm yapılmıştır.
+      refused:
+        !triggered && refusals.some((r) => skillMatches(r.skill, session.targetSkill)),
+      refusals,
       // Model tarafından seçilen her skill çağrısı Skill aracından geçer, ve
       // init aktif skill setinin tamamını verir; liste eksik değil.
       complete: true,
-      via: 'Skill tool call in stream-json',
+      via: 'confirmed Skill activation in stream-json',
     }
   }
 
@@ -297,6 +334,13 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
       ...(session.exitCode === null ? {} : { exitCode: session.exitCode }),
       ...(init === undefined ? {} : { activeSkills: init.skills }),
       ...(init === undefined ? {} : { environmentHash: environmentHash(init) }),
+      // Host'un BİLDİRDİĞİ mod; adaptörün istediği değil. İkisi ayrışırsa
+      // ölçümün koşulu host'un söylediğidir.
+      // Host'un BİLDİRDİĞİ mod; adaptörün istediği değil. İkisi ayrışırsa
+      // ölçümün koşulu host'un söylediğidir.
+      ...(init === undefined || init.permissionMode === ''
+        ? {}
+        : { permissionMode: init.permissionMode }),
     }
 
     if (result === undefined) return base
@@ -379,13 +423,20 @@ export function skillMatches(observed: string, target: string): boolean {
  *
  * Bu **sistem promptu hash'i değildir** — iki farklı sistem promptu aynı init
  * alanlarını üretebilir. Yine de gerçek bir kayma detektörü: model, sürüm,
- * araç seti, skill seti veya output style değişirse hash değişir.
+ * araç seti, skill seti, izin modu veya output style değişirse hash değişir.
+ *
+ * İzin modu 0.2.0'da eklendi. Mod dışarı açıldığı andan itibaren ölçümün bir
+ * koşulu: araçları kısıtlanmış bir skill ile kısıtlanmamış olan aynı skill
+ * değil. Hash'te olmasaydı iki farklı ölçüm karşılaştırılabilir görünürdü.
+ * Bedeli: 0.2.0 öncesi kayıtlar yeni kayıtlarla "ortam kaydı" olarak
+ * karşılaştırılır ve `unknown` üretir.
  */
 export function environmentHash(init: NonNullable<ParsedStream['init']>): string {
   const canonical = JSON.stringify({
     model: init.model,
     version: init.version,
     outputStyle: init.outputStyle,
+    permissionMode: init.permissionMode,
     tools: [...init.tools].sort(),
     skills: [...init.skills].sort(),
     agents: [...init.agents].sort(),

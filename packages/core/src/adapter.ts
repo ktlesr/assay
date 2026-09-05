@@ -79,6 +79,15 @@ export interface SessionResult {
   environmentHash?: string
   /** Bu koşumda aktif olan skill'ler — host bildiriyorsa. */
   activeSkills?: readonly string[]
+  /**
+   * Host'un bildirdiği izin modu.
+   *
+   * Ölçümün koşuludur, süsü değil: araçları kısıtlanmış bir skill ile
+   * kısıtlanmamış olan aynı skill değildir. Adaptörün istediği mod değil,
+   * host'un **bildirdiği** mod yazılır — ikisi ayrışırsa gerçek olan ikincisi.
+   * Host bildirmiyorsa alan yok; uydurulmaz.
+   */
+  permissionMode?: string
   exitCode?: number
   files?: readonly CapturedFile[]
   env?: EnvDiff

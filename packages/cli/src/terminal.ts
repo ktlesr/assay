@@ -83,6 +83,13 @@ export function renderRun(run: Run, summary: RunSummary): string {
       `${run.host} · ${run.pins.model} · suite v${run.pins.suiteVersion} · ${run.runs} runs per case`,
     ),
   )
+  // İzin modu ölçümün koşulu: araçları kısıtlanmış bir skill ile
+  // kısıtlanmamış olan iki farklı ölçümdür (docs/decisions.md).
+  out.push(
+    style.grey(
+      `permission mode ${run.permissionMode ?? 'not reported by the host'}`,
+    ),
+  )
   out.push('')
 
   for (const caseResult of run.cases) {

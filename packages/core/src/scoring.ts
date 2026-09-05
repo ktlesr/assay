@@ -233,6 +233,23 @@ export interface Discrimination {
 }
 
 /**
+ * Bir attempt'in doğruluk matrisine giren gözlemi.
+ *
+ * Üç durum, iki değil. Sinyal okunamadıysa `null`; **aktivasyonu
+ * doğrulanamamış bir çağrı da `null`** — model skill'i seçti ama gövdesi
+ * oturuma girmedi, yani ne tetiklendi ne tetiklenmedi.
+ *
+ * Bu satır olmadan precision yalan söylüyordu: reddedilen dört aktivasyon
+ * dört gerçek tetiklenme sayılıyor ve pozitif vakalar %100 precision
+ * veriyordu (0.2.0 öncesi davranış).
+ */
+function observedTrigger(attempt: Attempt): boolean | null {
+  if (!attempt.trigger.available) return null
+  if (attempt.trigger.refused && !attempt.trigger.triggered) return null
+  return attempt.trigger.triggered
+}
+
+/**
  * Attempt'lerden koşum özeti.
  *
  * `expectedTrigger` her vaka için beklenen tetiklenmeyi verir; vaka tetiklenme
@@ -252,7 +269,7 @@ export function summarize(
   for (const attempt of attempts) {
     const expected = expectedTrigger(attempt.caseId)
     if (expected === undefined) continue
-    const observed = attempt.trigger.available ? attempt.trigger.triggered : null
+    const observed = observedTrigger(attempt)
     points.push({ expected, observed })
     if (expected) continue
     negativeCases.add(attempt.caseId)
