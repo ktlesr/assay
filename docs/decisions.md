@@ -1883,3 +1883,43 @@ Bedeli: birleştirme ile yayın arasında `action.yml` npm'de henüz olmayan bir
 sürümü gösteriyor. Pencere kısa ve kasıtlı; sırayı tersine çevirmenin bedeli
 kalıcıydı.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-05 — Dışarıya bakan her şey İngilizce; commit mesajları da
+
+Bağlam: 2026-08-31 tarihli "Kullanıcıya görünen metinler İngilizce, kod
+yorumları ve docs Türkçe" kararı commit mesajlarını Türkçe tarafta bırakmıştı
+ve kök `README.md` hiç ele alınmamıştı. Depo public, eylem GitHub
+Marketplace'te listeleniyor ve liste kök README'yi gösteriyor: uluslararası
+bir geliştirici kitlesine Türkçe bir sayfa çıkıyordu.
+Seçenekler: her şeyi Türkçe tutmak · yalnızca README'yi çevirmek · sınırı
+"dışarıya bakan / bakmayan" ekseninde yeniden çizmek
+Karar: Üçüncüsü. **İngilizce:** kullanıcıya görünen stringler, kök README,
+paket README'leri, action README, CONTRIBUTING **ve commit mesajları.**
+**Türkçe:** kod yorumları ve `docs/` altındaki çalışma notları.
+Gerekçe: Eski ayrım "kullanıcıya görünen string" ekseninde çizilmişti ve
+README bir string değil — kural onu görmüyordu. Doğru eksen dosyanın türü
+değil, kime baktığı. Commit mesajları da bu tarafa geçti: depo public, geçmiş
+herkese açık ve `git log` bir katkıcının okuduğu ilk şeylerden biri. Bu,
+2026-08-31 kararının commit kısmını **geçersiz kılıyor**.
+`docs/` Türkçe kalıyor: orası ürün belgesi değil, bakımı yapanın defteri ve
+çeviri maliyeti her karar kaydında tekrar tekrar ödenirdi. Bedeli, dışarıdan
+gelen birinin oraya tıkladığında şaşırması — bu yüzden dışarıya bakan her
+sayfada o bağlantıların yanına `(Turkish)` notu düşüldü.
+Geri dönüş maliyeti: orta (çeviri işi geri alınmaz, ama kural değiştirilebilir)
+
+## 2026-09-05 — README'de ölçüm iddiası yalnızca kayıtlı koşumdan
+
+Bağlam: README'nin "Durum" bölümü 150 koşumluk `xlsx` hikâyesini güncel
+sonuçmuş gibi anlatıyordu ve "hosted katman henüz yok" diyordu — ikisi de
+artık yanlış. Yenisini yazarken elimde daha yeni ölçümlerin **kaydı yoktu.**
+Seçenekler: yeni ölçümleri isimleriyle anmak · sayılarını tahmin etmek ·
+yalnızca kaydı olan ölçümleri yazmak
+Karar: Üçüncüsü. Yazılan her sayı depoda duran bir koşum kaydına dayanıyor
+(`docs/measurements.md`, `docs/dogfooding.md`) ve README bunu açıkça söylüyor:
+"Nothing on this page is estimated."
+Gerekçe: Sözleşme 3 zaten uyduruk rakamı yasaklıyor, ama asıl mesele daha
+dar: bu ürünün tek iddiası ölçmediğini ölçtüm dememek. Kendi tanıtım
+sayfasında kaydı olmayan bir sonucu anmak, tam da 0.2.0'da düzeltilen hatanın
+pazarlama hâli olurdu. Kaydı yayımlanmamış skill'ler README'ye girmedi;
+girdikleri gün sayılarıyla girecekler.
+Geri dönüş maliyeti: düşük
