@@ -1852,3 +1852,34 @@ Gerekçe: Eksik olan alan tam da bu yamanın dayandığı alan; ayrı bırakmak,
 modunu hash'e koyup hash'i saklamamak olurdu. Zaten açılmış bir migration'a bir
 sütun eklemenin maliyeti yok.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-05 — Action pini depo sürümünden geride olamaz, ileride olabilir
+
+Bağlam: `action-metadata.test.ts` `action.yml`'deki `assay-version` pinini
+`packages/cli/package.json` sürümüne **tam eşitlikle** bağlıyordu. 0.2.0'ın
+sürüm PR'ında test düştü: manifest 0.2.0'a çıktı, pin 0.1.3'te kaldı.
+Kusur pinde değil, testin varsaydığı sırada: manifest önce hareket ediyor
+(sürüm PR'ı), npm sonra (elle tetiklenen yayın koşumu). Tam eşitlik, aradaki
+pencerede depoyu kırmızıya çeviriyor.
+Seçenekler: (a) pini yayın sonrası ayrı bir commit'le güncellemek ·
+(b) testin npm'e bakması · (c) kuralı yönlü yapmak
+Karar: (c). Test artık `pin >= manifest` istiyor; geride kalmak hata, ileride
+olmak değil. Pin sürüm PR'ında manifest ile birlikte yükseliyor.
+Gerekçe: (a) pini kalıcı olarak bir sürüm geride bırakırdı — eylem her zaman
+bir önceki CLI'ı kurardı ve tam da testin engellemek istediği durum sürekli
+hâle gelirdi. (b) bir birim testini ağa bağlar, kararsızlaştırır ve yayın
+penceresi boyunca yine kırmızı verirdi. (c) korunmak istenen asıl kuralı
+koruyor: pin geride kalırsa eylem deponun ürettiğinden ESKİ bir CLI kurar ve
+sessizce yanlış ölçüm üretir — `assay scrub` olmayan bir sürüm maskelenmemiş
+kayıt yükler, 0.2.0 öncesi bir sürüm reddedilen aktivasyonları tetiklenme
+sayar.
+Karşılaştırma sözlük sırasıyla değil sayısal yapılıyor: `'0.10.0' < '0.9.0'`
+doğru çıkar ve kural sessizce tersine dönerdi. Kuralın yönü ayrı bir testle
+sabitlendi; ters çevrildiğinde kırmızıya döndüğü görüldü.
+Tavan: `9.9.9` gibi bir yazım hatası artık burada yakalanmıyor. Yakalandığı
+yerler duruyor — yayın sonrası `verify-published.mjs` ve eylemin kendi
+kurulum adımı.
+Bedeli: birleştirme ile yayın arasında `action.yml` npm'de henüz olmayan bir
+sürümü gösteriyor. Pencere kısa ve kasıtlı; sırayı tersine çevirmenin bedeli
+kalıcıydı.
+Geri dönüş maliyeti: düşük

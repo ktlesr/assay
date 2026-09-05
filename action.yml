@@ -80,7 +80,17 @@ inputs:
     # 0.1.3 ölçülmeyen koşumu her katmanda `unknown` yapıyor: host oturumu
     # açamadığında iş artık 1 ile değil 3 ile çıkıyor. Kimlik bilgisi sorunu
     # kırık skill gibi raporlanmıyor.
-    default: '0.1.3'
+    #
+    # 0.2.0 tetiklenmeyi aktivasyonun doğrulanmasına bağlıyor: reddedilen bir
+    # `Skill` çağrısı artık tetiklenme sayılmıyor ve `unknown` üretiyor. Daha
+    # eski bir sürüm verilirse eylem, reddedilen aktivasyonları tetiklenme
+    # diye raporlar — sessizce yanlış bir precision.
+    #
+    # Pin, depo sürümüyle birlikte SÜRÜM PR'ında yükseliyor, yayından önce.
+    # Yani birleştirme ile yayın arasında burası npm'de henüz olmayan bir
+    # sürümü gösteriyor. Bu pencere kasıtlı ve kısa; sırayı tersine çevirmek
+    # pini kalıcı olarak bir sürüm geride bırakırdı.
+    default: '0.2.0'
   claude-code-version:
     description: Version of @anthropic-ai/claude-code to install as the host.
     required: false
