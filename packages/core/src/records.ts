@@ -119,36 +119,43 @@ export function comparePins(a: Pins, b: Pins): PinComparison {
     'suiteHash',
   ]
 
-  // Pin 3'ün denetçisi: iki tarafta da dolu ve eşitse ortam kayması yakalanmış
-  // demektir ve sistem promptu hash'inin eksikliği karşılaştırmayı durdurmaz.
-  const environmentCovers =
-    !isUnavailable(a.environmentHash) &&
-    !isUnavailable(b.environmentHash) &&
-    a.environmentHash === b.environmentHash
-  const covered: Partial<Record<keyof Pins, boolean>> = {
-    systemPromptHash: environmentCovers,
-  }
+  /*
+   * Denetçinin bulgusu denetçinin adıyla raporlanır (0.3.0-a).
+   *
+   * `environmentHash` pin 3'ün denetçisi: host sistem promptu hash'ini
+   * vermediğinde koşulların kaymadığını gösterebilen tek şey o. Ama bulgusu
+   * eskiden pin 3'ün adına yazılıyordu ve rapor "systemPromptHash changed"
+   * diyordu — oysa o alan iki kayıtta da `not-provided-by-host` ile duruyor,
+   * yani kımıldamadı. Doğru karar (karşılaştırma durur), yanlış adres.
+   *
+   * Üç durum:
+   *  - iki tarafta da dolu ve EŞİT   → pin 3 kapsandı, karşılaştırma açılır
+   *  - iki tarafta da dolu ve FARKLI → `environmentHash` kaydı; pin 3 hakkında
+   *    bir şey bilmiyoruz ve iddia da etmiyoruz, o yüzden ayrıca anılmaz
+   *  - en az biri yok              → denetçi yok; pin 3 ölçülemedi
+   */
+  const bothEnvironments =
+    !isUnavailable(a.environmentHash) && !isUnavailable(b.environmentHash)
+  const environmentCovers = bothEnvironments && a.environmentHash === b.environmentHash
+  const environmentDrifted = bothEnvironments && a.environmentHash !== b.environmentHash
 
   const drifted: (keyof Pins)[] = []
   const unavailable: (keyof Pins)[] = []
 
   for (const key of keys) {
     if (isUnavailable(a[key]) || isUnavailable(b[key])) {
-      if (covered[key] !== true) unavailable.push(key)
+      // Denetçi kaydıysa aynı olayı ikinci kez, üstelik başka bir adla
+      // raporlamıyoruz: `environmentHash` zaten aşağıda kayan alan olarak
+      // listeleniyor.
+      const answered =
+        key === 'systemPromptHash' && (environmentCovers || environmentDrifted)
+      if (!answered) unavailable.push(key)
       continue
     }
     if (a[key] !== b[key]) drifted.push(key)
   }
 
-  // `environmentHash` kendisi bir pin değil, denetçi: kaydıysa pin 3 kaymıştır.
-  if (
-    !isUnavailable(a.environmentHash) &&
-    !isUnavailable(b.environmentHash) &&
-    a.environmentHash !== b.environmentHash &&
-    !drifted.includes('systemPromptHash')
-  ) {
-    drifted.push('systemPromptHash')
-  }
+  if (environmentDrifted) drifted.push('environmentHash')
 
   return {
     comparable: drifted.length === 0 && unavailable.length === 0,
@@ -443,11 +450,85 @@ export interface Run {
    * yazılmaz.
    */
   permissionMode?: string
+  /**
+   * `Pins.environmentHash`'in girdisi — host'un bildirdiği ortamın kendisi.
+   *
+   * Hash "bir şey değişti" diyebiliyor, "ne değişti" diyemiyor. Bileşenler
+   * kayıtta durduğunda `compareRuns` kayan alanı adıyla söyleyebiliyor
+   * (`permissionMode: acceptEdits → bypassPermissions`). Adaptör bunları hash
+   * için zaten üretiyordu ve atıyordu.
+   *
+   * Opsiyonel: eski kayıtlarda yok ve host bildirmiyorsa yazılmaz. Yokken
+   * karşılaştırma hash düzeyinde konuşur.
+   */
+  environment?: Environment
   /** Suite'te beyan edilen tekrar sayısı. */
   runs: number
   cases: readonly CaseResult[]
   verdict: Verdict
 }
+
+/**
+ * Host'un koşum başında bildirdiği ortam.
+ *
+ * `environmentHash` bu nesnenin kanonik serileştirmesinden hesaplanır; ikisi
+ * ayrışmasın diye hash'i üreten taraf nesneyi de veriyor.
+ */
+export interface Environment {
+  model: string
+  version: string
+  outputStyle?: string
+  permissionMode?: string
+  tools: readonly string[]
+  skills: readonly string[]
+  agents: readonly string[]
+  plugins: readonly string[]
+}
+
+/** Ortamın iki koşum arasında kayan tek bir alanı. */
+export interface EnvironmentChange {
+  field: keyof Environment
+  before: string
+  after: string
+}
+
+/**
+ * İki ortam kaydını alan alan karşılaştırır.
+ *
+ * Liste alanlarında (araçlar, skill'ler) fark eklenen/çıkarılan olarak
+ * yazılır: tam listeyi basmak raporu okunmaz yapıyor ve asıl soru "ne
+ * değişti".
+ */
+export function diffEnvironments(
+  a: Environment,
+  b: Environment,
+): readonly EnvironmentChange[] {
+  const changes: EnvironmentChange[] = []
+  const scalars = ['model', 'version', 'outputStyle', 'permissionMode'] as const
+  for (const field of scalars) {
+    const before = a[field] ?? '(not reported)'
+    const after = b[field] ?? '(not reported)'
+    if (before !== after) changes.push({ field, before, after })
+  }
+  const lists = ['tools', 'skills', 'agents', 'plugins'] as const
+  for (const field of lists) {
+    const before = [...a[field]].sort()
+    const after = [...b[field]].sort()
+    if (before.join(' ') === after.join(' ')) continue
+    const added = after.filter((x) => !before.includes(x))
+    const removed = before.filter((x) => !after.includes(x))
+    changes.push({
+      field,
+      before: removed.length > 0 ? `-${removed.join(', -')}` : count(before.length),
+      after: added.length > 0 ? `+${added.join(', +')}` : count(after.length),
+    })
+  }
+  return changes
+}
+
+/** `1 entry` / `2 entries` — rapor metni dilbilgisine takılmasın. */
+const count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`
+
 
 // ---------------------------------------------------------------------------
 // Oran — değişmez #4

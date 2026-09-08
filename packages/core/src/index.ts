@@ -22,12 +22,15 @@ export {
 
 export {
   comparePins,
+  diffEnvironments,
   proportion,
   formatProportion,
   type Verdict,
   type VerdictDetail,
   type Pins,
   type PinComparison,
+  type Environment,
+  type EnvironmentChange,
   type TraceEvent,
   type TraceEventKind,
   type SessionOutcome,

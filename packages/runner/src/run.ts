@@ -24,6 +24,7 @@ import {
   type Attempt,
   type AssertionResult,
   type CaseResult,
+  type Environment,
   type Evidence,
   type HostAdapter,
   type Pins,
@@ -103,11 +104,15 @@ export async function runSuite<S extends AgentSession>(
   // İzin modu da aynı mantıkla: attempt'ler ayrışırsa mod koşum ortasında
   // kaymış demektir ve tek bir değer yazmak yanlış olur.
   const permissionModes = new Set<string>()
+  // Ortam kaydı hash'le aynı kuralla toplanıyor: attempt'ler ayrışırsa ortam
+  // koşum ortasında kaymış demektir ve tek bir kayıt yazmak yanlış olur.
+  // Karşılaştırma zaten hash üzerinden duracak; burada susmak doğrusu.
+  const environments = new Map<string, Environment>()
 
   for (const testCase of suite.cases) {
     const attempts: Attempt[] = []
     for (let index = 0; index < repeat; index += 1) {
-      const { attempt, environmentHash, permissionMode } = await runAttempt(
+      const { attempt, environmentHash, permissionMode, environment } = await runAttempt(
         suite,
         testCase,
         index,
@@ -117,6 +122,7 @@ export async function runSuite<S extends AgentSession>(
       )
       if (environmentHash !== undefined) environmentHashes.add(environmentHash)
       if (permissionMode !== undefined) permissionModes.add(permissionMode)
+      if (environment !== undefined) environments.set(JSON.stringify(environment), environment)
       attempts.push(attempt)
       options.onProgress?.({
         caseId: testCase.id,
@@ -147,6 +153,9 @@ export async function runSuite<S extends AgentSession>(
     ),
     ...(permissionModes.size === 1
       ? { permissionMode: [...permissionModes][0] as string }
+      : {}),
+    ...(environments.size === 1
+      ? { environment: [...environments.values()][0] as Environment }
       : {}),
     runs: repeat,
     cases,
@@ -220,6 +229,8 @@ interface AttemptResult {
   environmentHash?: string
   /** Host'un bu attempt'te bildirdiği izin modu. */
   permissionMode?: string
+  /** Hash'in girdisi olan ortam kaydı; hash ile aynı mantıkla toplanır. */
+  environment?: Environment
 }
 
 async function runAttempt<S extends AgentSession>(
@@ -234,6 +245,7 @@ async function runAttempt<S extends AgentSession>(
   const began = Date.now()
   let environmentHash: string | undefined
   let permissionMode: string | undefined
+  let environment: Environment | undefined
 
   let workspace: Awaited<ReturnType<typeof createWorkspace>> | undefined
   try {
@@ -302,6 +314,7 @@ async function runAttempt<S extends AgentSession>(
     cost = result.cost
     environmentHash = result.environmentHash
     permissionMode = result.permissionMode
+    environment = result.environment
 
     /*
      * Oturum çapraz kontrolden geçmediyse KANIT YOKTUR.
@@ -375,6 +388,7 @@ async function runAttempt<S extends AgentSession>(
       ),
       ...(environmentHash === undefined ? {} : { environmentHash }),
       ...(permissionMode === undefined ? {} : { permissionMode }),
+      ...(environment === undefined ? {} : { environment }),
     }
   }
 
@@ -423,6 +437,7 @@ async function runAttempt<S extends AgentSession>(
     attempt,
     ...(environmentHash === undefined ? {} : { environmentHash }),
     ...(permissionMode === undefined ? {} : { permissionMode }),
+    ...(environment === undefined ? {} : { environment }),
   }
 }
 

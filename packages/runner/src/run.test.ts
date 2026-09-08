@@ -502,3 +502,49 @@ describe('izin modu kayda girer', () => {
     expect((await run(adapter)).permissionMode).toBeUndefined()
   })
 })
+
+/**
+ * 0.3.0-a — ortam kaydı hash'le aynı kuralla toplanır.
+ *
+ * Hash "bir şey değişti" diyebiliyor; kayan alanı adıyla söyleyebilmek için
+ * hash'in girdisi olan nesnenin de kayıtta durması gerekiyor.
+ */
+describe('ortam kaydi kayda girer', () => {
+  const environment = {
+    model: 'test-model-1',
+    version: '2.1.263',
+    permissionMode: 'acceptEdits',
+    tools: ['Read', 'Write'],
+    skills: ['widget'],
+    agents: [],
+    plugins: [],
+  }
+
+  it("host'un bildirdigi ortam kosum kaydinda durur", async () => {
+    const adapter = new MockAdapter({
+      scenarios: [{ ...triggered(), result: { environment } }],
+    })
+    expect((await run(adapter)).environment).toEqual(environment)
+  })
+
+  it('host bildirmediyse alan yok — uydurulmaz', async () => {
+    expect((await run(new MockAdapter({ scenarios: [triggered()] }))).environment).toBe(
+      undefined,
+    )
+  })
+
+  it('ortam kosum ortasinda kayarsa hicbir deger yazilmaz', async () => {
+    // İki farklı ortamda ölçülmüş attempt'ler tek bir ortamla etiketlenemez;
+    // `environmentHash` zaten aynı sebeple susuyor.
+    const adapter = new MockAdapter({
+      scenarios: [
+        { ...triggered(), result: { environment } },
+        {
+          ...triggered(),
+          result: { environment: { ...environment, permissionMode: 'plan' } },
+        },
+      ],
+    })
+    expect((await run(adapter)).environment).toBeUndefined()
+  })
+})

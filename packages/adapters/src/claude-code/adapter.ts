@@ -21,6 +21,7 @@ import { delimiter, isAbsolute, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type {
   AgentSession,
+  Environment,
   HostAdapter,
   RunConfig,
   SessionResult,
@@ -334,6 +335,7 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
       ...(session.exitCode === null ? {} : { exitCode: session.exitCode }),
       ...(init === undefined ? {} : { activeSkills: init.skills }),
       ...(init === undefined ? {} : { environmentHash: environmentHash(init) }),
+      ...(init === undefined ? {} : { environment: environmentOf(init) }),
       // Host'un BİLDİRDİĞİ mod; adaptörün istediği değil. İkisi ayrışırsa
       // ölçümün koşulu host'un söylediğidir.
       // Host'un BİLDİRDİĞİ mod; adaptörün istediği değil. İkisi ayrışırsa
@@ -432,7 +434,20 @@ export function skillMatches(observed: string, target: string): boolean {
  * karşılaştırılır ve `unknown` üretir.
  */
 export function environmentHash(init: NonNullable<ParsedStream['init']>): string {
-  const canonical = JSON.stringify({
+  const canonical = JSON.stringify(environmentOf(init))
+  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`
+}
+
+/**
+ * Hash'in girdisi olan nesnenin kendisi.
+ *
+ * Eskiden yalnızca hash hesaplanıp nesne atılıyordu; karşılaştırma da bu
+ * yüzden "bir şey değişti" diyebiliyor, "ne değişti" diyemiyordu. İkisi
+ * ayrışmasın diye hash bu fonksiyondan besleniyor: alan eklenirse hash de
+ * kayıt da aynı anda öğrenir.
+ */
+export function environmentOf(init: NonNullable<ParsedStream['init']>): Environment {
+  return {
     model: init.model,
     version: init.version,
     outputStyle: init.outputStyle,
@@ -441,8 +456,7 @@ export function environmentHash(init: NonNullable<ParsedStream['init']>): string
     skills: [...init.skills].sort(),
     agents: [...init.agents].sort(),
     plugins: init.plugins.map((p) => `${p.name}@${p.version ?? ''}`).sort(),
-  })
-  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`
+  }
 }
 
 // ---------------------------------------------------------------------------

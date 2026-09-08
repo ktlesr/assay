@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ClaudeCodeAdapter,
   environmentHash,
+  environmentOf,
   passthroughEnv,
   skillMatches,
 } from './adapter.js'
@@ -278,6 +279,26 @@ describe('finalize', () => {
     const result = await adapter.finalize(session())
     expect(result.environmentHash).toMatch(/^sha256:[0-9a-f]{64}$/)
     expect(result.activeSkills).toEqual(['widget-manifest'])
+  })
+
+  /**
+   * 0.3.0-a: hash'in girdisi olan nesne de kayda giriyor. Hash "bir şey
+   * değişti" diyebiliyor, "ne değişti" diyemiyor.
+   */
+  it('ortam kaydi da doner ve hash in girdisiyle ayni nesnedir', async () => {
+    const result = await adapter.finalize(session())
+    expect(result.environment).toEqual(environmentOf(init))
+    expect(result.environment?.skills).toEqual(['widget-manifest'])
+    expect(result.environment?.permissionMode).toBe('dontAsk')
+    // Hash gerçekten bu nesneden hesaplanıyor: ikisi ayrışırsa rapor kayan
+    // alanı yanlış gösterirdi.
+    expect(result.environmentHash).toBe(environmentHash(init))
+  })
+
+  it('ortam kaydi olmayan bir oturumda alan hic yazilmaz', async () => {
+    const result = await adapter.finalize(session({ parsed: { init: undefined } }))
+    expect(result.environment).toBeUndefined()
+    expect(result.environmentHash).toBeUndefined()
   })
 
   it('çapraz kontrol düşerse outcome error', async () => {
