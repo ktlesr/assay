@@ -13,10 +13,12 @@ export function Pins({ run, drifted = [] }: { run: Run; drifted?: readonly strin
   /**
    * `driftKey` satırın hangi pinden sorumlu olduğunu söyler.
    *
-   * Ortam hash'i ve izin modu ayrı satırlar ama ikisi de pin 3'ün denetçisi:
-   * biri kayarsa `comparePins` `systemPromptHash` kaydı diyor. Aynı drift
-   * anahtarını paylaşmaları, "hangisi değişti" işaretinin doğru satırlara
-   * düşmesi için.
+   * 0.3.0-a'ya kadar ortam hash'i ve izin modu satırları `systemPromptHash`
+   * anahtarını taşıyordu, çünkü `comparePins` denetçinin bulgusunu denetlenen
+   * pinin adına yazıyordu. Artık kayan alan kendi adıyla geliyor ve satırlar
+   * da kendi anahtarlarını kullanıyor. İzin modu hâlâ ortam hash'ine bağlı:
+   * mod değişirse hash değişir, o yüzden o satır `environmentHash` ile
+   * işaretleniyor.
    */
   const rows: ReadonlyArray<{
     key: string
@@ -42,13 +44,13 @@ export function Pins({ run, drifted = [] }: { run: Run; drifted?: readonly strin
     },
     {
       key: 'environmentHash',
-      driftKey: 'systemPromptHash',
+      driftKey: 'environmentHash',
       label: 'Environment hash',
       value: run.pins.environmentHash ?? 'not reported by the host',
     },
     {
       key: 'permissionMode',
-      driftKey: 'systemPromptHash',
+      driftKey: 'environmentHash',
       label: 'Permission mode',
       value: run.permissionMode ?? 'not reported by the host',
     },

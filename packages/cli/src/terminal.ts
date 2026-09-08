@@ -186,6 +186,10 @@ export function renderComparison(comparison: RunComparison): string {
   if (!comparison.comparable) {
     out.push(style.yellow(style.bold('  cannot compare these runs')))
     out.push(`  ${comparison.reason}`)
+    // Hash "bir şey değişti" der; okuyucunun tamir edeceği şey alanın kendisi.
+    for (const change of comparison.environmentChanges) {
+      out.push(`    ${pad(change.field, 16)} ${change.before} → ${change.after}`)
+    }
     out.push(
       style.grey(
         '  Two runs are only comparable when the skill version, model, system prompt\n' +
