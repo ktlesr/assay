@@ -44,6 +44,8 @@ import {
 } from './sandbox.js'
 import { assembleRun } from './assemble.js'
 import { RunJournal, type JournalAttempt } from './journal.js'
+import { superviseAttempt } from './supervisor.js'
+import type { AdapterSpec } from './worker.js'
 
 export interface RunOptions {
   /** Suite'in ham kaynağı — pin 4'ün denetçisi olan içerik hash'i için. */
@@ -62,6 +64,20 @@ export interface RunOptions {
    * çünkü kütüphane olarak çağıran biri diske yazmak zorunda değil.
    */
   journalDir?: string
+  /**
+   * Verildiğinde her deneme ayrı bir süreçte koşar ve o sürecin ağacı deneme
+   * sonunda kapatılır.
+   *
+   * Değer, worker'ın kuracağı adaptörün tarifi: adaptör bir nesne ve nesne
+   * süreç sınırından geçmiyor. Tarifi çağıran kod veriyor, vaka seti dosyası
+   * değil.
+   *
+   * Verilmezse deneme bu süreçte koşar — kütüphane olarak çağıran biri kendi
+   * adaptör örneğini geçebilsin diye. CLI her zaman veriyor.
+   */
+  isolate?: AdapterSpec
+  /** İzole denemenin duvar saati tavanı; aşılırsa worker ağacıyla kapatılır. */
+  attemptTimeoutMs?: number
   /** Vaka ve attempt ilerledikçe çağrılır. */
   onProgress?: (event: ProgressEvent) => void
   /** Zaman kaynağı — testlerde sabitlenebilir. */
@@ -127,14 +143,17 @@ export async function runSuite<S extends AgentSession>(
   try {
     for (const testCase of suite.cases) {
       for (let index = 0; index < repeat; index += 1) {
-        const { attempt, environmentHash, permissionMode, environment } = await runAttempt(
-          suite,
-          testCase,
-          index,
-          adapter,
-          { ...options, skillPath: skillCopy },
-          now,
-        )
+        const { attempt, environmentHash, permissionMode, environment } =
+          options.isolate === undefined
+            ? await runAttempt(
+                suite,
+                testCase,
+                index,
+                adapter,
+                { ...options, skillPath: skillCopy },
+                now,
+              )
+            : await isolatedAttempt(suite, testCase, index, options, skillCopy, now)
         const entry: JournalAttempt = {
           kind: 'attempt',
           caseId: testCase.id,
@@ -177,6 +196,53 @@ export async function runSuite<S extends AgentSession>(
   // Kayıt kuruldu; journal'ın işi bitti.
   await journal?.finish()
   return run
+}
+
+/**
+ * Denemeyi ayrı bir süreçte koşturur ve o süreç ölse de koşumu düşürmez.
+ *
+ * Worker sonuç yazmadıysa **ölçüm yapılmamıştır**: deneme `unknown` olur ve
+ * gerekçe sebebi adıyla söyler (değişmez #1). Öldürülen bir denemeyi `fail`
+ * saymak kullanıcıyı kırık olmayan bir skill'i tamir etmeye gönderirdi.
+ */
+async function isolatedAttempt(
+  suite: Suite,
+  testCase: SuiteCase,
+  index: number,
+  options: RunOptions,
+  skillCopy: string,
+  now: () => Date,
+): Promise<AttemptResult> {
+  const startedAt = now().toISOString()
+  const began = Date.now()
+  const supervised = await superviseAttempt(suite, testCase, index, {
+    adapter: options.isolate as AdapterSpec,
+    source: options.source,
+    ...(options.suitePath === undefined ? {} : { suitePath: options.suitePath }),
+    skillPath: skillCopy,
+    ...(options.attemptTimeoutMs === undefined
+      ? {}
+      : { timeoutMs: options.attemptTimeoutMs }),
+  })
+
+  if (supervised.result !== null) return supervised.result
+
+  return {
+    attempt: {
+      index,
+      caseId: testCase.id,
+      startedAt,
+      finishedAt: now().toISOString(),
+      trigger: {
+        available: false,
+        reason: supervised.reason ?? 'the attempt process reported nothing',
+      },
+      assertions: [],
+      verdict: 'unknown',
+      reason: supervised.reason ?? 'the attempt process reported nothing',
+      latencyMs: Date.now() - began,
+    },
+  }
 }
 
 /** Journal açılamazsa koşum durmaz ama sessiz de kalınmaz. */
@@ -236,7 +302,7 @@ export function pinsOf(
  * Hash koşum seviyesinde bir pin ama yalnızca oturum seviyesinde okunabiliyor;
  * `runSuite` attempt'lerden toplayıp hepsi aynıysa pine yazıyor.
  */
-interface AttemptResult {
+export interface AttemptResult {
   attempt: Attempt
   environmentHash?: string
   /** Host'un bu attempt'te bildirdiği izin modu. */
@@ -245,7 +311,7 @@ interface AttemptResult {
   environment?: Environment
 }
 
-async function runAttempt<S extends AgentSession>(
+export async function runAttempt<S extends AgentSession>(
   suite: Suite,
   testCase: SuiteCase,
   index: number,

@@ -81,6 +81,11 @@ Options
                       required to actually use bypassPermissions: that mode
                       removes every boundary the sandbox observes
   --allow-unknown     do not fail CI when attempts could not be measured
+  --no-isolation      run attempts in this process instead of one process each.
+                      Isolation is on by default: the measured agent can kill
+                      processes on this machine, and a killed attempt should
+                      cost one attempt, not the run. It is a limit, not a
+                      shield — the supervising process is a node process too.
   --json              print the run record as JSON instead of a summary
   --suite <file>      the case set the run was measured with (push)
   --url <base>        hosted instance base URL (push, or ASSAY_URL)
@@ -108,6 +113,7 @@ export async function main(argv: readonly string[]): Promise<number> {
         'permission-mode': { type: 'string' },
         'allow-bypass-permissions': { type: 'boolean' },
         'allow-unknown': { type: 'boolean' },
+        'no-isolation': { type: 'boolean' },
         json: { type: 'boolean' },
         suite: { type: 'string' },
         url: { type: 'string' },
@@ -339,11 +345,47 @@ async function run(
     )
   }
 
+  /*
+   * Her deneme kendi sürecinde.
+   *
+   * Ölçülen ajan işini doğrulamak için başlattığı sunucuları porta göre
+   * öldürüyor ve runner aynı makinede sıradan bir `node` süreci; 4.2.2
+   * ölçümünde koşum iki kez bu yüzden öldü (docs/blockers.md). Deneme ayrı bir
+   * süreçte koşarsa öldürülen şey koşumun tamamı değil bir deneme olur.
+   *
+   * Bu **koruma değil**, sınırlama: sevk katmanı da aynı makinede bir `node`
+   * süreci ve onu da öldürebilecek bir çağrı var. `--no-isolation` kaçış yolu;
+   * kütüphane olarak çağıranlar için varsayılan zaten süreç içi.
+   */
+  const isolate =
+    options['no-isolation'] === true
+      ? undefined
+      : {
+          /*
+           * Modül burada, ÇAĞIRANDA çözülüyor.
+           *
+           * Worker `packages/runner` içinde yaşıyor ve `runner` adapters'a
+           * bağlanamıyor (docs/stack.md); bare specifier orada çözülmüyor ve
+           * her deneme "the attempt process exited with code 1" veriyordu —
+           * uçtan uca duman testi bunu ilk koşumda gösterdi. Çözümlemeyi
+           * adapters'a gerçekten bağlı olan paket yapıyor.
+           */
+          module: import.meta.resolve('@ktlsr/assay-adapters'),
+          export: 'ClaudeCodeAdapter',
+          options: {
+            ...(permissionMode === undefined ? {} : { permissionMode }),
+            ...(options['allow-bypass-permissions'] === true
+              ? { allowBypassPermissions: true }
+              : {}),
+          },
+        }
+
   const record = await runSuite(effective, adapter, {
     source,
     suitePath: loaded.path,
     skillPath: resolve(skillPath),
     journalDir: store.directory,
+    ...(isolate === undefined ? {} : { isolate }),
     ...(repeat === undefined ? {} : { repeat }),
     onProgress: (event) => {
       if (options['json'] === true) return

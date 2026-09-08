@@ -38,6 +38,15 @@ export {
 
 export { assembleRun, verdictOf } from './assemble.js'
 
+export { killTree, killChildTree, type KillTreeResult } from './process.js'
+export {
+  superviseAttempt,
+  workerEntry,
+  type SupervisorOptions,
+  type SupervisedAttempt,
+} from './supervisor.js'
+export type { AdapterSpec, WorkerPayload } from './worker.js'
+
 export {
   RunJournal,
   readJournal,

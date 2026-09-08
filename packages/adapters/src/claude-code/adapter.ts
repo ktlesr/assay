@@ -14,7 +14,7 @@
  */
 
 import { createHash } from 'node:crypto'
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { delimiter, isAbsolute, join } from 'node:path'
@@ -474,6 +474,34 @@ interface SpawnResult {
   error?: string
 }
 
+/**
+ * Süreci ve altındaki her şeyi kapatmayı ister.
+ *
+ * `packages/runner/src/process.ts` içinde ikizi var ve bu bilerek bir kopya:
+ * `adapters` yalnızca `core`'a bağlanabiliyor (docs/stack.md) ve `core` Node
+ * yerleşiklerini kullanamıyor. Kuralı gevşetmek yerine yirmi satır iki yerde
+ * duruyor; ikisi de aynı şeyi yapıyor ve ikisi de "en iyi çaba".
+ *
+ * Neden gerekiyor: yalnızca doğrudan çocuğu öldürmek, ajanın başlattığı dev
+ * sunucuları yetim bırakıyordu — portu meşgul eden yetimleri Assay üretiyordu
+ * (docs/blockers.md).
+ */
+function killProcessTree(child: ReturnType<typeof spawn>): void {
+  const pid = child.pid
+  if (pid === undefined) return
+  if (process.platform === 'win32') {
+    // Ateşle ve unut: zaman aşımı yolunda cevabı bekleyecek kimse yok.
+    execFile('taskkill', ['/PID', String(pid), '/T', '/F'], () => undefined)
+    return
+  }
+  try {
+    // Negatif pid = süreç grubu; `detached: true` ile başlatıldığı için var.
+    process.kill(-pid, 'SIGKILL')
+  } catch {
+    child.kill('SIGKILL')
+  }
+}
+
 function run(
   binary: string,
   args: readonly string[],
@@ -486,6 +514,13 @@ function run(
       env: options.env,
       shell,
       windowsHide: true,
+      /*
+       * POSIX'te kendi süreç grubunda başlıyor: ağaç kapatma `kill(-pid)` ile
+       * gruba gidiyor ve ajanın başlattığı dev sunucular da kapanıyor.
+       * Windows'ta `taskkill /T` zaten PID ağacını yürüdüğü için gerekmiyor;
+       * kabuk üzerinden koşarken de bilerek verilmiyor.
+       */
+      ...(process.platform === 'win32' || shell ? {} : { detached: true }),
     })
 
     child.stdin?.on('error', () => undefined) // süreç erken ölürse EPIPE
@@ -498,6 +533,16 @@ function run(
     const timer = setTimeout(() => {
       if (settled) return
       settled = true
+      /*
+       * Ağaç bütün olarak kapatılıyor, yalnızca doğrudan çocuk değil.
+       *
+       * claude
+in başlattığı dev sunucular eskiden hayatta kalıyordu, yani
+       * portu meşgul eden yetimleri Assay üretiyordu: bir sonraki denemenin
+       * ajanı portu dolu buluyor ve porta göre öldürmeye girişiyor — aynı
+       * makinedeki runner da bir `node` süreci (docs/blockers.md).
+       */
+      killProcessTree(child)
       child.kill('SIGKILL')
       resolve({
         stdout,
