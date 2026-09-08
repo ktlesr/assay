@@ -235,6 +235,55 @@ describe('değişmez #1 — unknown gerekçesiz olamaz', () => {
     )
   })
 
+  /*
+   * 0.3.0-b — yarım bir kayıt sebepsiz olamaz.
+   *
+   * Bir durumu bildirip gerekçesini bildirmemek, okuyucuyu bilgisiz bırakırken
+   * bilgilendirilmiş sanmaktır: raporda "incomplete run" yazar, neden yarım
+   * kaldığı yazmaz.
+   */
+  const partialSql = (suiteId: string, partial: string | null): [string, unknown[]] => [
+    `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
+       "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
+       "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","partial")
+     VALUES ($1,$2,now(),now(),'h','docx','a','b','c','d',1,'e',10,'PASS'::"Verdict",$3::jsonb)`,
+    [next(), suiteId, partial],
+  ]
+
+  it('Run: yarım kayıt ama sebep yok → reddedilir', async () => {
+    const suiteId = await makeSuite()
+    await violates(
+      'run_partial_shape',
+      ...partialSql(suiteId, JSON.stringify({ recoveredAt: '2026-09-08T11:00:00.000Z' })),
+    )
+  })
+
+  it('Run: yarım kayıt ama sebep boş string → reddedilir', async () => {
+    const suiteId = await makeSuite()
+    await violates(
+      'run_partial_shape',
+      ...partialSql(
+        suiteId,
+        JSON.stringify({ reason: '', recoveredAt: '2026-09-08T11:00:00.000Z' }),
+      ),
+    )
+  })
+
+  it('Run: sebebi ve kurtarma anı olan yarım kayıt kabul edilir', async () => {
+    const suiteId = await makeSuite()
+    const [sql, params] = partialSql(
+      suiteId,
+      JSON.stringify({ reason: 'interrupted', recoveredAt: '2026-09-08T11:00:00.000Z' }),
+    )
+    await expect(run(sql, params)).resolves.toBeDefined()
+  })
+
+  it('Run: normal biten koşumda partial NULL kalabilir', async () => {
+    const suiteId = await makeSuite()
+    const [sql, params] = partialSql(suiteId, null)
+    await expect(run(sql, params)).resolves.toBeDefined()
+  })
+
   it('Run: UNKNOWN ve gerekçe var → kabul edilir', async () => {
     const suiteId = await makeSuite()
     await expect(

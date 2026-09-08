@@ -18,6 +18,7 @@ import {
   type Environment,
   type HookRecord,
   type NetworkRequest,
+  type PartialRun,
   type RefusedActivation,
   type Run,
   type Suite,
@@ -107,6 +108,12 @@ export interface RunRow {
    * daraltma okuma tarafında yapılıyor.
    */
   environment: unknown
+  /**
+   * Yarım kalmış koşumun künyesi; normal bitmişse null.
+   *
+   * Diğer jsonb sütunları gibi `unknown`; daraltma okuma tarafında.
+   */
+  partial: unknown
   runsPerCase: number
   verdict: string
   unknownReason: string | null
@@ -223,6 +230,7 @@ export function toRunRow(run: Run): RunRow {
     pinEnvironmentHash: run.pins.environmentHash ?? null,
     permissionMode: run.permissionMode ?? null,
     environment: run.environment ?? null,
+    partial: run.partial ?? null,
     runsPerCase: run.runs,
     verdict: VERDICT_TO_DB[run.verdict],
     // Değişmez #1: `unknown` gerekçesiz saklanamaz; kısıt bunu zorluyor,
@@ -444,6 +452,7 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
     },
     ...(row.permissionMode === null ? {} : { permissionMode: row.permissionMode }),
     ...(isEnvironment(row.environment) ? { environment: row.environment } : {}),
+    ...(isPartial(row.partial) ? { partial: row.partial } : {}),
     runs: row.runsPerCase,
     cases,
     verdict,
@@ -509,5 +518,21 @@ function isEnvironment(value: unknown): value is Environment {
     Array.isArray(candidate['skills']) &&
     Array.isArray(candidate['agents']) &&
     Array.isArray(candidate['plugins'])
+  )
+}
+
+/**
+ * Yarim kalmis kosum kunyesinin sekli yerinde mi.
+ *
+ * Sebepsiz bir yarim kayit, bir durumu bildirip gerekcesini bildirmemek olurdu.
+ * Veritabani kisiti da ayni sarti zorluyor; burasi okuma tarafindaki karsiligi.
+ */
+function isPartial(value: unknown): value is PartialRun {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Record<string, unknown>
+  return (
+    typeof candidate['reason'] === 'string' &&
+    candidate['reason'].length > 0 &&
+    typeof candidate['recoveredAt'] === 'string'
   )
 }

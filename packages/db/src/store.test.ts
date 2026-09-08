@@ -194,6 +194,28 @@ describe('storeRun', () => {
     expect(loaded?.environment).toEqual(environment)
   })
 
+
+  it('yarim kosum kunyesi kayit satirinda durur ve geri okunur', async () => {
+    // Kurtarılan kayıt hosted tarafta da yarım olduğunu söylemeli; yoksa
+    // yüklendiği anda tam bir ölçüm gibi görünürdü.
+    const partial = {
+      reason: 'the run was interrupted before it finished',
+      recoveredAt: '2026-09-08T11:00:00.000Z',
+      droppedLines: 1,
+    }
+    const run = { ...makeRun('run-roundtrip-partial'), partial }
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.partial).toEqual(partial)
+  })
+
+  it('normal biten kosumda yarim kunyesi hic yazilmaz', async () => {
+    const run = makeRun('run-roundtrip-complete')
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.partial).toBeUndefined()
+  })
+
   it('izi, assertion sonuçlarını ve ortam farkını korur', async () => {
     const run = makeRun('run-roundtrip-2', 'fail')
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })

@@ -83,13 +83,28 @@ export async function storeRun(
     const cases = await tx.case.findMany({ where: { suiteId: suite.id } })
     const caseIdByName = new Map(cases.map((c) => [c.caseId, c.id]))
 
+    /*
+     * jsonb sütunları satırdan ÇIKARILIP tek tek ekleniyor.
+     *
+     * Değer yokken anahtar hiç geçilmemeli: `null` geçilirse Prisma bunu
+     * **JSON null** olarak yazar ve `IS NULL` yanlış çıkar. Aynı tuzak
+     * `TraceEvent.hook`ta da vardı. Burada iki kez düşüldü: önce `...runRow`
+     * yayılımının `partial: null`ı zaten koyduğu, koşullu eklemenin onu
+     * silmediği görüldü — o yüzden alanlar yayılımdan çıkarılıyor.
+     * `run_partial_shape` kısıtı yakaladı; normal biten her koşum
+     * reddediliyordu.
+     */
+    const { environment, partial, ...runColumns } = runRow
     await tx.run.create({
       data: {
-        ...runRow,
+        ...runColumns,
         verdict: runRow.verdict as 'PASS' | 'FAIL' | 'UNKNOWN',
-        // jsonb sütunu; satır tipinde `unknown` (Prisma'ya bağlanmamak için).
-        // `Case.assertions` ile aynı kalıp.
-        environment: runRow.environment as never,
+        ...(environment === null || environment === undefined
+          ? {}
+          : { environment: environment as never }),
+        ...(partial === null || partial === undefined
+          ? {}
+          : { partial: partial as never }),
         suiteId: suite.id,
         ...(input.ownerId === undefined ? {} : { ownerId: input.ownerId }),
       },
