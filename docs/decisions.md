@@ -2211,3 +2211,93 @@ rağmen iki kez düşüldü — ilk düzeltmede koşullu ekleme yapıldı ama
 Kısıtı gevşetmek, kısıtın yakaladığı gerçek kusuru görmezden gelmek olurdu:
 kısıt doğru davrandı, yazma yanlıştı.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Deneme ayrı süreçte; adaptör nesne değil tarif olarak geçiyor
+
+Bağlam: 0.3.0-c. Ölçülen ajan runner'ı öldürebiliyor ve runner aynı süreçte
+bütün koşumu taşıyor.
+Seçenekler: (a) runner'ı yeniden adlandırıp gizlemek · (b) her denemeyi ayrı
+bir süreçte koşturmak · (c) konteyner
+Karar: (b). `RunOptions.isolate` bir **adaptör tarifi** alıyor
+(`{ module, export, options }`); worker adaptörü kendisi kuruyor.
+Gerekçe: (a) sahte — ajan porta göre de öldürüyor. (c) doğru uzun vadeli cevap
+ama Faz 3 ve bugünkü sorunu çözmüyor. (b) öldürülen şeyi koşumdan bir denemeye
+indiriyor.
+Adaptörün nesne olarak geçememesi tasarımın kendisi: süreç sınırından yalnızca
+JSON geçiyor. Tarifi **çağıran kod** veriyor, vaka seti dosyası değil — bir
+suite dosyasının hangi modülün yükleneceğini söyleyebilmesi, ölçüm girdisine
+kod çalıştırma yetkisi vermek olurdu.
+Kütüphane olarak çağıranlar için varsayılan hâlâ süreç içi: kendi adaptör
+örneğini geçen biri süreç sınırına zorlanmıyor. CLI her zaman izole koşuyor,
+`--no-isolation` kaçış yolu.
+Geri dönüş maliyeti: orta (runner'ın iç akışı değişti; genel API aynı)
+
+## 2026-09-08 — Worker kendi kendine çıkmıyor; ağacı sevk katmanı kapatıyor
+
+Bağlam: Ajanın başlattığı dev sunucular denemeden sonra da yaşıyor.
+Seçenekler: worker normal çıksın, ağaç sonra kapatılsın · worker sonucu yazıp
+canlı beklesin, ağacı sevk katmanı kapatsın
+Karar: İkincisi. Worker sonucu dosyaya yazıyor, tek satır "yazdım" diyor ve
+bekliyor; sevk katmanı onu ağacıyla birlikte kapatıyor.
+Gerekçe: Ağaç ancak kök süreç canlıyken güvenilir yürünebiliyor. Worker
+çıktıktan sonra Windows'ta yürünecek bir ağaç kalmıyor ve torunlar yetim
+kalıyor — düzeltilmek istenen şeyin ta kendisi. Sonucun kaynağı dosya; stdout
+satırı yalnızca bir işaret, ölçüm değil.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Windows'ta ağaç PPID üzerinden yürünüyor; `taskkill /T` yetmiyor
+
+Bağlam: Ağaç kapatma önce `taskkill /T` ile yazıldı.
+Seçenekler: `taskkill /T` ile yetinmek · PPID üzerinden özyinelemeli inmek
+Karar: PowerShell ile PPID üzerinden özyinelemeli. Deneme başına bir süreç
+açılışı; ölçüm koşumları dakikalarca sürdüğü için görünmüyor.
+Gerekçe: Ölçüldü — `detached` başlatılmış bir torun `taskkill /T` ile ölmüyor,
+ve kabuktan ayrılmış bir dev sunucu tam olarak böyle başlıyor. Bu, testin ilk
+hâli **yanlış sebeple yeşil** olduğu için ortaya çıktı: detached olmayan bir
+çocuk zaten Node'un (libuv'un) job object'i sayesinde ebeveyniyle ölüyordu,
+yani ölçülen şey bizim çabamız değildi. Yetim `detached` yapılınca `/T` kaldı.
+İki yan karar: hata metnine bakılmıyor (mesajlar yerelleştirilmiş; tek
+dilden bağımsız soru "süreç hâlâ orada mı"), ve PowerShell tam yolla
+çağrılıyor (bu makinede `System32` PATH'te değil — aynı eksiklik 4.2.2'de
+ölçülen skill'in `where curl.exe` sondasını da düşürmüştü).
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Öldürülen deneme `unknown`, `fail` değil
+
+Bağlam: Worker sonuç yazmadan öldüğünde deneme ne olmalı.
+Seçenekler: `fail` · `unknown`
+Karar: `unknown`, ve gerekçe sebebi adıyla söylüyor ("the attempt process was
+killed by SIGKILL … the measured agent can reach processes on this machine").
+Gerekçe: Ölçüm yapılmadı. `fail` demek kullanıcıyı kırık olmayan bir skill'i
+tamir etmeye gönderirdi — değişmez #1'in tam olarak engellediği hata.
+Test ters çevirmeyle sabitlendi: verdict `fail`e çevrildiğinde kırmızıya
+dönüyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Adaptör modülünü çağıran çözüyor
+
+Bağlam: Worker `packages/runner` içinde ve `runner` adapters'a bağlanamıyor
+(docs/stack.md). `import('@ktlsr/assay-adapters')` worker'da çözülmüyordu ve
+her deneme "the attempt process exited with code 1" veriyordu.
+Seçenekler: bağımlılık kuralını gevşetmek · worker'a çözümleme yolu vermek ·
+çağıranın modülü çözüp mutlak URL geçmesi
+Karar: Üçüncüsü. CLI `import.meta.resolve('@ktlsr/assay-adapters')` ile çözüp
+`file:` URL'si geçiyor; worker `file:` ve dosya yollarını olduğu gibi
+kullanıyor.
+Gerekçe: Kuralı gevşetmek `web ↛ runner` yasağını da tartışmaya açardı. Modülü
+çözmek zaten adapters'a bağlı olan paketin işi. Kusur uçtan uca duman testinde
+çıktı — birim testleri fixture'ı mutlak yolla geçtiği için görmüyordu.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — "Bu modül giriş noktası mı" doğru sorulmalı
+
+Bağlam: Worker'ın kendini çalıştırma koruması `import.meta.url.endsWith(
+'worker.js')` diyordu.
+Karar: `process.argv[1]`in çözülmüş file URL'si `import.meta.url`e eşit mi.
+Gerekçe: Derlenmiş modülün url'si **her zaman** `worker.js` ile bitiyor — içe
+aktarıldığında bile. Sonuç: `@ktlsr/assay-runner`ı içe aktaran her süreç
+worker'ın `main`ini koşturmaya kalkıyordu ve ilgisiz bir argümanı payload
+sanıp `ENOENT` veriyordu. Vitest'te görünmedi çünkü orada modül `worker.ts`;
+yalnızca gerçek süreçle koşan test yakaladı. Kaynaktan koşan bir test, ürünün
+koştuğu şeyi koşmuyor olabilir.
+Geri dönüş maliyeti: düşük

@@ -36,6 +36,7 @@ gözlemliyor ve raporluyor. Bu rapor o sınırı ölçüyor.
 | M2 | Orta | Ajana kullanıcının canlı skill dizini veriliyordu | ✅ kapatıldı |
 | A1 | Kabul edilen | Dosya sistemi ve ağ sınırı host'un izin katmanına dayanıyor | ⚠️ açık, belgelendi |
 | A2 | Kabul edilen | Disk ve CPU kotası yok | ⚠️ açık, belgelendi |
+| A3 | Kabul edilen | Ölçülen ajan bu makinedeki süreçlere erişebiliyor | ⚠️ açık, 0.3.0-c'de sınırlandı |
 
 ---
 
@@ -230,3 +231,62 @@ Kalan boşluk: alt sürecin *gerçekten* bu ortamı gördüğü uçtan uca
 kanıtlanmadı — bunun için sahte bir host çalıştırılabiliri gerekiyor.
 Fonksiyon ile çağrı yeri arasındaki tek satır (`...passthroughEnv()`) kod
 incelemesine bırakıldı.
+
+---
+
+## A3 — Ölçülen ajan bu makinedeki süreçlere erişebiliyor (0.3.0-c'de sınırlandı)
+
+**Durum:** ⚠️ açık, belgelendi — daraltıldı, kapatılmadı.
+
+**Ne oldu.** Ölçülen ajan, işini doğrulamak için başlattığı dev sunucuları
+**porta göre** öldürüyor; runner aynı makinede, aynı kullanıcı altında sıradan
+bir `node` süreci. `impeccable` 4.2.2 ölçümünde koşum iki kez bu şekilde öldü
+ve ~40 dakika ile ~$4 gitti (docs/blockers.md). Aynısı 4.2.1'de de olmuştu.
+
+**Kendi payımız.** Yetimleri Assay üretiyordu: adaptör zaman aşımında yalnızca
+doğrudan çocuğu öldürüyordu, `claude`nin başlattığı sunucular hayatta
+kalıyordu. Bir sonraki denemenin ajanı portu dolu buluyor ve porta göre
+öldürmeye girişiyordu — döngünün ilk halkası bizdik.
+
+**0.3.0-c'de yapılan.**
+
+1. Her deneme kısa ömürlü bir **worker sürecinde** koşuyor. Öldürülen şey
+   koşumun tamamı değil bir deneme oluyor; sevk katmanı onu `unknown` yazıp
+   devam ediyor (değişmez #1: ölçüm yapılmadı, başarısız olmadı).
+2. Worker sonucu yazdıktan sonra **kendi kendine çıkmıyor**, canlı bekliyor ve
+   sevk katmanı onu ağacıyla birlikte kapatıyor. Ağaç ancak kök süreç canlıyken
+   güvenilir biçimde yürünebiliyor.
+3. Ağaç Windows'ta PPID üzerinden özyinelemeli kapatılıyor. `taskkill /T`
+   yetmedi ve bu ölçüldü: `detached` başlatılmış bir torun onunla ölmüyor.
+
+**Ölçüldü.** İki kol, ikisi de gerçek süreçlerle; dış bir aktör PID'i bulup
+öldürüyor (`tools/fixtures/measure-isolation.mjs`):
+
+| Kol | Koşum | Kayda giren deneme | `unknown` | Öldürme | Yetim |
+|---|---|---|---|---|---|
+| süreç içi | **düştü** (exit -1) | 0 | — | 1 | yok |
+| izole (0.3.0-c) | sağ | 4 | 2 | 2 | yok |
+
+Yani: bir öldürme, koşumun tamamı yerine bir denemeye mal oluyor.
+
+**Neyi kapatmıyor — tavan.**
+
+- Sevk katmanı da aynı makinede bir `node` süreci. `taskkill /F /IM node.exe`
+  ya da PID'i bilen herhangi bir çağrı onu da öldürür. Bu durumda koşum durur;
+  o ana kadar tamamlanmış denemeler journal'da kalır (0.3.0-b) ve
+  `assay recover` ile kayda çevrilir. Test bunu ölçüyor.
+- Worker'ın ölmesiyle ölçüm arasındaki fark ajanın niyetine bakmıyor: kasıtlı
+  öldürme ile bir çökme aynı görünüyor. İkisi de `unknown`, gerekçe metni
+  ihtimalleri sayıyor.
+- Ağaç kapatma "en iyi çaba": PID yeniden kullanımı, izin reddi ve
+  kapatılamayan bir süreç mümkün. Sonuç `treeKilled` alanında dürüstçe
+  bildiriliyor, "kapatıldı" diye varsayılmıyor.
+- **Hiçbir yerde "korunuyor" denmiyor.** Denen şey: kayıp bir denemeyle
+  sınırlanıyor. Gerçek izolasyon konteynerle gelir ve A1 ile birlikte Faz
+  3'tedir.
+
+**Yan bulgu (Windows).** `detached` OLMAYAN bir torun zaten Node'un (libuv'un)
+job object'i sayesinde ebeveyniyle birlikte ölüyor. Testin ilk hâli bu yüzden
+yanlış sebeple yeşildi: ağaç kapatma kaldırıldığında bile geçiyordu. Yetim
+`detached` yapılınca gerçek durum ortaya çıktı. Ölçtüğünü sandığı şeyi ölçmeyen
+bir testin nasıl göründüğüne dair iyi bir örnek.

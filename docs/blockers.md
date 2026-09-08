@@ -394,3 +394,31 @@ Doğrulandı — taklit değil, gerçek öldürme:
 
 Kalan risk: journal'ı yazan süreç ölüyor ama runner hâlâ ölçtüğü ajanla aynı
 süreç alanında. Kayıp artık en fazla bir deneme; ölümün kendisi duruyor.
+
+### 2026-09-08 — Diğer yarı daraltıldı (0.3.0-c): deneme öldürülebilir, koşum öldürülemez
+
+Engelin kalan yarısı — "runner ölçülen ajanın erişiminde" — **kapanmadı,
+daraltıldı.** Kapanması konteyner ister ve o Faz 3'te
+([sandbox-security.md](sandbox-security.md), A1 ve A3).
+
+Ne değişti:
+
+1. Her deneme kısa ömürlü bir worker sürecinde koşuyor. Öldürülen şey koşum
+   değil bir deneme; sevk katmanı onu `unknown` yazıp devam ediyor.
+2. Worker sonucu yazdıktan sonra canlı bekliyor; ağacı sevk katmanı kapatıyor.
+   Ajanın başlattığı dev sunucular böylece yetim kalmıyor — **yetimleri
+   üreten bizdik.**
+3. Ağaç Windows'ta PPID üzerinden yürünüyor: `taskkill /T` `detached` bir
+   torunu öldürmüyor ve bu ölçüldü.
+
+Ölçüldü (`tools/fixtures/measure-isolation.mjs`, iki kol da gerçek süreçler,
+dış aktör PID'i bulup öldürüyor):
+
+| Kol | Koşum | Kayda giren deneme | `unknown` | Öldürme | Yetim |
+|---|---|---|---|---|---|
+| süreç içi | **düştü** (exit -1) | 0 | — | 1 | yok |
+| izole | sağ | 4 | 2 | 2 | yok |
+
+Kalan tavan, testle birlikte kayıtlı: sevk katmanı da aynı makinede bir `node`
+süreci. O öldürülürse koşum durur ve elde journal kalır (0.3.0-b);
+`assay recover` onu kayda çevirir. Hiçbir yerde "korunuyor" yazmıyor.

@@ -192,7 +192,7 @@ hem tasarımda.
 |---|---|---|---|---|
 | 0.3.0-a Kayan pin adıyla söylensin | `compare` `environmentHash`i ve içinde kayan alanı adıyla raporlar | S (~0.5 gün) | düşük | **tamam** |
 | 0.3.0-b Öldürülen koşum ölçtüğünü kaybetmesin | Deneme başına append-only journal, `partial` kayıt, `assay recover` | M (~1 gün) | düşük | **tamam** |
-| 0.3.0-c Runner ajanın erişiminden çıksın | Süreç ağacı öldürme + supervisor/worker ayrımı; öldürülen deneme `unknown` | L (2–3 gün) | orta | bekliyor |
+| 0.3.0-c Runner ajanın erişiminden çıksın | Süreç ağacı öldürme + supervisor/worker ayrımı; öldürülen deneme `unknown` | L (2–3 gün) | orta | **tamam** |
 | 0.3.0-d Paralel koşum | `--concurrency`, varsayılan 1; port kirası; kayda yazılır | M (~1 gün) | düşük | bekliyor |
 | 0.3.0-e Hızlı mod | `--fast` = N=3 + yalnız tetiklenme katmanı; ölçülen katmanlar kayda girer | M (~1–1.5 gün) | düşük | bekliyor |
 
@@ -433,6 +433,13 @@ iyileştirmez. İlk koşumu ölen kullanıcının ikinci koşumu olmaz.
   izin modu ve eşzamanlılık aynı kalıyor.
 
 ### Kapsam dışı, kaydedildi
+
+**HTML raporundaki metrik kutuları hâlâ kart.** `docs/design.md` #1 "veri
+kutularda değil çizgilerde durur, kart yok" diyor; CLI'ın HTML raporundaki
+TRIGGER PRECISION / ATTEMPTS / COST kutuları bu kuralın dışında kalmış durumda.
+0.3.0-b'de aynı dosyadaki `.callout` düzeltildi ama kutulara dokunulmadı: bu,
+raporun tamamının web'in tasarım diline hizalanması demek ve kendi
+değişikliğini hak ediyor. Ölçümün doğruluğunu etkilemiyor.
 
 Ölçüm sırasında ortaya çıkan ama beş maddeye girmeyen bir gürültü kaynağı: bu
 makinedeki Git Bash `add_item ... fatal error` çökmesi 390 Bash çağrısının
