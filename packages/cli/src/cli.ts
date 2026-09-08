@@ -7,7 +7,7 @@
  * Argüman ayrıştırması `node:util.parseArgs` ile — bağımlılık eklemeye değmez.
  */
 
-import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import {
@@ -24,7 +24,13 @@ import {
   type Run,
   type Suite,
 } from '@ktlsr/assay-core'
-import { RunStore, runSuite, suiteHash } from '@ktlsr/assay-runner'
+import {
+  findJournals,
+  recoverJournal,
+  RunStore,
+  runSuite,
+  suiteHash,
+} from '@ktlsr/assay-runner'
 import { renderHtmlReport } from './html.js'
 import {
   renderComparison,
@@ -55,6 +61,7 @@ Usage
   assay compare <run-a> <run-b>     compare two stored runs, pins checked
   assay ci <suite.yaml>             run and exit non-zero on failure
   assay push [run-id]               upload a stored run to a hosted instance
+  assay recover                     rebuild records from interrupted runs
   assay scrub [dir]                 mask usernames and secrets in stored records
 
 Options
@@ -134,6 +141,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       return compare(positionals[0], positionals[1], parsed.values)
     case 'push':
       return push(positionals[0], parsed.values)
+    case 'recover':
+      return recover(parsed.values)
     case 'scrub':
       return scrub(positionals[0], parsed.values)
     default:
@@ -318,10 +327,23 @@ async function run(
       ? { allowBypassPermissions: true }
       : {}),
   })
+
+  const store = new RunStore(storeOptions(options))
+  // Önceki bir koşum öldüyse journal'ı hâlâ orada. Sessizce üstüne koşmak,
+  // kullanıcının kurtarılabilir bir ölçümü olduğunu bilmemesi demek.
+  const orphans = await findJournals(store.directory)
+  if (orphans.length > 0) {
+    process.stderr.write(
+      `${style.yellow('warning')} ${orphans.length} interrupted run(s) left a journal in ${store.directory}; ` +
+        `run "assay recover" to turn them into records before they are forgotten\n`,
+    )
+  }
+
   const record = await runSuite(effective, adapter, {
     source,
     suitePath: loaded.path,
     skillPath: resolve(skillPath),
+    journalDir: store.directory,
     ...(repeat === undefined ? {} : { repeat }),
     onProgress: (event) => {
       if (options['json'] === true) return
@@ -339,7 +361,6 @@ async function run(
     },
   })
 
-  const store = new RunStore(storeOptions(options))
   const savedTo = await store.save(record)
   await emit(record, options)
   process.stderr.write(style.grey(`  stored ${savedTo}\n`))
@@ -409,6 +430,74 @@ async function compare(
 
 // ---------------------------------------------------------------------------
 // Ortak
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// recover
+// ---------------------------------------------------------------------------
+
+/**
+ * Yarım kalmış koşumları journal'dan kayda çevirir.
+ *
+ * Ölçülen ajan runner'ı öldürebiliyor (bkz. docs/blockers.md) ve koşum
+ * ortasında ölen bir süreç eskiden o ana kadar tamamlanmış her denemeyi de
+ * götürüyordu. Journal o denemeleri diskte tutuyor; bu komut onları kayda
+ * çeviriyor.
+ *
+ * Kurtarılan kayıt **yarım olduğunu söylüyor**: `partial` alanı sebebi,
+ * kurtarma anını ve okunamayan satır sayısını taşıyor.
+ */
+async function recover(options: Options): Promise<number> {
+  const store = new RunStore(storeOptions(options))
+  const journals = await findJournals(store.directory)
+
+  if (journals.length === 0) {
+    process.stderr.write(
+      `${style.grey('nothing to recover')} no interrupted run left a journal in ${store.directory}\n`,
+    )
+    return EXIT.ok
+  }
+
+  let recovered = 0
+  let skipped = 0
+  for (const path of journals) {
+    let result
+    try {
+      result = await recoverJournal(path)
+    } catch (cause) {
+      process.stderr.write(`${style.red('error')} ${path}: ${message(cause)}\n`)
+      skipped += 1
+      continue
+    }
+    if (result === null) {
+      // Denemesiz ya da başlıksız bir journal kayda çevrilmiyor — ve
+      // SİLİNMİYOR: okunamayan ama var olan bir dosyayı yok etmek, ölçüm
+      // aracının yapmaması gereken şey.
+      process.stderr.write(
+        `${style.yellow('skipped')} ${path} carries no completed attempt; left in place\n`,
+      )
+      skipped += 1
+      continue
+    }
+    const savedTo = await store.save(result.run)
+    await rm(path, { force: true })
+    recovered += 1
+    const attempts = result.run.cases.reduce((sum, c) => sum + c.attempts.length, 0)
+    process.stderr.write(
+      `${style.green('recovered')} ${result.run.id} — ${attempts} attempt(s) across ` +
+        `${result.run.cases.length} case(s)` +
+        (result.run.partial?.droppedLines === undefined
+          ? ''
+          : `, ${result.run.partial.droppedLines} unreadable line(s) dropped`) +
+        `\n  stored ${savedTo}\n`,
+    )
+  }
+
+  // Kurtarma bir ölçüm değil, bir onarım: kurtarılan koşumun verdict'i buranın
+  // çıkış koduna karışmıyor. Kullanıcı sonucu `assay report` ile okuyor.
+  return skipped > 0 && recovered === 0 ? EXIT.usage : EXIT.ok
+}
+
 // ---------------------------------------------------------------------------
 
 function storeOptions(options: Options): { root?: string } {

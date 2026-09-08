@@ -17,13 +17,11 @@ import {
   combineVerdicts,
   evaluateAssertions,
   evaluateTrigger,
-  proportion,
   redact,
   redactDeep,
   type AgentSession,
   type Attempt,
   type AssertionResult,
-  type CaseResult,
   type Environment,
   type Evidence,
   type HostAdapter,
@@ -44,6 +42,8 @@ import {
   envDiff,
   snapshot,
 } from './sandbox.js'
+import { assembleRun } from './assemble.js'
+import { RunJournal, type JournalAttempt } from './journal.js'
 
 export interface RunOptions {
   /** Suite'in ham kaynağı — pin 4'ün denetçisi olan içerik hash'i için. */
@@ -54,6 +54,14 @@ export interface RunOptions {
   skillPath: string
   /** `suite.runs` yerine geçer. Kullanıcı açıkça isterse 1 olabilir. */
   repeat?: number
+  /**
+   * Journal dizini — her deneme bittiğinde tek satır buraya eklenir.
+   *
+   * Verilmezse journal tutulmaz ve koşum ortasında ölen bir süreç o ana kadar
+   * tamamlanmış her denemeyi götürür. CLI her zaman veriyor; alan opsiyonel
+   * çünkü kütüphane olarak çağıran biri diske yazmak zorunda değil.
+   */
+  journalDir?: string
   /** Vaka ve attempt ilerledikçe çağrılır. */
   onProgress?: (event: ProgressEvent) => void
   /** Zaman kaynağı — testlerde sabitlenebilir. */
@@ -90,80 +98,104 @@ export async function runSuite<S extends AgentSession>(
   const startedAt = now().toISOString()
   // Pin 1'in denetçisi: beyan edilen sürüm unutulsa da içerik kayması görülür.
   const skillHash = (await directoryHash(options.skillPath)) ?? ''
+  const id = `run-${now().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`
+  const basePins = pinsOf(suite, options.source, skillHash)
+
+  /*
+   * Journal koşumdan ÖNCE açılıyor.
+   *
+   * Kimliği ve pinleri baştan yazmak, süreç ilk denemenin ortasında ölse bile
+   * elde bir künye bırakıyor. Açılış başarısız olursa koşum yine de yürüyor:
+   * journal bir güvence, ön koşul değil — yazılamıyor diye ölçümü iptal etmek
+   * kullanıcıya daha pahalıya patlardı. Ama sessiz kalmıyor.
+   */
+  const journal = await openJournal(options, {
+    id,
+    startedAt,
+    host: adapter.id,
+    skill: suite.target.skill,
+    runs: repeat,
+    pins: basePins,
+  })
 
   // Ajana kullanıcının canlı skill dizini değil, bir kopyası verilir. Aksi
   // hâlde ölçülen skill kendini değiştirip sonraki attempt'leri kirletebilir
   // ve ölçüm, ölçtüğü şey tarafından bozulurdu.
   const skillCopy = await copySkill(options.skillPath)
-  const cases: CaseResult[] = []
+  const journalled: JournalAttempt[] = []
 
-  // Ortam hash'i koşum seviyesinde bir pin ama oturum seviyesinde okunuyor.
-  // Attempt'ler farklı hash bildirirse ortam koşum ortasında kaymış demektir;
-  // o durumda hiçbir değer yazılmıyor ve pin "ölçülemedi" kalıyor.
-  const environmentHashes = new Set<string>()
-  // İzin modu da aynı mantıkla: attempt'ler ayrışırsa mod koşum ortasında
-  // kaymış demektir ve tek bir değer yazmak yanlış olur.
-  const permissionModes = new Set<string>()
-  // Ortam kaydı hash'le aynı kuralla toplanıyor: attempt'ler ayrışırsa ortam
-  // koşum ortasında kaymış demektir ve tek bir kayıt yazmak yanlış olur.
-  // Karşılaştırma zaten hash üzerinden duracak; burada susmak doğrusu.
-  const environments = new Map<string, Environment>()
-
-  for (const testCase of suite.cases) {
-    const attempts: Attempt[] = []
-    for (let index = 0; index < repeat; index += 1) {
-      const { attempt, environmentHash, permissionMode, environment } = await runAttempt(
-        suite,
-        testCase,
-        index,
-        adapter,
-        { ...options, skillPath: skillCopy },
-        now,
-      )
-      if (environmentHash !== undefined) environmentHashes.add(environmentHash)
-      if (permissionMode !== undefined) permissionModes.add(permissionMode)
-      if (environment !== undefined) environments.set(JSON.stringify(environment), environment)
-      attempts.push(attempt)
-      options.onProgress?.({
-        caseId: testCase.id,
-        attempt: index,
-        attempts: repeat,
-        verdict: attempt.verdict,
-        reason: attempt.reason,
-      })
+  try {
+    for (const testCase of suite.cases) {
+      for (let index = 0; index < repeat; index += 1) {
+        const { attempt, environmentHash, permissionMode, environment } = await runAttempt(
+          suite,
+          testCase,
+          index,
+          adapter,
+          { ...options, skillPath: skillCopy },
+          now,
+        )
+        const entry: JournalAttempt = {
+          kind: 'attempt',
+          caseId: testCase.id,
+          ...(testCase.expect.triggered === undefined
+            ? {}
+            : { expectedTrigger: testCase.expect.triggered }),
+          attempt,
+          ...(environmentHash === undefined ? {} : { environmentHash }),
+          ...(permissionMode === undefined ? {} : { permissionMode }),
+          ...(environment === undefined ? {} : { environment }),
+        }
+        // Önce diske, sonra belleğe: sıra tersine dönerse tam da kaybedilen
+        // deneme, kaydedildiği sanılan deneme olur.
+        journal?.append(entry)
+        journalled.push(entry)
+        options.onProgress?.({
+          caseId: testCase.id,
+          attempt: index,
+          attempts: repeat,
+          verdict: attempt.verdict,
+          reason: attempt.reason,
+        })
+      }
     }
-    cases.push(summarizeCase(testCase.id, attempts, testCase.expect.triggered))
+  } finally {
+    await rm(skillCopy, { recursive: true, force: true }).catch(() => undefined)
   }
 
-  await rm(skillCopy, { recursive: true, force: true }).catch(() => undefined)
-
-  const allVerdicts = cases.flatMap((c) => c.attempts.map((a) => a.verdict))
-
-  return {
-    id: `run-${now().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`,
+  const run = assembleRun({
+    id,
     startedAt,
     finishedAt: now().toISOString(),
     host: adapter.id,
     skill: suite.target.skill,
-    pins: pinsOf(
-      suite,
-      options.source,
-      skillHash,
-      environmentHashes.size === 1 ? [...environmentHashes][0] : undefined,
-    ),
-    ...(permissionModes.size === 1
-      ? { permissionMode: [...permissionModes][0] as string }
-      : {}),
-    ...(environments.size === 1
-      ? { environment: [...environments.values()][0] as Environment }
-      : {}),
     runs: repeat,
-    cases,
-    verdict: allVerdicts.includes('fail')
-      ? 'fail'
-      : allVerdicts.includes('unknown')
-        ? 'unknown'
-        : 'pass',
+    pins: basePins,
+    attempts: journalled,
+  })
+
+  // Kayıt kuruldu; journal'ın işi bitti.
+  await journal?.finish()
+  return run
+}
+
+/** Journal açılamazsa koşum durmaz ama sessiz de kalınmaz. */
+async function openJournal(
+  options: RunOptions,
+  header: Parameters<typeof RunJournal.open>[1],
+): Promise<RunJournal | undefined> {
+  if (options.journalDir === undefined) return undefined
+  try {
+    return await RunJournal.open(options.journalDir, header)
+  } catch (cause) {
+    options.onProgress?.({
+      caseId: '(journal)',
+      attempt: 0,
+      attempts: 0,
+      verdict: 'unknown',
+      reason: `the run journal could not be opened, so an interrupted run will lose its attempts: ${message(cause)}`,
+    })
+    return undefined
   }
 }
 
@@ -191,26 +223,6 @@ export function pinsOf(
     ...(environmentHash === undefined || environmentHash === ''
       ? {}
       : { environmentHash }),
-  }
-}
-
-function summarizeCase(
-  caseId: string,
-  attempts: readonly Attempt[],
-  expectedTrigger: boolean | undefined,
-): CaseResult {
-  const passed = attempts.filter((a) => a.verdict === 'pass').length
-  const failed = attempts.filter((a) => a.verdict === 'fail').length
-  const unknown = attempts.filter((a) => a.verdict === 'unknown').length
-  return {
-    caseId,
-    ...(expectedTrigger === undefined ? {} : { expectedTrigger }),
-    attempts,
-    // Değişmez #4: unknown'lar paydadan çıkar, ayrıca sayılır.
-    passRate: proportion(passed, passed + failed),
-    passed,
-    failed,
-    unknown,
   }
 }
 

@@ -71,6 +71,28 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
       </ul>
     </section>`
 
+  /*
+   * Yarım kayıt manşette söylenir, dipnotta değil.
+   *
+   * Sayfanın üstündeki oranlar tamamlanmış denemelerden geliyor; koşum yarım
+   * kaldıysa okuyucu bunu ORANLARI OKUMADAN ÖNCE bilmeli. Aşağıda bir yerde
+   * dursaydı ölçüm olduğundan büyük görünürdü.
+   */
+  const partialNote =
+    run.partial === undefined
+      ? ''
+      : `  <section class="callout">
+    <h2>Incomplete run</h2>
+    <p>${escape(run.partial.reason)}</p>
+    <p class="note">Recovered ${escape(run.partial.recoveredAt)}. Every rate below is
+    over the attempts that completed — read N on each case, not the declared
+    ${run.runs} runs per case.${
+      run.partial.droppedLines === undefined
+        ? ''
+        : ` ${run.partial.droppedLines} journal line(s) were unreadable and were dropped.`
+    }</p>
+  </section>`
+
   // Not, verdict değil: hiçbir negatif kırılmadıysa ölçülen şey yanlış
   // tetiklenme oranıdır, setin ayrım gücünün nerede bittiği değil.
   const discriminationNote = !summary.discrimination.untested
@@ -156,6 +178,7 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
 <main>
   <h1>Assay <span class="pill ${run.verdict}">${run.verdict}</span></h1>
   <p class="sub mono">${escape(run.id)}</p>
+${partialNote}
 
   <div class="grid">
     <div class="card"><div class="label">Trigger precision</div><div class="value">${escape(formatProportion(summary.trigger.precision))}</div></div>

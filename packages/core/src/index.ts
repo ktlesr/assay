@@ -31,6 +31,7 @@ export {
   type PinComparison,
   type Environment,
   type EnvironmentChange,
+  type PartialRun,
   type TraceEvent,
   type TraceEventKind,
   type SessionOutcome,

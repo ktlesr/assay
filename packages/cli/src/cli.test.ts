@@ -1,8 +1,9 @@
+import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { proportion, summarizeRun, type Attempt, type Pins, type Run } from '@ktlsr/assay-core'
-import { RunStore } from '@ktlsr/assay-runner'
+import { findJournals, RunJournal, RunStore } from '@ktlsr/assay-runner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EXIT, main } from './cli.js'
 import { renderHtmlReport } from './html.js'
@@ -398,5 +399,87 @@ describe('unknown ayrı ve görünür', () => {
     ]) {
       expect(html).toContain(label)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// recover — 0.3.0-b
+// ---------------------------------------------------------------------------
+
+describe('assay recover', () => {
+  const header = (id: string) => ({
+    id,
+    startedAt: '2026-09-08T10:00:00.000Z',
+    host: 'mock',
+    skill: 'widget',
+    runs: 6,
+    pins,
+  })
+
+  const journalAttempt = (index: number) => ({
+    caseId: 'trigger.positive.explicit',
+    expectedTrigger: true,
+    attempt: { ...attempt('trigger.positive.explicit', 'pass'), index },
+  })
+
+  it('yarim journal i kayda cevirir ve journal i siler', async () => {
+    const root = await scratch()
+    const store = new RunStore({ root })
+    const journal = await RunJournal.open(store.directory, header('run-killed-1'))
+    journal.append(journalAttempt(0))
+    journal.append(journalAttempt(1))
+
+    const code = await main(['recover', '--store', root])
+    expect(code).toBe(EXIT.ok)
+    expect(err).toContain('recovered run-killed-1')
+
+    // Kayıt store'da ve yarım olduğunu söylüyor.
+    const loaded = await store.load('run-killed-1')
+    expect(loaded.partial?.reason).toContain('interrupted')
+    expect(loaded.cases[0]?.passRate.n).toBe(2)
+    // Journal'ın işi bitti.
+    expect(await findJournals(store.directory)).toHaveLength(0)
+  })
+
+  it('kurtaracak bir sey yoksa hata degil', async () => {
+    const root = await scratch()
+    expect(await main(['recover', '--store', root])).toBe(EXIT.ok)
+    expect(err).toContain('nothing to recover')
+  })
+
+  it('denemesiz journal silinmez — okunamayan bir dosya yok edilmez', async () => {
+    const root = await scratch()
+    const store = new RunStore({ root })
+    const journal = await RunJournal.open(store.directory, header('run-empty'))
+
+    expect(await main(['recover', '--store', root])).toBe(EXIT.usage)
+    expect(err).toContain('carries no completed attempt')
+    expect(existsSync(journal.path)).toBe(true)
+  })
+
+  it('rapor yarim kaydi manşette soyluyor', async () => {
+    const run = {
+      ...makeRun('run-partial-report', [['trigger.positive.explicit', 2, 0, 0]]),
+      partial: {
+        reason: 'the run was interrupted before it finished',
+        recoveredAt: '2026-09-08T11:00:00.000Z',
+        droppedLines: 1,
+      },
+    }
+    const text = renderRun(run, summarizeRun(run))
+    expect(text).toContain('incomplete run')
+    expect(text).toContain('1 journal line(s) were unreadable')
+    const html = renderHtmlReport(run, summarizeRun(run))
+    expect(html).toContain('Incomplete run')
+  })
+
+  it('kosum baslangicinda yetim journal uyarisi verilir', async () => {
+    const root = await scratch()
+    const store = new RunStore({ root })
+    await RunJournal.open(store.directory, header('run-orphan'))
+    // Suite dosyası yok: komut kullanım hatasıyla düşecek, ama uyarı ondan
+    // önce basılmalı mı? Hayır — uyarı suite yüklendikten sonra. Burada
+    // yalnızca findJournals'ın yetimi gördüğü sabitleniyor.
+    expect(await findJournals(store.directory)).toHaveLength(1)
   })
 })

@@ -466,6 +466,32 @@ export interface Run {
   runs: number
   cases: readonly CaseResult[]
   verdict: Verdict
+  /**
+   * Koşum yarım kaldı ve journal'dan toparlandı.
+   *
+   * Alan varsa kayıt, ölçümün tamamı değil o ana kadar tamamlanmış
+   * denemelerdir. Bu bir yalan değil, daha az bilgi: değişmez #4 zaten her
+   * oranı N ve aralığıyla gösteriyor, N küçük olduğu için aralık geniş
+   * çıkıyor. Ama kaydın kendisi de yarım olduğunu söylemek zorunda — okuyucu
+   * `runs: 10` görüp vaka başına 10 deneme sanmamalı.
+   */
+  partial?: PartialRun
+}
+
+/** Yarım kalmış bir koşumun künyesi. */
+export interface PartialRun {
+  /** Neden yarım kaldı: süreç öldürüldü, çöktü, kesildi. */
+  reason: string
+  /** Journal'dan toparlandığı an. */
+  recoveredAt: string
+  /**
+   * Okunamadığı için atılan satır sayısı.
+   *
+   * Süreç bir satırın ortasında öldüğünde journal'ın sonunda yarım bir JSON
+   * kalıyor. O satır atılıyor ama **sayılıyor**: sessizce yutmak, kaç
+   * denemenin kaybolduğunu gizlemek olurdu.
+   */
+  droppedLines?: number
 }
 
 /**

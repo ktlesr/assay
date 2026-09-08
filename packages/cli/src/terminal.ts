@@ -90,6 +90,27 @@ export function renderRun(run: Run, summary: RunSummary): string {
       `permission mode ${run.permissionMode ?? 'not reported by the host'}`,
     ),
   )
+  /*
+   * Yarım kayıt manşette söylenir.
+   *
+   * `${run.runs} runs per case` satırı beyan edilen tekrar sayısını gösteriyor
+   * ve koşum yarım kaldıysa o sayı koşulmadı. Uyarı aşağıda bir yerde kalsaydı
+   * okuyucu üstteki satıra bakıp ölçümü olduğundan büyük sanardı.
+   */
+  if (run.partial !== undefined) {
+    out.push('')
+    out.push(style.yellow(style.bold('  incomplete run')))
+    out.push(`  ${run.partial.reason}`)
+    out.push(
+      style.grey(
+        `  Recovered ${run.partial.recoveredAt}. The counts below are the attempts that\n` +
+          '  completed, not the declared repeat count — read N on each case.' +
+          (run.partial.droppedLines === undefined
+            ? ''
+            : `\n  ${run.partial.droppedLines} journal line(s) were unreadable and were dropped.`),
+      ),
+    )
+  }
   out.push('')
 
   for (const caseResult of run.cases) {

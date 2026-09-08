@@ -35,3 +35,18 @@ export {
   type StoredRun,
   type StoreOptions,
 } from './store.js'
+
+export { assembleRun, verdictOf } from './assemble.js'
+
+export {
+  RunJournal,
+  readJournal,
+  findJournals,
+  recoverJournal,
+  JOURNAL_VERSION,
+  JOURNAL_SUFFIX,
+  type JournalHeader,
+  type JournalAttempt,
+  type JournalContents,
+  type RecoveredRun,
+} from './journal.js'
