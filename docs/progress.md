@@ -65,6 +65,13 @@ $21.15. Beş kusurun beşi o koşumda canlı görüldü.
 | 0.3.0-d | `--concurrency`, varsayılan 1, port kirası | `2a08bc9` |
 | 0.3.0-e | `--fast`, `--max-attempts`, `Run.layers` / `skipped`, `Attempt.notEvaluated` | `c1eda78` |
 
+0.3.0-e ters çevirmeyle doğrulandı (2026-09-09, altı mutasyon): katman
+filtresi, atlanan vaka, bütçe tavanı, `layers`in kayda yazılması, `layers`in
+worker payload'ına geçmesi ve terminal manşeti — altısında da testler kırmızıya
+döndü. İlk denemede "yalnız-artefakt vakası" mutasyonu **yanlış sebeple**
+kırmızıydı (derlemeyi kırdı, 9 test atlandı); tip-geçerli bir mutasyonla
+tekrarlandı ve 4 test gerçekten düştü.
+
 Yan iş: bu makinedeki Git Bash `add_item` çökmesi ölü domain kaydından
 geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 
