@@ -2054,3 +2054,81 @@ Ayrı sürüm olmasının sebebi: yayımlanan aralığın anlamını değiştiri
 doğrulaması para harcayan bir kalibrasyon koşumu istiyor (~$10–20, sözleşme 1
 gereği tetiği kullanıcı çeker).
 Geri dönüş maliyeti: orta
+
+## 2026-09-08 — Git Bash arızası ölü domain kaydından; hesap çözümü dosyaya sabitlendi
+
+Bağlam: `sh.exe` çağrılarının %30'u `add_item ... errno 1` ile ölüyordu ve
+ölmeyenler ~15 sn sürüyordu. Bu depodaki her git hook'u `/bin/sh` üzerinden
+koşuyor, yani her commit bu kumarı oynuyordu. Aynı çökme `impeccable` 4.2.2
+ölçümünde 390 Bash çağrısının 11'ini düşürdü ve skill'in başarısızlık sütununu
+şişirdi.
+Seçenekler: (a) makineyi ölü domain'den çıkarmak · (b) kalıcı bir msys süreci
+tutup paylaşılan belleği ayakta tutmak · (c) hesap çözümünü `/etc/passwd`e
+sabitlemek · (d) `passwd: files` ile `db` kaynağını tamamen kapatmak
+Karar: c + d birlikte, `tools/fix-msys-domain-stall.ps1` ile; yedek alınıyor ve
+`-Rollback` geri alıyor.
+Gerekçe: Kök neden ölçüldü — makine `KA.sibervatan` domain'ine kayıtlı ama o
+domain çözülmüyor (`nltest /dsgetdc` 15 993 ms sonra `ERROR_NO_SUCH_DOMAIN`).
+msys2 hesap çözümünü `db` kaynağıyla yapıyor ve `db` o domain için
+`DsGetDcName` çağırıyor; çağrı ~16 sn'de düşerken msys'in paylaşılan bellek
+spinlock'u 15 sn'de pes ediyor ve ikinci süreç mount tablosunu ikinci kez
+kurmaya çalışıyor. Ölçülen 15 063 ms'lik taban o zaman aşımının kendisi.
+(a) doğru kalıcı çözüm ama yeniden başlatma ve profil riski; ölçüm makinesinde
+gerekmiyor. (b) yalnızca semptomu erteliyor ve ayakta tutulacak bir süreç
+gerektiriyor. Kontrollü deney hangi yarının işi yaptığını gösterdi: `/etc/passwd`
+tek başına soğuk koşumu 17.6 sn'den 14–18 ms'ye indiriyor; `passwd: files` ek
+olarak dosyada bulunmayan bir SID'in tekrar domain'e düşmesini kapatıyor.
+Doğrulandı: soğuk koşum 24–40 ms (0/4), eş zamanlı 6 koşum 0/6, ardından beş
+push'un beşi de ilk denemede geçti.
+Bilinen sınır: `/etc/passwd` yalnızca betiği koşturan hesabı taşıyor.
+Geri dönüş maliyeti: düşük (`-Rollback`, iki dosya)
+
+## 2026-09-08 — Düzeltme betiği `mkpasswd`e bağlanmıyor, satırı kendisi hesaplıyor
+
+Bağlam: Betiğin ilk hâli `/etc/passwd`i `mkpasswd -c` ile üretiyordu. Yükseltilmiş
+ilk koşumda tam orada asıldı ve hiçbir şey yazmadan öldü.
+Seçenekler: `mkpasswd`i zaman aşımıyla denemek · satırı Windows API'sinden
+hesaplamak
+Karar: Hesaplamak. `mkpasswd` 60 sn içinde cevap verirse çıktısı tercih ediliyor,
+vermezse hesaplanan satır kullanılıyor.
+Gerekçe: `mkpasswd` de bir msys ikilisi, yani düzeltmeye çalıştığı arızanın
+içinde. Bir düzeltme aracının, düzelttiği şeye bağımlı olması onu tam da
+gerektiği anda çalışmaz yapıyor. Hesaplanan satır (`uid = 0x30000 + RID`,
+birincil grup 513, `+` ayıracı) `mkpasswd` çıktısıyla karakter karakter
+karşılaştırıldı ve aynı çıktı.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Denetçinin bulgusu denetçinin adıyla raporlanır
+
+Bağlam: 0.3.0-a. `environmentHash` pin 3'ün denetçisi; kaydığında `comparePins`
+`drifted`a `systemPromptHash` yazıyordu.
+Seçenekler: olduğu gibi bırakmak · `environmentHash` yazmak · ikisini birden
+listelemek
+Karar: Yalnızca `environmentHash`. Ortam kaydığında `systemPromptHash` ne
+`drifted`da ne `unavailable`da anılıyor.
+Gerekçe: Pin 3 hakkında bilinen bir şey yok — kaydığı da bilinmiyor,
+tutmadığı da. İki listede birden anmak aynı olayı iki farklı adla raporlamak
+olurdu ve okuyucu iki ayrı sorun sanardı. Host gerçekten bir sistem promptu
+hash'i veriyorsa o hâlâ kendi adıyla kayıyor; ayrı bir testle sabitlendi.
+`apps/web` bu kusuru zaten elle telafi ediyordu (ortam satırları
+`systemPromptHash` drift anahtarını taşıyordu); o telafi kaldırıldı.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Ortam bileşenleri kayda giriyor, hash'in yanında
+
+Bağlam: Hash "bir şey değişti" diyebiliyor, "ne değişti" diyemiyor. Adaptör
+bileşenleri hesaplayıp atıyordu.
+Seçenekler: yalnızca hash'i tutmak ve kullanıcıya iki kaydı elle
+karşılaştırtmak · bileşenleri de kayda yazmak
+Karar: `Run.environment` (opsiyonel) ve `SessionResult.environment`. Hash artık
+`environmentOf(init)` nesnesinden hesaplanıyor; ikisi tek fonksiyondan besleniyor.
+Gerekçe: Tek bir alan eklendiğinde hash'in ve kaydın ayrışması, raporun kayan
+alanı yanlış göstermesi demek olurdu — düzeltilen kusurun tekrarı. Tek kaynak
+bunu yapısal olarak engelliyor. Bileşenler zaten hesaplanıyordu; maliyet sıfıra
+yakın.
+Ayrışma kuralı hash ile aynı: attempt'ler farklı ortam bildirirse hiçbir değer
+yazılmıyor. Prisma tarafında sütun jsonb ve okuma `isEnvironment` ile
+daraltılıyor — şekli tutmayan bir değeri `Environment` diye geçirmek, aynı
+kusurun bir katman aşağıdaki hâli olurdu.
+Geri dönüş maliyeti: düşük (opsiyonel alan; eski kayıtlar okunmaya devam ediyor
+ve karşılaştırma onlarda hash düzeyinde konuşuyor)
