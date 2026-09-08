@@ -1923,3 +1923,134 @@ sayfasında kaydı olmayan bir sonucu anmak, tam da 0.2.0'da düzeltilen hatanı
 pazarlama hâli olurdu. Kaydı yayımlanmamış skill'ler README'ye girmedi;
 girdikleri gün sayılarıyla girecekler.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — 0.3.0 sırası: önce dürüst gerekçe ve hayatta kalma, sonra hız
+
+Bağlam: 4.2.2 ölçümü (240 deneme, ~8 saat) beş kusuru canlı gösterdi ve beşi
+birden 0.3.0'a sığmıyor. Sıra seçilmeliydi.
+Seçenekler: (a) benimseme argümanına göre hızlı modu öne almak · (b) süreye
+göre paralelliği öne almak · (c) kayıp ve yanlış gerekçeyi önce kapatmak
+Karar: a(compare gerekçesi) → b(journal) → c(supervisor/süreç ağacı) →
+d(paralellik) → e(hızlı mod). Uyarlanabilir durdurma 0.3.1'e.
+Gerekçe: Hızlı mod ilk deneyimi iyileştirmek için var; ölçtüğünü kaybeden ve
+kendini öldüren bir runner üzerinde ilk deneyimi iyileştirmez — ilk koşumu ölen
+kullanıcının ikinci koşumu olmaz. Paralellik, süreç izolasyonu olmadan madde
+1'i çoğaltmaktan başka bir şey yapmaz: iki paralel deneme aynı portu ister ve
+biri diğerini öldürür. `compare` gerekçesi en başta, çünkü yarım günlük, hiçbir
+davranışa dokunmuyor ve bugün her çapraz mod karşılaştırmasında yanlış bir
+cümle basıyoruz.
+Geri dönüş maliyeti: düşük (sıralama, kod değil)
+
+## 2026-09-08 — Kayan pin hash'in adıyla değil, kayan alanın adıyla raporlanacak
+
+Bağlam: Çapraz izin modu karşılaştırması doğru reddedildi (exit 3) ama gerekçe
+"systemPromptHash changed" dedi. İki kayıtta da o alan `not-provided-by-host`;
+değişen `environmentHash` ve içindeki `permissionMode`.
+Seçenekler: olduğu gibi bırakmak · `drifted`'a `environmentHash` yazmak ·
+kayda ortam bileşenlerini de yazıp kayan alanı adıyla söylemek
+Karar: Üçüncüsü. `Run.environment` (opsiyonel) — hash'in girdisi olan nesne
+kayda da yazılır; `comparePins` iki kayıtta da varsa alan alan fark alır.
+Gerekçe: Hash pin 3'ün denetçisi olarak tasarlandı (2026-09-03) ve denetçinin
+bulgusu denetlenen pinin adıyla raporlanıyordu. Sonuç, kullanıcıyı hiç
+kımıldamamış bir sistem promptunu aramaya göndermek. Doğru karar yanlış
+gerekçeyle verildiğinde kullanıcı kararın kendisine de güvenmemeyi öğrenir —
+bu araç için en pahalı kayıp o. Bileşenleri kayda yazmak ayrıca bedava:
+adaptör onları zaten hesaplayıp atıyor.
+Geri dönüş maliyeti: düşük (opsiyonel alan; eski kayıtlar hash düzeyindeki
+cümleyi alır)
+
+## 2026-09-08 — Öldürülen koşum: journal, tam kaydı yeniden yazma değil
+
+Bağlam: Koşum ortasında ölen süreç, tamamlanmış her denemeyi de götürüyor;
+kayıt ancak `runSuite` döndükten sonra bir kez yazılıyor. 4.2.2'de iki kez
+oldu, ~40 dakika ve ~$4.
+Seçenekler: kullanıcı chunk'lasın (bugün yapılan, yetmedi) · her denemeden
+sonra tam kaydı yeniden yazmak · append-only journal + bitişte katlama
+Karar: Journal. `.assay/runs/<run-id>.partial.jsonl`, normal bitişte tek kayda
+katlanıp silinir; yarım journal `assay recover` ile kayda çevrilir ve
+`partial: true` taşır.
+Gerekçe: Tam kaydı her denemede yeniden yazmak O(n²) ve 240 denemelik bir kayıt
+MB'larca — ölçüm büyüdükçe pahalılaşan bir koruma, tam da uzun ölçümlerde
+gerekiyor. Chunk'lama dışarıdan sarmalama ve chunk içi ölümü kurtaramıyor
+(ölçüldü). Yarım kayıt yalan söylemiyor: değişmez #4 zaten her oranı N ve
+aralığıyla gösteriyor, N küçük olduğu için aralık geniş çıkıyor ve `partial`
+alanı bunu ayrıca söylüyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Runner "korunuyor" demeyecek, "kayıp bir denemeyle sınırlanıyor" diyecek
+
+Bağlam: Ölçülen ajan porta göre süreç öldürüyor ve runner aynı alanda bir
+`node` süreci. Supervisor/worker ayrımı ve süreç ağacı öldürme planlandı.
+Seçenekler: çözümü "runner artık korunuyor" diye sunmak · tavanı açıkça yazmak
+Karar: İkincisi. Supervisor da aynı makinede bir `node` süreci;
+`taskkill /F /IM node.exe` onu da öldürür. Dokümanda ve kodda "korunuyor"
+denmeyecek.
+Gerekçe: Sandbox için 2026-08-31'de verilen kararın aynısı: **gözlemler,
+zorlamaz**. Asıl tehlike izolasyonun eksikliği değil, eksik izolasyonu tam
+sanmak. Gerçek ayrım konteynerle gelir ve Faz 3'te; o gelene kadar iddia,
+sağlanan şeyle aynı büyüklükte kalmalı.
+Ayrıca kapanan asıl halka bizim kusurumuz: adaptör yalnızca doğrudan çocuğu
+öldürdüğü için dev sunucu yetimlerini Assay üretiyor ve bir sonraki denemenin
+ajanı portu dolu bulup porta göre öldürmeye girişiyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Eşzamanlılık kayda girer, ortam hash'ine girmez
+
+Bağlam: `--concurrency` paralel koşumu açacak. Eş zamanlı koşum gecikme ve
+kaynak paylaşımını değiştiriyor; ölçümün bir koşulu mu?
+Seçenekler: `environmentHash`e katmak (izin modunda yapıldığı gibi) · yalnızca
+kayda yazmak · hiç yazmamak
+Karar: Kayda yazılır, hash'e girmez. Rapor, concurrency > 1 iken gecikme
+sayılarının karşılaştırılabilir olmadığını söyler.
+Gerekçe: `environmentHash` host'un bildirdiği ortamın kaydı — model, sürüm,
+araç seti, skill seti, izin modu. Eşzamanlılık host ortamının değil koşum
+düzeninin özelliği; hash'e katmak, farklı hızda koşulmuş iki ölçümü
+tetiklenme oranı bakımından da karşılaştırılamaz yapardı ve bu fazla temkin
+gerçek regresyonları `unknown` arkasına saklardı. Etkilenen tek katman gecikme
+ve maliyet (katman 7); doğru cevap o katmanı işaretlemek, hepsini durdurmak
+değil.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Hızlı mod yarım vaka üretmez; ölçülen katman kayda yazılır
+
+Bağlam: `--fast` yalnızca tetiklenme katmanını koşacak. Artefakt
+assertion'larının ne olacağı belirsizdi.
+Seçenekler: assertion'ları atlayıp vakayı geçmiş saymak (değişmez #1 ihlali) ·
+atlanan assertion'ları `unknown` yapmak (koşum `unknown`a düşer, çıkış kodu 3
+olur ve hızlı mod işe yaramaz) · ölçülen katmanları kayda beyan etmek
+Karar: Üçüncüsü. `Run.layers` (örn. `['trigger']`); yalnızca artefakt ölçen
+vakalar hiç koşulmaz, koşulan vakada beyan edilmiş assertion'lar "bu modda
+değerlendirilmedi" diye listelenir ve vaka verdict'i beyan edilmiş katmandan
+gelir.
+Gerekçe: Bu bir yarım ölçüm değil, dar ve **beyan edilmiş** bir ölçüm — ölçmediği
+şeyi ölçtüm demiyor, ölçmediğini söylüyor. Assertion'ları `unknown`a çevirmek
+teknik olarak dürüst ama pratikte hızlı modu öldürürdü: her koşum exit 3
+verirdi ve kullanıcı `--allow-unknown` yazmayı öğrenirdi, ki o alışkanlık
+gerçek `unknown`ları da görünmez yapardı.
+Katman kayda girdiği için `compare` farklı kapsamla ölçülmüş iki koşumu aynı
+vakada karşılaştırmayı reddedebilir.
+Geri dönüş maliyeti: düşük (opsiyonel alan)
+
+## 2026-09-08 — Erken durma naif Wilson'la yapılmayacak; 0.3.1'e ayrıldı
+
+Bağlam: Sabit N=10 israf: dört ölçümün dördünde de tamamlama vakası 0/10 ve
+negatiflerde 280 denemede 0 yanlış pozitif — beşinci denemeden sonra hiçbir
+deneme kararı değiştirmedi. Ters yön de var: aynı raporda N=10'da aralıklar
+%6–51'e karşı %24–76 çıkıyor ve "bu bir sonuç değil" deniyor.
+Seçenekler: sabit N (bugün) · her denemeden sonra Wilson aralığına bakıp
+yeterince darsa durmak · sabit bakış çizelgesi + Bonferroni düzeltmesi ·
+anytime-valid güven dizisi
+Karar: Sabit bakış çizelgesi + düzeltme (örn. 5/10/20/40'ta bak, α = 0.05/4),
+0.3.1'de. Naif Wilson **reddedildi**.
+Gerekçe: Tekrar tekrar bakılarak durdurulan bir aralık artık %95 kapsama
+taşımaz (optional stopping). Değişmez #4 aralığın gösterilmesini şart koşuyor;
+gösterilen aralığın iddia ettiği şey olması aynı kuralın ruhu. Kararsızlık
+ölçen bir aracın kendi aralığını sessizce şişirmesi, LLM judge eklemekle aynı
+sınıfta bir hata olurdu. Düzeltilmiş aralık naif olandan geniş çıkar — bu bir
+kusur değil, satın alınan kesinliğin gerçeği.
+Özelliğin adı da düzeltildi: bu "erken durma" değil **yeniden dağıtım** —
+kararı netleşmiş vakadan alınan denemeyi kararsız vakaya vermek.
+Ayrı sürüm olmasının sebebi: yayımlanan aralığın anlamını değiştiriyor ve
+doğrulaması para harcayan bir kalibrasyon koşumu istiyor (~$10–20, sözleşme 1
+gereği tetiği kullanıcı çeker).
+Geri dönüş maliyeti: orta

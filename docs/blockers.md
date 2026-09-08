@@ -323,3 +323,52 @@ boş bir workspace `fail` vermeye devam etmeli — orada gerçekten ölçüm var
 **Neden şimdi kapatılmadı:** davranış değişikliği ve 0.1.2 yayımlandı. Bir
 sonraki yamada, testiyle birlikte: aynı olayın her katmanda `unknown`
 ürettiğini gösteren bir koşum testi.
+
+## 2026-09-08 — Ölçülen ajan runner'ı öldürüyor; koşum kayıt bırakmadan ölüyor
+
+**Ne gerekiyor:** Kod değişikliği. Sır ya da erişim gerekmiyor — bu bir kapsam
+kararı ve 0.3.0-b/c'ye alındı ([roadmap.md](roadmap.md)).
+
+**Sorun.** `--permission-mode bypassPermissions` altında ölçülen ajan işini
+doğrulamak için dev sunucu başlatıyor ve sonra süreçleri **porta göre**
+öldürüyor. Assay runner'ı aynı kullanıcı altında sıradan bir `node` süreci ve
+aynı alanda duruyor: ajan onu da öldürebiliyor. Koşum `exit -1` ile ölüyor ve
+**hiçbir kayıt bırakmıyor**, çünkü kayıt ancak bütün vakalar bittikten sonra
+tek seferde yazılıyor.
+
+**Ölçüldü.** `impeccable` 4.2.2, `bypassPermissions` fazı, 5 chunk × 24 deneme
+(`reports/impeccable.4.2.2.bypassPermissions.ledger.tsv`):
+
+| Chunk | Sonuç |
+|---|---|
+| 1–4 | exit 0, 24 deneme, kayıt yazıldı |
+| 5 (1. deneme) | `exit -1`, `record NONE` — beş deneme `✓` basmıştı, hiçbiri diske yazılmadı |
+| 5 (2. deneme) | `exit -1`, `record NONE` — aynı yerde, aynı biçimde |
+| 5a / 5b (12'şer) | exit 0 — pencere küçültülerek kurtarıldı |
+
+Bedel: ~40 dakika ve ~$4. Aynı şey 4.2.1 ölçümünde de olmuştu, yani bu tek
+seferlik bir kaza değil.
+
+**İkinci kök sebep, tamamen bizde.** Adaptör zaman aşımında yalnızca doğrudan
+çocuğu öldürüyor (`child.kill('SIGKILL')`,
+`packages/adapters/src/claude-code/adapter.ts`). `claude.exe`'nin başlattığı
+dev sunucular hayatta kalıyor. Yani **portu meşgul eden yetimleri Assay
+üretiyor**; bir sonraki denemenin ajanı portu dolu buluyor ve porta göre
+öldürmeye girişiyor. Kullanıcının sürücüsü 3., 4. ve 5. chunk'tan önce 2, 1 ve
+4 yetim temizledi — döngünün her halkası ölçülmüş durumda.
+
+**Ne yapıldı (izolasyon).** Koşum baştan chunk'landı, chunk'lar arasında
+5170–5210 aralığındaki dinleyen `node`/`vite`/`esbuild` süreçleri temizlendi ve
+sürücü resumable yazıldı (`tools/run-chunks.ps1`). **Yetmedi:** öldürme
+chunk'ın *içinde* oluyor ve orada araya girecek bir şey yok. Pencere `--repeat 1`
+ile 12 denemeye indirilerek 5. chunk kurtarıldı.
+
+**Neden üç denemede kapanmadı.** Sorun bir hata değil, bir tasarım sınırı:
+runner ölçtüğü ajanla aynı süreç alanında duruyor. Dışarıdan sarmalayarak
+(chunk, yetim temizliği, pencere küçültme) yalnızca hasar sınırlanabiliyor.
+
+**Açmak için:** 0.3.0-b (deneme başına journal — kayıp en fazla bir deneme) ve
+0.3.0-c (süreç ağacı öldürme + supervisor/worker ayrımı — öldürülen deneme
+koşumu düşürmüyor, `unknown` yazılıyor). Gerçek izolasyon konteynerle gelir ve
+Faz 3'te ([sandbox-security.md](sandbox-security.md), A1); 0.3.0 tavanı açıkça
+yazacak: supervisor da aynı makinede bir `node` süreci, "korunuyor" denmeyecek.
