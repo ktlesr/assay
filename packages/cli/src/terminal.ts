@@ -112,6 +112,32 @@ export function renderRun(run: Run, summary: RunSummary): string {
    * ve koşum yarım kaldıysa o sayı koşulmadı. Uyarı aşağıda bir yerde kalsaydı
    * okuyucu üstteki satıra bakıp ölçümü olduğundan büyük sanardı.
    */
+  /*
+   * Hızlı mod manşette, oranların ÜSTÜNDE.
+   *
+   * Aşağıdaki `%100 (N=3)` satırları hızlı modda da aynı görünüyor; okuyucu
+   * neyin ölçülmediğini sayıları okumadan önce bilmeli. Aşağıda bir dipnot
+   * olsaydı ölçüm olduğundan geniş görünürdü.
+   */
+  if (run.layers !== undefined && !run.layers.includes('assertions')) {
+    out.push('')
+    out.push(style.yellow(style.bold('  fast mode — an early warning, not evidence')))
+    out.push(
+      style.grey(
+        `  Only the ${run.layers.join(' and ')} layer was measured. Declared assertions were\n` +
+          '  not evaluated — they are listed per case below, not counted as unknown.\n' +
+          `  At ${run.runs} attempts per case the intervals are wide by construction.\n` +
+          '  Run without --fast before trusting a green result.',
+      ),
+    )
+  }
+  if (run.skipped !== undefined && run.skipped.length > 0) {
+    out.push('')
+    out.push(style.yellow(`  ${run.skipped.length} case(s) were not run`))
+    for (const item of run.skipped) {
+      out.push(`    ${pad(item.caseId, width)} ${style.grey(item.reason)}`)
+    }
+  }
   if (run.partial !== undefined) {
     out.push('')
     out.push(style.yellow(style.bold('  incomplete run')))
@@ -136,6 +162,18 @@ export function renderRun(run: Run, summary: RunSummary): string {
     out.push(
       `  ${verdictMark(caseVerdict)} ${pad(caseResult.caseId, width)}  ${rate(caseResult.passRate)}${unknownNote}`,
     )
+    /*
+     * Değerlendirilmemiş assertion'lar vakanın altında, adlarıyla.
+     *
+     * Yalnızca manşette "assertion'lara bakılmadı" demek yetmez: okuyucu
+     * hangi iddianın sınanmadığını görmeli. `unknown` olarak sayılmıyorlar —
+     * sayılsalardı kasıtlı bir kapsam kararı ölçüm başarısızlığı gibi
+     * görünürdü.
+     */
+    const notEvaluated = caseResult.attempts[0]?.notEvaluated ?? []
+    for (const assertion of notEvaluated) {
+      out.push(style.grey(`      ${assertion.type}  not evaluated in this mode`))
+    }
   }
 
   out.push('')

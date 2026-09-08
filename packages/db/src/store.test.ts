@@ -229,6 +229,28 @@ describe('storeRun', () => {
     expect(loaded?.partial).toBeUndefined()
   })
 
+it('katmanlar ve atlanan vakalar gidis-donusten sagam cikar', async () => {
+    const run = {
+      ...makeRun('run-roundtrip-fast'),
+      layers: ['trigger'] as const,
+      skipped: [
+        { caseId: 'complete.only_artifact', reason: 'the case only declares assertions' },
+      ],
+    }
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.layers).toEqual(['trigger'])
+    expect(loaded?.skipped).toEqual(run.skipped)
+  })
+
+  it('tam kosumda katman ve atlama alanlari hic yazilmaz', async () => {
+    const run = makeRun('run-roundtrip-fulllayers')
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.layers).toBeUndefined()
+    expect(loaded?.skipped).toBeUndefined()
+  })
+
   it('izi, assertion sonuçlarını ve ortam farkını korur', async () => {
     const run = makeRun('run-roundtrip-2', 'fail')
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })

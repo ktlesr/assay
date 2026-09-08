@@ -151,6 +151,15 @@ model Run {
   /// Vaka başına tekrar sayısı. Asla 1 varsayılan değil (#3).
   runsPerCase Int
 
+  /// Bu koşumda ölçülen katmanlar. Boş dizi = hepsi ölçüldü. Hızlı mod
+  /// yalnızca tetiklenmeyi ölçüyor ve kayıt bunu kendi içinde söylemek
+  /// zorunda: yoksa dar bir ölçüm tam bir ölçüm gibi okunur.
+  layers String[] @default([])
+
+  /// Hiç koşulmamış vakalar ve sebepleri. `CaseResult` içinde sıfır denemeli
+  /// bir satır YOK: "koşulmadı" ile "koşuldu, karar çıkmadı" ayrı şeyler.
+  skipped Json?
+
   /// Aynı anda koşan deneme sayısı. Null ise 1. Ortam hash'ine girmiyor —
   /// host'un ortamı değil koşum düzeni — ama gecikme ve maliyet sayıları eş
   /// zamanlı koşumda aynı şeyi ölçmediği için kayıtta duruyor.

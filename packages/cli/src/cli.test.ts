@@ -483,3 +483,53 @@ describe('assay recover', () => {
     expect(await findJournals(store.directory)).toHaveLength(1)
   })
 })
+
+// ---------------------------------------------------------------------------
+// hızlı mod — 0.3.0-e
+// ---------------------------------------------------------------------------
+
+describe('hızlı mod raporu', () => {
+  const fastRun = (): Run => {
+    const base = makeRun('run-fast', [['trigger.positive.explicit', 3, 0, 0]])
+    return {
+      ...base,
+      runs: 3,
+      layers: ['trigger'],
+      skipped: [
+        { caseId: 'complete.only_artifact', reason: 'the case only declares assertions' },
+      ],
+      cases: base.cases.map((c) => ({
+        ...c,
+        attempts: c.attempts.map((a) => ({
+          ...a,
+          notEvaluated: [{ type: 'file_exists' as const, path: 'out/*' }],
+        })),
+      })),
+    }
+  }
+
+  it('terminal raporu hizli modu manşette soyluyor', () => {
+    const text = renderRun(fastRun(), summarizeRun(fastRun()))
+    expect(text).toContain('fast mode — an early warning, not evidence')
+    // Neyin ölçülmediği vaka altında adıyla.
+    expect(text).toContain('file_exists  not evaluated in this mode')
+    // Koşulmayan vaka sebebiyle.
+    expect(text).toContain('complete.only_artifact')
+    // Manşet oranların ÜSTÜNDE: uyarı, ilk vaka satırından önce gelmeli.
+    expect(text.indexOf('fast mode')).toBeLessThan(text.indexOf('trigger.positive.explicit'))
+  })
+
+  it('HTML raporu da manşette soyluyor', () => {
+    const html = renderHtmlReport(fastRun(), summarizeRun(fastRun()))
+    expect(html).toContain('Fast mode — an early warning, not evidence')
+    expect(html).toContain('complete.only_artifact')
+  })
+
+  it('tam modda hicbir hizli mod metni yok', () => {
+    // Pozitif kontrol: metin moda bağlı, her rapora yapıştırılmış değil.
+    const full = makeRun('run-full', [['trigger.positive.explicit', 5, 0, 0]])
+    const text = renderRun(full, summarizeRun(full))
+    expect(text).not.toContain('fast mode')
+    expect(renderHtmlReport(full, summarizeRun(full))).not.toContain('Fast mode')
+  })
+})

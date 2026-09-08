@@ -94,7 +94,7 @@ export async function storeRun(
      * `run_partial_shape` kısıtı yakaladı; normal biten her koşum
      * reddediliyordu.
      */
-    const { environment, partial, ...runColumns } = runRow
+    const { environment, partial, skipped, ...runColumns } = runRow
     await tx.run.create({
       data: {
         ...runColumns,
@@ -105,6 +105,9 @@ export async function storeRun(
         ...(partial === null || partial === undefined
           ? {}
           : { partial: partial as never }),
+        ...(skipped === null || skipped === undefined
+          ? {}
+          : { skipped: skipped as never }),
         suiteId: suite.id,
         ...(input.ownerId === undefined ? {} : { ownerId: input.ownerId }),
       },

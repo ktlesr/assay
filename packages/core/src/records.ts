@@ -390,6 +390,19 @@ export interface Attempt {
   /** Vaka setinde beyan edilen assertion'ların sonucu. */
   assertions: readonly AssertionResult[]
   /**
+   * Beyan edilmiş ama **bu modda değerlendirilmemiş** assertion'lar.
+   *
+   * Hızlı mod yalnızca tetiklenme katmanını ölçüyor. Bu assertion'lar
+   * `assertions` listesine `unknown` olarak girmiyor: `unknown` "ölçmeye
+   * çalıştık, sinyal alamadık" demek ve koşumu ölçülemez ilan ediyor. Burada
+   * olan şey başka — hiç bakılmadı, çünkü kullanıcı bakılmamasını istedi.
+   * İkisini aynı kovaya koymak, kasıtlı bir kapsam kararını bir ölçüm
+   * başarısızlığı gibi gösterirdi.
+   *
+   * Sonucu olmayan bir iddia bir sonuç listesinde duramaz; o yüzden ayrı alan.
+   */
+  notEvaluated?: readonly Assertion[]
+  /**
    * Attempt'in bileşik sonucu: `triggerCheck` ve `assertions` birlikte.
    *
    * `reason` başarıda kaç KONTROL geçtiğini sayar ve o sayı
@@ -475,6 +488,23 @@ export interface Run {
    * olur.
    */
   concurrency?: number
+  /**
+   * Bu koşumda **ölçülen katmanlar**. Alan yoksa hepsi ölçüldü.
+   *
+   * Hızlı mod yalnızca tetiklenme katmanını koşuyor. O koşumun kaydı, dar bir
+   * ölçüm olduğunu kendi içinde söylemek zorunda: yoksa okuyucu artefakt
+   * iddialarının sınandığını sanır. Bu bir yarım ölçüm değil, **beyan edilmiş
+   * dar bir ölçüm** — ölçmediğini ölçtüm demiyor, ölçmediğini söylüyor.
+   */
+  layers?: readonly RunLayer[]
+  /**
+   * Hiç koşulmamış vakalar ve sebepleri.
+   *
+   * `cases` içinde sıfır denemeli bir vaka **görünmüyor**: "koşulmadı" ile
+   * "koşuldu ama karar çıkmadı" iki ayrı şey ve N=0'lık bir satır ikincisi
+   * gibi okunurdu. Koşulmayan vaka buraya, sebebiyle yazılıyor.
+   */
+  skipped?: readonly SkippedCase[]
   cases: readonly CaseResult[]
   verdict: Verdict
   /**
@@ -487,6 +517,21 @@ export interface Run {
    * `runs: 10` görüp vaka başına 10 deneme sanmamalı.
    */
   partial?: PartialRun
+}
+
+/**
+ * Bir koşumun ölçebileceği katmanlar.
+ *
+ * `trigger` — skill doğru istekte devreye girdi mi.
+ * `assertions` — vaka setinde beyan edilen artefakt, iz ve yan etki iddiaları.
+ */
+export type RunLayer = 'trigger' | 'assertions'
+
+/** Koşulmamış bir vaka ve sebebi. */
+export interface SkippedCase {
+  caseId: string
+  /** Neden koşulmadı — okuyucu eksiği görüp sebebini de görsün. */
+  reason: string
 }
 
 /** Yarım kalmış bir koşumun künyesi. */

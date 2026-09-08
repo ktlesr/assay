@@ -78,6 +78,29 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
    * kaldıysa okuyucu bunu ORANLARI OKUMADAN ÖNCE bilmeli. Aşağıda bir yerde
    * dursaydı ölçüm olduğundan büyük görünürdü.
    */
+  /*
+   * Hızlı mod manşette: sayfanın üstündeki oranlar hızlı modda da aynı
+   * görünüyor ve okuyucu neyin ölçülmediğini onlardan önce bilmeli.
+   */
+  const fastNote =
+    run.layers === undefined || run.layers.includes('assertions')
+      ? ''
+      : `  <section class="callout">
+    <h2>Fast mode — an early warning, not evidence</h2>
+    <p>Only the ${escape(run.layers.join(' and '))} layer was measured. Declared
+    assertions were not evaluated; they are listed as such rather than counted
+    as unknown.</p>
+    <p class="note">At ${run.runs} attempts per case the intervals are wide by
+    construction. Run without <code>--fast</code> before trusting a green
+    result.${
+      run.skipped === undefined || run.skipped.length === 0
+        ? ''
+        : ` ${run.skipped.length} case(s) were not run: ${escape(
+            run.skipped.map((s) => s.caseId).join(', '),
+          )}.`
+    }</p>
+  </section>`
+
   const partialNote =
     run.partial === undefined
       ? ''
@@ -177,6 +200,7 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
 <main>
   <h1>Assay <span class="pill ${run.verdict}">${run.verdict}</span></h1>
   <p class="sub mono">${escape(run.id)}</p>
+${fastNote}
 ${partialNote}
 
   <div class="grid">

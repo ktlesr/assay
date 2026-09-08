@@ -22,7 +22,7 @@ import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Suite, SuiteCase } from '@ktlsr/assay-core'
+import type { RunLayer, Suite, SuiteCase } from '@ktlsr/assay-core'
 import { killChildTree } from './process.js'
 import type { AttemptResult } from './run.js'
 import { DONE, type AdapterSpec, type WorkerPayload } from './worker.js'
@@ -32,6 +32,15 @@ export interface SupervisorOptions {
   source: string
   suitePath?: string
   skillPath: string
+  /**
+   * Ölçülecek katmanlar.
+   *
+   * Worker'a geçmek ZORUNDA: katman filtresi denemenin içinde uygulanıyor ve
+   * hızlı mod izolasyonla birlikte koşuyor. Alan geçmediğinde worker
+   * assertion'ları yine değerlendiriyordu — birim testleri süreç sınırını
+   * geçmediği için görmedi, uçtan uca duman testi gördü.
+   */
+  layers?: readonly RunLayer[]
   /** Bir denemenin duvar saati tavanı. Aşılırsa worker ağacıyla kapatılır. */
   timeoutMs?: number
   /**
@@ -102,6 +111,7 @@ export async function superviseAttempt(
       source: options.source,
       ...(options.suitePath === undefined ? {} : { suitePath: options.suitePath }),
       skillPath: options.skillPath,
+      ...(options.layers === undefined ? {} : { layers: options.layers }),
     },
     resultPath,
   }

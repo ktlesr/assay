@@ -32,6 +32,8 @@ export {
   type Environment,
   type EnvironmentChange,
   type PartialRun,
+  type RunLayer,
+  type SkippedCase,
   type TraceEvent,
   type TraceEventKind,
   type SessionOutcome,

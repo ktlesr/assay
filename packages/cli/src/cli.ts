@@ -87,6 +87,14 @@ Options
                       a mitigation, not a guarantee: a server with a hardcoded
                       port ignores them. The value is written to the run record
                       because latency and cost are not comparable across it.
+  --fast              early warning, not evidence: 3 attempts per case, the
+                      trigger layer only, and an attempt budget. Cases that
+                      only declare assertions are not run; in cases that do
+                      run, declared assertions are listed as not evaluated
+                      rather than counted as unknown. The record says which
+                      layers were measured. Use the full run before a release.
+  --max-attempts <n>  cap the total attempts. Cases past the cap are not run
+                      and are named in the record with the reason.
   --allow-unknown     do not fail CI when attempts could not be measured
   --no-isolation      run attempts in this process instead of one process each.
                       Isolation is on by default: the measured agent can kill
@@ -122,6 +130,8 @@ export async function main(argv: readonly string[]): Promise<number> {
         'allow-unknown': { type: 'boolean' },
         'no-isolation': { type: 'boolean' },
         concurrency: { type: 'string' },
+        fast: { type: 'boolean' },
+        'max-attempts': { type: 'string' },
         json: { type: 'boolean' },
         suite: { type: 'string' },
         url: { type: 'string' },
@@ -388,6 +398,25 @@ async function run(
           },
         }
 
+  /*
+   * Hızlı mod: erken uyarı, kanıt değil.
+   *
+   * İlk deneyimde kimse sekiz saat harcamıyor. N=3 ve yalnız tetiklenme
+   * katmanı, dakikalar içinde "bu skill hâlâ ateşliyor mu" sorusuna cevap
+   * veriyor. Verdiği cevabın sınırı kayıtta ve raporda yazılı: aralıklar
+   * geniş, artefakt iddiaları hiç sınanmadı.
+   *
+   * `--repeat` ile birlikte verilirse kullanıcının sayısı kazanıyor — hızlı
+   * mod bir kısayol, bir kilit değil.
+   */
+  const fast = options['fast'] === true
+  const maxAttempts = parseCount(options['max-attempts'])
+  if (maxAttempts === 'invalid') {
+    process.stderr.write(`${style.red('error')} --max-attempts must be a positive integer\n`)
+    return EXIT.usage
+  }
+  const budget = maxAttempts ?? (fast ? FAST_BUDGET : undefined)
+
   const concurrency = parseConcurrency(options['concurrency'])
   if (concurrency === 'invalid') {
     process.stderr.write(
@@ -411,7 +440,13 @@ async function run(
     journalDir: store.directory,
     ...(isolate === undefined ? {} : { isolate }),
     ...(concurrency === undefined ? {} : { concurrency }),
-    ...(repeat === undefined ? {} : { repeat }),
+    ...(fast ? { layers: ['trigger'] as const } : {}),
+    ...(budget === undefined ? {} : { maxAttempts: budget }),
+    /*
+     * Hızlı modun tekrarı 3 — ama kullanıcı `--repeat` yazdıysa onunki
+     * kazanıyor. Değişmez #3 sağlanıyor: 3, 1'den büyük.
+     */
+    ...(repeat === undefined ? (fast ? { repeat: FAST_REPEAT } : {}) : { repeat }),
     onProgress: (event) => {
       if (options['json'] === true) return
       const mark = {
@@ -751,6 +786,32 @@ async function scrub(dir: string | undefined, options: Options): Promise<number>
     `${names.length} record(s) checked, ${changed} rewritten in ${target}\n`,
   )
   return EXIT.ok
+}
+
+/**
+ * Hızlı modun deneme tavanı.
+ *
+ * Yirmi vaka x uc tekrar. Tavan dolduğunda kalan vakalar koşulmuyor ve
+ * kayıtta sebebiyle görünüyor — sessizce kırpmak, ölçülmemiş bir vakayı
+ * ölçülmüş gibi göstermek olurdu.
+ */
+const FAST_BUDGET = 60
+
+/**
+ * Hızlı modun tekrar sayısı.
+ *
+ * Üç: değişmez #3'ün altına inmiyor ama dakikalarla ölçülüyor. Üç denemede
+ * aralık %29–100 kadar geniş çıkıyor ve rapor bunu manşette söylüyor —
+ * gizlenirse hızlı mod bir kanıt gibi okunur.
+ */
+const FAST_REPEAT = 3
+
+/** Pozitif tam sayı ya da kullanım hatası. */
+function parseCount(value: unknown): number | undefined | 'invalid' {
+  if (value === undefined) return undefined
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 1) return 'invalid'
+  return parsed
 }
 
 /** `--concurrency` — pozitif tam sayı ya da kullanım hatası. */

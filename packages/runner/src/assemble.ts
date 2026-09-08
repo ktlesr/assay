@@ -15,6 +15,8 @@ import {
   type PartialRun,
   type Pins,
   type Run,
+  type RunLayer,
+  type SkippedCase,
   type Verdict,
 } from '@ktlsr/assay-core'
 import type { JournalAttempt } from './journal.js'
@@ -34,6 +36,10 @@ export function assembleRun(input: {
   runs: number
   /** Aynı anda koşan deneme sayısı; 1 ise yazılmıyor. */
   concurrency?: number
+  /** Ölçülen katmanlar; hepsi ölçüldüyse yazılmıyor. */
+  layers?: readonly RunLayer[]
+  /** Hiç koşulmamış vakalar ve sebepleri. */
+  skipped?: readonly SkippedCase[]
   pins: Pins
   attempts: readonly JournalAttempt[]
   partial?: PartialRun
@@ -92,6 +98,10 @@ export function assembleRun(input: {
       : {}),
     runs: input.runs,
     ...(input.concurrency === undefined ? {} : { concurrency: input.concurrency }),
+    ...(input.layers === undefined ? {} : { layers: input.layers }),
+    ...(input.skipped === undefined || input.skipped.length === 0
+      ? {}
+      : { skipped: input.skipped }),
     cases,
     verdict: verdictOf(input.attempts.map((entry) => entry.attempt)),
     ...(input.partial === undefined ? {} : { partial: input.partial }),

@@ -27,6 +27,8 @@ import {
   type HostAdapter,
   type Pins,
   type Run,
+  type RunLayer,
+  type SkippedCase,
   type Suite,
   type SuiteCase,
   type TraceEvent,
@@ -101,6 +103,23 @@ export interface RunOptions {
   portRangeStart?: number
   /** İşçi başına kaç port. Varsayılan 100. */
   portRangeSize?: number
+  /**
+   * Ölçülecek katmanlar. Verilmezse hepsi.
+   *
+   * `['trigger']` hızlı modun kendisi: yalnızca tetiklenme ölçülür. Beyan
+   * edilmiş assertion'lar `unknown`a çevrilmez — hiç değerlendirilmez ve
+   * attempt'in `notEvaluated` alanında listelenir. Yalnızca artefakt ölçen
+   * vakalar hiç koşulmaz ve `skipped` içinde sebebiyle görünür.
+   */
+  layers?: readonly RunLayer[]
+  /**
+   * Toplam deneme tavanı.
+   *
+   * Aşıldığında kalan vakalar koşulmuyor ve `skipped` içinde "bütçe doldu"
+   * sebebiyle yazılıyor. Sessizce kırpmak, kullanıcıya ölçülmemiş bir vakayı
+   * ölçülmüş gibi gösterirdi.
+   */
+  maxAttempts?: number
   /** Vaka ve attempt ilerledikçe çağrılır. */
   onProgress?: (event: ProgressEvent) => void
   /** Zaman kaynağı — testlerde sabitlenebilir. */
@@ -173,10 +192,7 @@ export async function runSuite<S extends AgentSession>(
    * değişirse iki kaydı yan yana okumak zorlaşır. Bitiş sırası değil, beyan
    * sırası yazılıyor.
    */
-  const work: Array<{ testCase: SuiteCase; caseIndex: number; index: number }> = []
-  suite.cases.forEach((testCase, caseIndex) => {
-    for (let index = 0; index < repeat; index += 1) work.push({ testCase, caseIndex, index })
-  })
+  const { work, skipped } = planWork(suite, repeat, options)
   const ordered = new Array<JournalAttempt | undefined>(work.length)
 
   let cursor = 0
@@ -242,6 +258,8 @@ export async function runSuite<S extends AgentSession>(
     skill: suite.target.skill,
     runs: repeat,
     ...(concurrency === 1 ? {} : { concurrency }),
+    ...(options.layers === undefined ? {} : { layers: options.layers }),
+    ...(skipped.length === 0 ? {} : { skipped }),
     pins: basePins,
     attempts: journalled,
   })
@@ -274,6 +292,7 @@ async function isolatedAttempt(
     source: options.source,
     ...(options.suitePath === undefined ? {} : { suitePath: options.suitePath }),
     skillPath: skillCopy,
+    ...(options.layers === undefined ? {} : { layers: options.layers }),
     ...(options.attemptTimeoutMs === undefined
       ? {}
       : { timeoutMs: options.attemptTimeoutMs }),
@@ -298,6 +317,59 @@ async function isolatedAttempt(
       latencyMs: Date.now() - began,
     },
   }
+}
+
+/**
+ * Hangi vakaların koşulacağı ve hangilerinin neden koşulmayacağı.
+ *
+ * İki eleme var ve ikisi de **kayda yazılıyor**:
+ *
+ * 1. Katman filtresi. Yalnızca artefakt ölçen bir vaka (`expect.triggered` ve
+ *    `not_triggered` yok, yalnız assertion var) hızlı modda koşulmuyor:
+ *    koşulsaydı ölçülecek hiçbir şeyi kalmazdı ve boş bir vaka üretirdi.
+ * 2. Bütçe tavanı. Tavan dolduğunda kalan vakalar koşulmuyor.
+ *
+ * Elenen vaka `cases` listesinde sıfır denemeyle görünmüyor: "koşulmadı" ile
+ * "koşuldu, karar çıkmadı" karışmasın.
+ */
+function planWork(
+  suite: Suite,
+  repeat: number,
+  options: RunOptions,
+): {
+  work: Array<{ testCase: SuiteCase; caseIndex: number; index: number }>
+  skipped: SkippedCase[]
+} {
+  const measuresTrigger = (testCase: SuiteCase): boolean =>
+    testCase.expect.triggered !== undefined ||
+    (testCase.expect.not_triggered?.length ?? 0) > 0
+  const layers = options.layers
+  const triggerOnly = layers !== undefined && !layers.includes('assertions')
+
+  const work: Array<{ testCase: SuiteCase; caseIndex: number; index: number }> = []
+  const skipped: SkippedCase[] = []
+  const budget = options.maxAttempts ?? Number.POSITIVE_INFINITY
+
+  suite.cases.forEach((testCase, caseIndex) => {
+    if (triggerOnly && !measuresTrigger(testCase)) {
+      skipped.push({
+        caseId: testCase.id,
+        reason:
+          'the case only declares assertions, and this run measured the trigger layer only',
+      })
+      return
+    }
+    if (work.length + repeat > budget) {
+      skipped.push({
+        caseId: testCase.id,
+        reason: `the attempt budget of ${budget} was reached before this case`,
+      })
+      return
+    }
+    for (let index = 0; index < repeat; index += 1) work.push({ testCase, caseIndex, index })
+  })
+
+  return { work, skipped }
 }
 
 /**
@@ -547,10 +619,23 @@ export async function runAttempt<S extends AgentSession>(
     }
   }
 
-  const assertions: AssertionResult[] = evaluateAssertions(
-    testCase.expect.assertions ?? [],
-    evidence,
-  )
+  /*
+   * Katman filtresi: assertion'lar değerlendirilmiyor ama `unknown` da
+   * olmuyorlar.
+   *
+   * `unknown` "ölçmeye çalıştık, sinyal alamadık" demek ve koşumu ölçülemez
+   * ilan ediyor (çıkış kodu 3). Burada olan başka: kullanıcı bakılmamasını
+   * istedi. Kasıtlı bir kapsam kararını ölçüm başarısızlığı gibi göstermek,
+   * kullanıcıya `--allow-unknown` yazmayı öğretirdi — ve o alışkanlık gerçek
+   * `unknown`ları da görünmez yapardı.
+   */
+  const declared = testCase.expect.assertions ?? []
+  const evaluatesAssertions =
+    options.layers === undefined || options.layers.includes('assertions')
+  const assertions: AssertionResult[] = evaluatesAssertions
+    ? evaluateAssertions(declared, evidence)
+    : []
+  const notEvaluated = evaluatesAssertions ? [] : declared
   const triggerVerdict = evaluateTrigger(trigger, {
     triggered: testCase.expect.triggered,
     notTriggered: testCase.expect.not_triggered,
@@ -579,6 +664,7 @@ export async function runAttempt<S extends AgentSession>(
     // yalnızca vaka setinde beyan edilenleri taşır, sentetik üye almaz.
     ...(triggerVerdict === null ? {} : { triggerCheck: triggerVerdict }),
     assertions,
+    ...(notEvaluated.length === 0 ? {} : { notEvaluated }),
     verdict: combined.verdict,
     reason: redact(reason),
     latencyMs: latencyMs ?? Date.now() - began,

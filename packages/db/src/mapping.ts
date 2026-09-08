@@ -20,6 +20,8 @@ import {
   type NetworkRequest,
   type PartialRun,
   type RefusedActivation,
+  type RunLayer,
+  type SkippedCase,
   type Run,
   type Suite,
   type SuiteCase,
@@ -122,6 +124,10 @@ export interface RunRow {
    * duruyor: gecikme ve maliyet eş zamanlı koşumda aynı şeyi ölçmüyor.
    */
   concurrency: number | null
+  /** Ölçülen katmanlar; boş = hepsi. */
+  layers: string[]
+  /** Koşulmamış vakalar ve sebepleri; diğer jsonb sütunları gibi `unknown`. */
+  skipped: unknown
   verdict: string
   unknownReason: string | null
 }
@@ -240,6 +246,8 @@ export function toRunRow(run: Run): RunRow {
     partial: run.partial ?? null,
     runsPerCase: run.runs,
     concurrency: run.concurrency ?? null,
+    layers: [...(run.layers ?? [])],
+    skipped: run.skipped ?? null,
     verdict: VERDICT_TO_DB[run.verdict],
     // Değişmez #1: `unknown` gerekçesiz saklanamaz; kısıt bunu zorluyor,
     // burada gerekçe attempt'lerden toplanıyor.
@@ -462,6 +470,9 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
     ...(isEnvironment(row.environment) ? { environment: row.environment } : {}),
     ...(isPartial(row.partial) ? { partial: row.partial } : {}),
     ...(row.concurrency === null ? {} : { concurrency: row.concurrency }),
+    // Elle kurulmuş ve migration öncesi satırlarda alan hiç olmayabilir.
+    ...((row.layers ?? []).length === 0 ? {} : { layers: row.layers as RunLayer[] }),
+    ...(isSkipped(row.skipped) ? { skipped: row.skipped } : {}),
     runs: row.runsPerCase,
     cases,
     verdict,
@@ -543,5 +554,25 @@ function isPartial(value: unknown): value is PartialRun {
     typeof candidate['reason'] === 'string' &&
     candidate['reason'].length > 0 &&
     typeof candidate['recoveredAt'] === 'string'
+  )
+}
+
+/**
+ * Atlanan vaka listesinin sekli yerinde mi.
+ *
+ * Sebepsiz bir atlama, eksigi bildirip gerekcesini bildirmemek olurdu.
+ * Veritabani kisiti da ayni sarti zorluyor; burasi okuma tarafi.
+ */
+function isSkipped(value: unknown): value is SkippedCase[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as Record<string, unknown>)['caseId'] === 'string' &&
+        typeof (item as Record<string, unknown>)['reason'] === 'string' &&
+        ((item as Record<string, unknown>)['reason'] as string).length > 0,
+    )
   )
 }

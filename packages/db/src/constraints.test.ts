@@ -278,6 +278,31 @@ describe('değişmez #1 — unknown gerekçesiz olamaz', () => {
     await expect(run(sql, params)).resolves.toBeDefined()
   })
 
+it('Run: atlanan vaka sebepsiz olamaz', async () => {
+    const suiteId = await makeSuite()
+    await violates(
+      'run_skipped_shape',
+      `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
+         "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
+         "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","skipped")
+       VALUES ($1,$2,now(),now(),'h','docx','a','b','c','d',1,'e',10,'PASS'::"Verdict",$3::jsonb)`,
+      [next(), suiteId, JSON.stringify([{ caseId: 'c1' }])],
+    )
+  })
+
+  it('Run: sebebi olan atlanan vaka kabul edilir', async () => {
+    const suiteId = await makeSuite()
+    await expect(
+      run(
+        `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
+           "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
+           "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","skipped")
+         VALUES ($1,$2,now(),now(),'h','docx','a','b','c','d',1,'e',10,'PASS'::"Verdict",$3::jsonb)`,
+        [next(), suiteId, JSON.stringify([{ caseId: 'c1', reason: 'trigger layer only' }])],
+      ),
+    ).resolves.toBeDefined()
+  })
+
   it('Run: normal biten koşumda partial NULL kalabilir', async () => {
     const suiteId = await makeSuite()
     const [sql, params] = partialSql(suiteId, null)
