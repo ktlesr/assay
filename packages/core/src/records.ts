@@ -464,6 +464,17 @@ export interface Run {
   environment?: Environment
   /** Suite'te beyan edilen tekrar sayısı. */
   runs: number
+  /**
+   * Aynı anda koşan deneme sayısı. Varsayılan 1.
+   *
+   * `environmentHash`e **girmiyor**: host'un bildirdiği ortamın değil koşum
+   * düzeninin özelliği ve tetiklenme oranını değiştirmesi beklenmiyor. Ama
+   * kayda giriyor, çünkü **gecikme ve maliyet sayıları** eş zamanlı koşumda
+   * aynı şeyi ölçmüyor: denemeler CPU'yu, belleği ve host hız sınırını
+   * paylaşıyor. Alanı okumadan iki koşumun süresini karşılaştırmak yanlış
+   * olur.
+   */
+  concurrency?: number
   cases: readonly CaseResult[]
   verdict: Verdict
   /**

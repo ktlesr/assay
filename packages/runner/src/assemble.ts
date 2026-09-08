@@ -32,6 +32,8 @@ export function assembleRun(input: {
   host: string
   skill: string
   runs: number
+  /** Aynı anda koşan deneme sayısı; 1 ise yazılmıyor. */
+  concurrency?: number
   pins: Pins
   attempts: readonly JournalAttempt[]
   partial?: PartialRun
@@ -89,6 +91,7 @@ export function assembleRun(input: {
       ? { environment: [...environments.values()][0] as Environment }
       : {}),
     runs: input.runs,
+    ...(input.concurrency === undefined ? {} : { concurrency: input.concurrency }),
     cases,
     verdict: verdictOf(input.attempts.map((entry) => entry.attempt)),
     ...(input.partial === undefined ? {} : { partial: input.partial }),

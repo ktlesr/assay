@@ -122,6 +122,19 @@ const ENV_PASSTHROUGH = [
   'HTTPS_PROXY',
   'HTTP_PROXY',
   'NO_PROXY',
+  /*
+   * Port kirası (0.3.0-d).
+   *
+   * Eş zamanlı denemelerin ajanları aynı portu istemesin diye işçi başına
+   * ayrık bir aralık veriliyor. Bu üçünü Assay yazıyor, kullanıcının
+   * ortamından gelmiyorlar; allowlist'in sır hijyeni gerekçesi (H1) burada
+   * zedelenmiyor.
+   *
+   * Yumuşatma, garanti değil: sabit port yazan bir dev sunucu bunları okumaz.
+   */
+  'PORT',
+  'VITE_PORT',
+  'ASSAY_PORT_RANGE',
 ] as const
 
 export function passthroughEnv(): NodeJS.ProcessEnv {

@@ -80,6 +80,13 @@ Options
   --allow-bypass-permissions
                       required to actually use bypassPermissions: that mode
                       removes every boundary the sandbox observes
+  --concurrency <n>   attempts to run at once (default 1). Speeding up is a
+                      choice, not a default: parallel attempts share CPU, RAM,
+                      ports and the host's rate limit. Each worker is given a
+                      disjoint port range (PORT, VITE_PORT, ASSAY_PORT_RANGE) —
+                      a mitigation, not a guarantee: a server with a hardcoded
+                      port ignores them. The value is written to the run record
+                      because latency and cost are not comparable across it.
   --allow-unknown     do not fail CI when attempts could not be measured
   --no-isolation      run attempts in this process instead of one process each.
                       Isolation is on by default: the measured agent can kill
@@ -114,6 +121,7 @@ export async function main(argv: readonly string[]): Promise<number> {
         'allow-bypass-permissions': { type: 'boolean' },
         'allow-unknown': { type: 'boolean' },
         'no-isolation': { type: 'boolean' },
+        concurrency: { type: 'string' },
         json: { type: 'boolean' },
         suite: { type: 'string' },
         url: { type: 'string' },
@@ -380,12 +388,29 @@ async function run(
           },
         }
 
+  const concurrency = parseConcurrency(options['concurrency'])
+  if (concurrency === 'invalid') {
+    process.stderr.write(
+      `${style.red('error')} --concurrency must be a positive integer\n`,
+    )
+    return EXIT.usage
+  }
+  if (concurrency !== undefined && concurrency > 1 && isolate === undefined) {
+    // Süreç içi koşumda port kirası verilemiyor (tek ortam, N deneme) ve
+    // öldürülen bir deneme koşumun tamamını götürüyor.
+    process.stderr.write(
+      `${style.yellow('warning')} --concurrency with --no-isolation shares one process and one ` +
+        `environment: attempts cannot be given separate port ranges, and one killed attempt ends the run\n`,
+    )
+  }
+
   const record = await runSuite(effective, adapter, {
     source,
     suitePath: loaded.path,
     skillPath: resolve(skillPath),
     journalDir: store.directory,
     ...(isolate === undefined ? {} : { isolate }),
+    ...(concurrency === undefined ? {} : { concurrency }),
     ...(repeat === undefined ? {} : { repeat }),
     onProgress: (event) => {
       if (options['json'] === true) return
@@ -726,4 +751,12 @@ async function scrub(dir: string | undefined, options: Options): Promise<number>
     `${names.length} record(s) checked, ${changed} rewritten in ${target}\n`,
   )
   return EXIT.ok
+}
+
+/** `--concurrency` — pozitif tam sayı ya da kullanım hatası. */
+function parseConcurrency(value: unknown): number | undefined | 'invalid' {
+  if (value === undefined) return undefined
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 1) return 'invalid'
+  return parsed
 }

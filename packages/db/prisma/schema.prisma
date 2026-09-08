@@ -151,6 +151,11 @@ model Run {
   /// Vaka başına tekrar sayısı. Asla 1 varsayılan değil (#3).
   runsPerCase Int
 
+  /// Aynı anda koşan deneme sayısı. Null ise 1. Ortam hash'ine girmiyor —
+  /// host'un ortamı değil koşum düzeni — ama gecikme ve maliyet sayıları eş
+  /// zamanlı koşumda aynı şeyi ölçmediği için kayıtta duruyor.
+  concurrency Int?
+
   /// Koşum yarım kaldı ve journal'dan toparlandı: sebep, kurtarma anı ve
   /// okunamayan satır sayısı. Null ise koşum normal bitti. Kayıt yarım
   /// olduğunu söylemek zorunda — okuyucu runsPerCase görüp vaka başına o

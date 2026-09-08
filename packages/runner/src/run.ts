@@ -78,6 +78,29 @@ export interface RunOptions {
   isolate?: AdapterSpec
   /** İzole denemenin duvar saati tavanı; aşılırsa worker ağacıyla kapatılır. */
   attemptTimeoutMs?: number
+  /**
+   * Aynı anda koşan deneme sayısı. **Varsayılan 1.**
+   *
+   * Varsayılanın 1 olmasının sebebi ölçümün kendisi: eş zamanlı denemeler
+   * CPU'yu, belleği, portları ve host hız sınırını paylaşıyor. Hızlanmak
+   * kullanıcının bilerek verdiği bir karar olmalı, sessiz bir varsayılan
+   * değil.
+   */
+  concurrency?: number
+  /**
+   * Her işçiye ayrılan port aralığının başlangıcı.
+   *
+   * Eş zamanlı iki denemenin ajanı aynı portu isterse biri diğerinin
+   * sunucusunu öldürüyor. İşçi başına ayrık bir aralık veriliyor ve `PORT`,
+   * `VITE_PORT`, `ASSAY_PORT_RANGE` olarak ajanın ortamına konuyor.
+   *
+   * Bu bir **yumuşatma, garanti değil**: ajanın bu değişkenlere uyma
+   * zorunluluğu yok, sabit port yazan bir dev sunucu yine çakışır. Gerçek
+   * ayrım konteynerle gelir (docs/sandbox-security.md, A1/A3).
+   */
+  portRangeStart?: number
+  /** İşçi başına kaç port. Varsayılan 100. */
+  portRangeSize?: number
   /** Vaka ve attempt ilerledikçe çağrılır. */
   onProgress?: (event: ProgressEvent) => void
   /** Zaman kaynağı — testlerde sabitlenebilir. */
@@ -111,6 +134,8 @@ export async function runSuite<S extends AgentSession>(
 ): Promise<Run> {
   const now = options.now ?? (() => new Date())
   const repeat = options.repeat ?? suite.runs
+  // Varsayılan 1: hızlanmak kullanıcının bilerek verdiği bir karar olmalı.
+  const concurrency = Math.max(1, Math.trunc(options.concurrency ?? 1))
   const startedAt = now().toISOString()
   // Pin 1'in denetçisi: beyan edilen sürüm unutulsa da içerik kayması görülür.
   const skillHash = (await directoryHash(options.skillPath)) ?? ''
@@ -140,47 +165,74 @@ export async function runSuite<S extends AgentSession>(
   const skillCopy = await copySkill(options.skillPath)
   const journalled: JournalAttempt[] = []
 
-  try {
-    for (const testCase of suite.cases) {
-      for (let index = 0; index < repeat; index += 1) {
-        const { attempt, environmentHash, permissionMode, environment } =
-          options.isolate === undefined
-            ? await runAttempt(
-                suite,
-                testCase,
-                index,
-                adapter,
-                { ...options, skillPath: skillCopy },
-                now,
-              )
-            : await isolatedAttempt(suite, testCase, index, options, skillCopy, now)
-        const entry: JournalAttempt = {
-          kind: 'attempt',
-          caseId: testCase.id,
-          ...(testCase.expect.triggered === undefined
-            ? {}
-            : { expectedTrigger: testCase.expect.triggered }),
-          attempt,
-          ...(environmentHash === undefined ? {} : { environmentHash }),
-          ...(permissionMode === undefined ? {} : { permissionMode }),
-          ...(environment === undefined ? {} : { environment }),
-        }
-        // Önce diske, sonra belleğe: sıra tersine dönerse tam da kaybedilen
-        // deneme, kaydedildiği sanılan deneme olur.
-        journal?.append(entry)
-        journalled.push(entry)
-        options.onProgress?.({
-          caseId: testCase.id,
-          attempt: index,
-          attempts: repeat,
-          verdict: attempt.verdict,
-          reason: attempt.reason,
-        })
+  /*
+   * İş listesi önce kuruluyor, sonra W işçi aynı listeden çekiyor.
+   *
+   * Sıra suite sırası: eş zamanlı koşumda denemeler karışık bitiyor ama kayıt
+   * karışık olmamalı — aynı suite iki kez koşulduğunda kaydın vaka sırası
+   * değişirse iki kaydı yan yana okumak zorlaşır. Bitiş sırası değil, beyan
+   * sırası yazılıyor.
+   */
+  const work: Array<{ testCase: SuiteCase; caseIndex: number; index: number }> = []
+  suite.cases.forEach((testCase, caseIndex) => {
+    for (let index = 0; index < repeat; index += 1) work.push({ testCase, caseIndex, index })
+  })
+  const ordered = new Array<JournalAttempt | undefined>(work.length)
+
+  let cursor = 0
+  const workers = Math.max(1, Math.min(concurrency, work.length))
+
+  const drain = async (slot: number): Promise<void> => {
+    for (;;) {
+      const at = cursor
+      cursor += 1
+      const item = work[at]
+      if (item === undefined) return
+
+      const { attempt, environmentHash, permissionMode, environment } =
+        options.isolate === undefined
+          ? await runAttempt(
+              suite,
+              item.testCase,
+              item.index,
+              adapter,
+              { ...options, skillPath: skillCopy },
+              now,
+            )
+          : await isolatedAttempt(suite, item.testCase, item.index, options, skillCopy, now, slot)
+
+      const entry: JournalAttempt = {
+        kind: 'attempt',
+        caseId: item.testCase.id,
+        ...(item.testCase.expect.triggered === undefined
+          ? {}
+          : { expectedTrigger: item.testCase.expect.triggered }),
+        attempt,
+        ...(environmentHash === undefined ? {} : { environmentHash }),
+        ...(permissionMode === undefined ? {} : { permissionMode }),
+        ...(environment === undefined ? {} : { environment }),
       }
+      // Önce diske, sonra belleğe: sıra tersine dönerse tam da kaybedilen
+      // deneme, kaydedildiği sanılan deneme olur. Journal bitiş sırasında;
+      // kurtarma zaten vakaya göre grupluyor.
+      journal?.append(entry)
+      ordered[at] = entry
+      options.onProgress?.({
+        caseId: item.testCase.id,
+        attempt: item.index,
+        attempts: repeat,
+        verdict: attempt.verdict,
+        reason: attempt.reason,
+      })
     }
+  }
+
+  try {
+    await Promise.all(Array.from({ length: workers }, (_unused, slot) => drain(slot)))
   } finally {
     await rm(skillCopy, { recursive: true, force: true }).catch(() => undefined)
   }
+  journalled.push(...ordered.filter((entry): entry is JournalAttempt => entry !== undefined))
 
   const run = assembleRun({
     id,
@@ -189,6 +241,7 @@ export async function runSuite<S extends AgentSession>(
     host: adapter.id,
     skill: suite.target.skill,
     runs: repeat,
+    ...(concurrency === 1 ? {} : { concurrency }),
     pins: basePins,
     attempts: journalled,
   })
@@ -212,6 +265,7 @@ async function isolatedAttempt(
   options: RunOptions,
   skillCopy: string,
   now: () => Date,
+  slot: number,
 ): Promise<AttemptResult> {
   const startedAt = now().toISOString()
   const began = Date.now()
@@ -223,6 +277,7 @@ async function isolatedAttempt(
     ...(options.attemptTimeoutMs === undefined
       ? {}
       : { timeoutMs: options.attemptTimeoutMs }),
+    env: portLease(slot, options),
   })
 
   if (supervised.result !== null) return supervised.result
@@ -242,6 +297,28 @@ async function isolatedAttempt(
       reason: supervised.reason ?? 'the attempt process reported nothing',
       latencyMs: Date.now() - began,
     },
+  }
+}
+
+/**
+ * İşçiye ayrılan port aralığı.
+ *
+ * `PORT` ve `VITE_PORT` yaygın dev sunucuların okuduğu değişkenler;
+ * `ASSAY_PORT_RANGE` ise aralığın tamamını söylüyor ki birden çok sunucu
+ * başlatan bir ajan da yer bulabilsin.
+ *
+ * Tekrar: **yumuşatma, garanti değil.** Sabit port yazan bir sunucu bunları
+ * okumaz ve eş zamanlı iki deneme yine çakışır. Ölçüm bunu gizlemiyor —
+ * çakışma olduğunda deneme `unknown` olur ve gerekçesi görünür.
+ */
+function portLease(slot: number, options: RunOptions): Record<string, string> {
+  const start = options.portRangeStart ?? 5200
+  const size = options.portRangeSize ?? 100
+  const from = start + slot * size
+  return {
+    PORT: String(from),
+    VITE_PORT: String(from + 1),
+    ASSAY_PORT_RANGE: `${from}-${from + size - 1}`,
   }
 }
 

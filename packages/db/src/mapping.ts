@@ -115,6 +115,13 @@ export interface RunRow {
    */
   partial: unknown
   runsPerCase: number
+  /**
+   * Aynı anda koşan deneme sayısı; 1 ise null.
+   *
+   * Ortam hash'ine girmiyor (host'un ortamı değil, koşum düzeni) ama kayıtta
+   * duruyor: gecikme ve maliyet eş zamanlı koşumda aynı şeyi ölçmüyor.
+   */
+  concurrency: number | null
   verdict: string
   unknownReason: string | null
 }
@@ -232,6 +239,7 @@ export function toRunRow(run: Run): RunRow {
     environment: run.environment ?? null,
     partial: run.partial ?? null,
     runsPerCase: run.runs,
+    concurrency: run.concurrency ?? null,
     verdict: VERDICT_TO_DB[run.verdict],
     // Değişmez #1: `unknown` gerekçesiz saklanamaz; kısıt bunu zorluyor,
     // burada gerekçe attempt'lerden toplanıyor.
@@ -453,6 +461,7 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
     ...(row.permissionMode === null ? {} : { permissionMode: row.permissionMode }),
     ...(isEnvironment(row.environment) ? { environment: row.environment } : {}),
     ...(isPartial(row.partial) ? { partial: row.partial } : {}),
+    ...(row.concurrency === null ? {} : { concurrency: row.concurrency }),
     runs: row.runsPerCase,
     cases,
     verdict,

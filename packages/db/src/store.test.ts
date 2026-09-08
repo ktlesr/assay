@@ -209,6 +209,19 @@ describe('storeRun', () => {
     expect(loaded?.partial).toEqual(partial)
   })
 
+  it('es zamanlilik kayit satirinda durur ve geri okunur', async () => {
+    const run = { ...makeRun('run-roundtrip-conc'), concurrency: 4 }
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.concurrency).toBe(4)
+  })
+
+  it('sirali kosumda es zamanlilik alani hic yazilmaz', async () => {
+    const run = makeRun('run-roundtrip-serial')
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.concurrency).toBeUndefined()
+  })
   it('normal biten kosumda yarim kunyesi hic yazilmaz', async () => {
     const run = makeRun('run-roundtrip-complete')
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })

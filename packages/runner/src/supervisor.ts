@@ -34,6 +34,13 @@ export interface SupervisorOptions {
   skillPath: string
   /** Bir denemenin duvar saati tavanı. Aşılırsa worker ağacıyla kapatılır. */
   timeoutMs?: number
+  /**
+   * Worker sürecine eklenen ortam değişkenleri — port kirası buradan geçiyor.
+   *
+   * Ajana ulaşıp ulaşmayacağını adaptörün kendi allowlist'i belirliyor; burası
+   * yalnızca worker'ın ortamı.
+   */
+  env?: Record<string, string>
 }
 
 /** Sevk katmanının bir deneme hakkında öğrendikleri. */
@@ -104,6 +111,7 @@ export async function superviseAttempt(
 
     const child = spawn(process.execPath, [workerEntry(), payloadPath], {
       stdio: ['ignore', 'pipe', 'pipe'],
+      ...(options.env === undefined ? {} : { env: { ...process.env, ...options.env } }),
       // POSIX'te kendi süreç grubunda: ağaç kapatma `kill(-pid)` ile grubun
       // tamamına gidiyor. Windows'ta `taskkill /T` zaten PID ağacını yürüyor.
       ...(process.platform === 'win32' ? {} : { detached: true }),

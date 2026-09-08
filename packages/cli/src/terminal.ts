@@ -91,6 +91,21 @@ export function renderRun(run: Run, summary: RunSummary): string {
     ),
   )
   /*
+   * Eş zamanlılık gecikmenin koşulu.
+   *
+   * Paralel denemeler CPU'yu, belleği ve host hız sınırını paylaşıyor; aynı
+   * suite'in seri ve paralel koşumlarının süreleri aynı şeyi ölçmüyor.
+   * Tetiklenme oranları karşılaştırılabilir kalıyor — bu yüzden alan ortam
+   * hash'ine girmiyor — ama süre okuyan biri bunu bilmeli.
+   */
+  if (run.concurrency !== undefined && run.concurrency > 1) {
+    out.push(
+      style.grey(
+        `${run.concurrency} attempts at a time — latency and cost are not comparable with a serial run`,
+      ),
+    )
+  }
+  /*
    * Yarım kayıt manşette söylenir.
    *
    * `${run.runs} runs per case` satırı beyan edilen tekrar sayısını gösteriyor
