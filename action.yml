@@ -32,6 +32,14 @@ inputs:
   model:
     description: Model id override. Leave empty to use the suite's pinned model.
     required: false
+  fast:
+    description: >
+      Early warning, not evidence: 3 attempts per case and the trigger layer
+      only. Cases that only declare assertions are not run. Use it on pull
+      requests and keep the full run for nightly and pre-release. Needs an
+      assay-version that has the flag.
+    required: false
+    default: 'false'
   allow-unknown:
     description: Treat "nothing could be measured" as success instead of failing.
     required: false
@@ -161,6 +169,7 @@ runs:
         ASSAY_SKILL: ${{ inputs.skill }}
         ASSAY_REPEAT: ${{ inputs.repeat }}
         ASSAY_MODEL: ${{ inputs.model }}
+        ASSAY_FAST: ${{ inputs.fast }}
         ASSAY_ALLOW_UNKNOWN: ${{ inputs.allow-unknown }}
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
         CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude-code-oauth-token }}

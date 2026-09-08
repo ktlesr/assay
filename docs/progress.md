@@ -7,10 +7,14 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 
 ## Durum
 
-**Faz 0–3 tamam** · **kalibrasyon tamam** · **0.1.0 npm'de yayımlandı**
+**Faz 0–3 tamam** · **kalibrasyon tamam** · **npm'de 0.2.0** ·
+**0.3.0 kodda tamam, yayımlanmadı**
 
-Dört paket 2026-09-01'de yayımlandı: `@ktlsr/assay`, `-core`, `-runner`,
-`-adapters`. Trusted publishing (OIDC), provenance'lı, saklanan token yok.
+Son güncelleme: 2026-09-09.
+
+Dört paket yayımlanıyor: `@ktlsr/assay`, `-core`, `-runner`, `-adapters`.
+Registry'deki son sürüm **0.2.0**. Depoda **beş changeset** bekliyor
+(0.3.0-a…e); birleştirilince sürüm PR'ı 0.3.0'ı açar, yayın elle tetiklenir.
 
 ## Tamamlananlar
 
@@ -43,12 +47,46 @@ Dört paket 2026-09-01'de yayımlandı: `@ktlsr/assay`, `-core`, `-runner`,
 | Public depo | provenance, geçmiş sır taraması (temiz) | `3016d53` |
 | Yayın tetiği | push değil, `workflow_dispatch` + onay metni | `4dc5fc1` |
 | Kalibrasyon | fail/unknown gerçek koşumlarla kanıtlandı | (bu commit) |
+| 0.1.1 | ayrım gücü notu; OIDC ile yayın (0.1.0 token'la gitmişti) | `651846c` |
+| 0.1.2–0.1.3 | `assay scrub`; ölçülmeyen koşum her katmanda `unknown` | — |
+| 0.2.0 | tetiklenme = doğrulanmış aktivasyon, `--permission-mode`, hook olayları | — |
+
+## 0.3.0 — nerede kaldık
+
+Beş maddenin beşi de kodda **tamam** ve `pnpm check` yeşil (688 test).
+Kanıt tabanı 2026-09-08 `impeccable` 4.2.2 ölçümü: 240 deneme, ~8 saat,
+$21.15. Beş kusurun beşi o koşumda canlı görüldü.
+
+| Adım | Ne yapıldı | Commit |
+|---|---|---|
+| 0.3.0-a | `compare` kayan alanı adıyla söylüyor; ortam bileşenleri kayda giriyor | `e1d0336` `01d5f89` `728d6b7` |
+| 0.3.0-b | Append-only journal, `partial` kayıt, `assay recover` | `b4b414d` `86b9626` |
+| 0.3.0-c | Supervisor/worker ayrımı, süreç ağacı öldürme, öldürülen deneme `unknown` | `2f4fbb7` |
+| 0.3.0-d | `--concurrency`, varsayılan 1, port kirası | `2a08bc9` |
+| 0.3.0-e | `--fast`, `--max-attempts`, `Run.layers` / `skipped`, `Attempt.notEvaluated` | `c1eda78` |
+
+Yan iş: bu makinedeki Git Bash `add_item` çökmesi ölü domain kaydından
+geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
+
+**Yapılmayanlar — bilinçli:**
+
+- 0.3.0 **yayımlanmadı**. Yayın `gh workflow run release.yml -f confirm=yayimla`
+  ile elle tetikleniyor; sürüm PR'ı önce birleşmeli.
+- `--fast` **gerçek bir hostta hiç koşulmadı**. Testler sahte adaptörle;
+  para harcayan bir doğrulama koşumu yapılmadı (sözleşme 1: tetiği kullanıcı
+  çeker).
+- Roadmap'in "kapsam dışı" notu duruyor: HTML raporundaki metrik kutuları
+  hâlâ kart, `docs/design.md` #1 ile çelişiyor. Ölçümü etkilemiyor.
 
 ## Sırada
 
-Faz 0–3 kapandı. Sıradaki dalga roadmap.md'de: skill çakışma testi, model
-güncelleme sertifikasyonu, çapraz-host uyumluluk matrisi, skill kalite rozeti.
-Bunlar bilerek yapılmadı.
+**0.3.1 — uyarlanabilir durdurma.** Sabit bakış çizelgesi + Bonferroni
+düzeltmesi; naif Wilson erken durma reddedildi (optional stopping, kapsama
+garantisi kaybolur). ~2 gün kod + **para harcayan bir kalibrasyon koşumu
+(~$10–20)** — tetiği kullanıcı çeker.
+
+Ondan sonrası roadmap.md'nin "sonraki dalga"sı: skill çakışma testi, model
+güncelleme sertifikasyonu, çapraz-host matrisi. Bilerek yapılmadı.
 
 ## Yayın durumu
 

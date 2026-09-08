@@ -2351,3 +2351,60 @@ sandbox için verilen kararın aynısı (*gözlemler, zorlamaz*). Test kiranın
 gerçekten ayrık olduğunu ve ajanın ortamına ulaştığını ölçüyor; ajanın ona
 uyacağını değil.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-09 — Değerlendirilmeyen assertion `unknown` değil, ayrı bir alan
+
+Bağlam: 0.3.0-e. Hızlı mod yalnızca tetiklenme katmanını ölçüyor; vaka
+setinde beyan edilmiş artefakt assertion'larının kayıtta ne olacağı belirsizdi.
+Seçenekler: sessizce düşürmek · `assertions` listesine `unknown` olarak
+koymak · ayrı bir alanda "değerlendirilmedi" diye listelemek
+Karar: Üçüncüsü. `Attempt.notEvaluated`.
+Gerekçe: `unknown` "ölçmeye çalıştık, sinyal alamadık" demek ve koşumu exit 3
+ile ölçülemez ilan ediyor; burada olan şey başka — kullanıcı bakılmamasını
+istedi. İkisini aynı kovaya koymak kasıtlı bir kapsam kararını ölçüm
+başarısızlığı gibi gösterirdi ve pratikte hızlı modu öldürürdü: her koşum exit
+3 verir, kullanıcı `--allow-unknown` yazmayı öğrenir ve o alışkanlık gerçek
+`unknown`ları da görünmez yapardı. Sessizce düşürmek ise beyan edilmiş bir
+iddianın kayıttan yok olması demekti.
+Geri dönüş maliyeti: düşük (opsiyonel alan)
+
+## 2026-09-09 — Koşulmayan vaka N=0'lık bir satır değil
+
+Bağlam: Hızlı mod yalnızca artefakt ölçen vakaları hiç koşmuyor; deneme tavanı
+dolduğunda da kalan vakalar koşulmuyor.
+Seçenekler: `cases` içinde sıfır denemeli satır olarak göstermek · hiç
+göstermemek · ayrı bir listede sebebiyle göstermek
+Karar: `Run.skipped { caseId, reason }`.
+Gerekçe: "Koşulmadı" ile "koşuldu ama karar çıkmadı" iki ayrı şey; N=0'lık bir
+satır ikincisi gibi okunur ve değişmez #4'ün oran gösterimini anlamsız bir
+paydayla doldurur. Hiç göstermemek ise kapsamı gizlemek olurdu — okuyucu
+suite'te 12 vaka görüp kayıtta 8 vaka bulur ve farkı kendi çıkarır.
+Geri dönüş maliyeti: düşük (opsiyonel alan)
+
+## 2026-09-09 — Deneme tavanı `--fast`tan ayrı bir bayrak
+
+Bağlam: Hızlı modun bir bütçe tavanı var (60 deneme). Tavanın yalnızca hızlı
+moda mı ait olacağı belirsizdi.
+Seçenekler: `--fast` içinde saklı tutmak · ayrı `--max-attempts` bayrağı
+Karar: Ayrı bayrak; `--fast` onun varsayılanını koyuyor, üzerine yazılabiliyor.
+Gerekçe: Tavan hızlı moda özgü değil — tam bir koşumda da "bu kadar para
+harca" demek istenebilir ve o istek hızlı modun katman daraltmasıyla birlikte
+gelmek zorunda değil. İki kararı tek bayrakta birleştirmek, birini isteyeni
+diğerini de almaya zorlardı.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-09 — Action'ın `fast` girdisi var, varsayılanı değişmiyor
+
+Bağlam: 0.3.0-e planı "GitHub Action varsayılanı buna göre güncellenir" diyor;
+aynı planın davranış değişikliği başlığı ise "hiçbir varsayılan değişmiyor"
+diyor.
+Seçenekler: action varsayılanını `fast: true` yapmak · girdiyi ekleyip
+varsayılanı `false` bırakmak
+Karar: İkincisi. `fast` girdisi eklendi, varsayılan `false`; açıklaması PR'da
+kullanılmasını, gece ve sürüm öncesi tam koşumu öneriyor.
+Gerekçe: Varsayılanı çevirmek, eylemi kullanan her deponun ölçümünü haber
+vermeden daraltırdı — dün artefakt iddialarını sınayan bir iş bugün yalnızca
+tetiklenmeye bakar ve kimse fark etmez. Öneri belgeye, karar kullanıcıya ait.
+Not: girdi verildiğinde `assay-version` pini bayrağı tanıyan bir sürümü
+göstermeli; pin sürüm PR'ında zaten birlikte yükseliyor.
+Geri dönüş maliyeti: düşük
