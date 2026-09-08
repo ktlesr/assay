@@ -175,6 +175,25 @@ describe('storeRun', () => {
     expect(loaded).toEqual(run)
   })
 
+  it('ortam kaydi gercek bir veritabani gidis-donusunden sagam cikar', async () => {
+    // Yerel store ile hosted şema ayrışmasın: `Run.environment` core'da
+    // tanımlı, jsonb sütunu onun ikinci kalıcılık hedefi.
+    const environment = {
+      model: 'claude-haiku-4-5-20251001',
+      version: '2.1.263',
+      permissionMode: 'bypassPermissions',
+      tools: ['Bash', 'Read'],
+      skills: ['impeccable'],
+      agents: [],
+      plugins: ['impeccable@4.2.2'],
+    }
+    const run = { ...makeRun('run-roundtrip-env'), environment }
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.environment).toEqual(environment)
+  })
+
   it('izi, assertion sonuçlarını ve ortam farkını korur', async () => {
     const run = makeRun('run-roundtrip-2', 'fail')
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })

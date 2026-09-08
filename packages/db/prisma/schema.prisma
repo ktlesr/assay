@@ -142,6 +142,12 @@ model Run {
   /// skill ile kısıtlanmamış olan aynı skill değil. Host bildirmediyse null.
   permissionMode String?
 
+  /// `pinEnvironmentHash`in girdisi olan ortam kaydı — model, sürüm, araç ve
+  /// skill listeleri, izin modu, output style. Hash "bir şey değişti"
+  /// diyebiliyor; kayan alanı adıyla söyleyebilmek için bileşenler de
+  /// saklanıyor (0.3.0-a). Host bildirmediyse null.
+  environment Json?
+
   /// Vaka başına tekrar sayısı. Asla 1 varsayılan değil (#3).
   runsPerCase Int
 

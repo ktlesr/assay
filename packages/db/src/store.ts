@@ -87,6 +87,9 @@ export async function storeRun(
       data: {
         ...runRow,
         verdict: runRow.verdict as 'PASS' | 'FAIL' | 'UNKNOWN',
+        // jsonb sütunu; satır tipinde `unknown` (Prisma'ya bağlanmamak için).
+        // `Case.assertions` ile aynı kalıp.
+        environment: runRow.environment as never,
         suiteId: suite.id,
         ...(input.ownerId === undefined ? {} : { ownerId: input.ownerId }),
       },

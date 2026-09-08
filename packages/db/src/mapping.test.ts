@@ -580,6 +580,36 @@ describe('0.2.0 alanları — eşleme', () => {
     expect(back.pins.environmentHash).toBe('sha256:env')
   })
 
+  it('ortam kaydi kosum satirinda durur ve geri okunur', () => {
+    const environment = {
+      model: 'claude-haiku-4-5-20251001',
+      version: '2.1.263',
+      permissionMode: 'bypassPermissions',
+      tools: ['Bash', 'Read'],
+      skills: ['impeccable'],
+      agents: [],
+      plugins: ['impeccable@4.2.2'],
+    }
+    const row = toRunRow(bareRun({ environment }))
+    expect(row.environment).toEqual(environment)
+    expect(fromRunRow(row, []).environment).toEqual(environment)
+  })
+
+  it('sekli tutmayan bir jsonb degeri ortam sayilmaz', () => {
+    // Sütun jsonb; oraya ne yazıldığı çalışma zamanında bilinmiyor. Şekli
+    // tutmayan bir değeri Environment diye geçirmek, karşılaştırmanın kayan
+    // alanı yanlış okuması demek olurdu — düzeltilen kusurun bir katman
+    // aşağıdaki hâli.
+    const row = { ...toRunRow(bareRun({})), environment: { model: 'm' } }
+    expect(fromRunRow(row, []).environment).toBeUndefined()
+  })
+
+  it('ortam yoksa alan hic yazilmaz — uydurulmaz', () => {
+    const row = toRunRow(bareRun({}))
+    expect(row.environment).toBeNull()
+    expect(fromRunRow(row, []).environment).toBeUndefined()
+  })
+
   it('host mod bildirmediyse alan geri okumada da yok — uydurulmaz', () => {
     const row = toRunRow(bareRun())
     expect(row.permissionMode).toBeNull()

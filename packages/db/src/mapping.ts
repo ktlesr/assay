@@ -15,6 +15,7 @@ import {
   type Attempt,
   type CaseResult,
   type EnvDiff,
+  type Environment,
   type HookRecord,
   type NetworkRequest,
   type RefusedActivation,
@@ -99,6 +100,13 @@ export interface RunRow {
    */
   pinEnvironmentHash: string | null
   permissionMode: string | null
+  /**
+   * Hash'in girdisi olan ortam kaydı; host bildirmediyse null.
+   *
+   * Diğer jsonb sütunları gibi `unknown`: Prisma `JsonValue` döndürüyor ve
+   * daraltma okuma tarafında yapılıyor.
+   */
+  environment: unknown
   runsPerCase: number
   verdict: string
   unknownReason: string | null
@@ -214,6 +222,7 @@ export function toRunRow(run: Run): RunRow {
     pinSuiteHash: run.pins.suiteHash,
     pinEnvironmentHash: run.pins.environmentHash ?? null,
     permissionMode: run.permissionMode ?? null,
+    environment: run.environment ?? null,
     runsPerCase: run.runs,
     verdict: VERDICT_TO_DB[run.verdict],
     // Değişmez #1: `unknown` gerekçesiz saklanamaz; kısıt bunu zorluyor,
@@ -434,6 +443,7 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
       ...(row.pinEnvironmentHash === null ? {} : { environmentHash: row.pinEnvironmentHash }),
     },
     ...(row.permissionMode === null ? {} : { permissionMode: row.permissionMode }),
+    ...(isEnvironment(row.environment) ? { environment: row.environment } : {}),
     runs: row.runsPerCase,
     cases,
     verdict,
@@ -478,4 +488,26 @@ export function suiteWarnings(suite: Suite): string[] {
     )
   }
   return warnings
+}
+
+/**
+ * Ortam kaydinin sekli yerinde mi.
+ *
+ * Sutun jsonb; oraya ne yazildigi calisma zamaninda bilinmiyor. Sekli
+ * tutmayan bir degeri Environment diye gecirmek, karsilastirmanin kayan alani
+ * yanlis okumasi demek olurdu — duzeltilen kusurun aynisi, bir katman
+ * asagida. Tutmuyorsa alan hic yazilmiyor ve karsilastirma hash duzeyinde
+ * konusuyor.
+ */
+function isEnvironment(value: unknown): value is Environment {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Record<string, unknown>
+  return (
+    typeof candidate['model'] === 'string' &&
+    typeof candidate['version'] === 'string' &&
+    Array.isArray(candidate['tools']) &&
+    Array.isArray(candidate['skills']) &&
+    Array.isArray(candidate['agents']) &&
+    Array.isArray(candidate['plugins'])
+  )
 }
