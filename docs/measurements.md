@@ -675,3 +675,65 @@ node tools/completion-report.mjs . <skill>
 ```
 
 Vaka setleri ve fixture'lar `suites/` altında.
+
+---
+
+# Paralel Koşum Ölçümü — 0.3.0-d
+
+**Soru.** 240 denemelik bir koşum `--concurrency` 1, 2 ve 4'te ne kadar sürüyor?
+
+**Yöntem.** Host tarafı sabit süreli sahte bir adaptörle taklit ediliyor
+(deneme başına 250 ms) ve aynı suite altı vaka × kırk tekrarla koşuluyor.
+Böylece ölçülen şey **Assay'in kendi ölçeklenmesi ve ek yükü**: iş listesi,
+worker açılışı, journal yazımı, süreç ağacı kapatma.
+
+Üretici: `tools/fixtures/measure-concurrency.mjs`.
+
+**Bu ölçümün söylemediği şey:** host hız sınırı. Sahte adaptör ağa çıkmıyor.
+Gerçek hız sınırı ancak paralı bir koşumla ölçülür; aşağıda ayrı başlık.
+
+| Kol | `--concurrency` | Süre | Hızlanma | Deneme | `unknown` | Deneme başına ek yük |
+|---|---|---|---|---|---|---|
+| süreç içi | 1 | 61.4 sn | 1.00x | 240 | 0 | ~6 ms |
+| süreç içi | 2 | 30.7 sn | 2.00x | 240 | 0 | ~6 ms |
+| süreç içi | 4 | 15.4 sn | 3.99x | 240 | 0 | ~6 ms |
+| izole (varsayılan) | 1 | 191.2 sn | 1.00x | 240 | 0 | ~546 ms |
+| izole (varsayılan) | 2 | 100.9 sn | 1.89x | 240 | 0 | ~591 ms |
+| izole (varsayılan) | 4 | 53.5 sn | 3.57x | 240 | 0 | ~642 ms |
+
+**Gerçek bir koşuma çevirisi.** 4.2.2 ölçümünde 240 deneme ~8 saat sürdü, yani
+deneme başına ~120 sn. Aynı iş `--concurrency 4` ile ~2 saat 5 dakikaya iner
+(3.57x); izolasyonun deneme başına ~0.6 sn'lik ek yükü bu ölçekte toplam
+~2.5 dakika, yani **%2'nin altında**. Ek yük sabit; denemenin uzunluğuyla
+büyümüyor.
+
+**Okunuşu.**
+
+- **Süreç içi** kol neredeyse doğrusal ölçekleniyor ve deneme başına ek yük
+  ~5 ms. Bu, iş listesi ve journal yazımının maliyeti.
+- **İzole** kol (ürünün varsayılanı, deneme başına bir süreç) deneme başına
+  ~0.5 sn ek yük taşıyor: worker açılışı ve süreç ağacının kapatılması.
+  Windows'ta ağaç PPID üzerinden PowerShell ile yürünüyor (0.3.0-c) ve o çağrı
+  tek başına birkaç yüz milisaniye.
+- Bu ek yük sabit, denemenin uzunluğuyla ölçeklenmiyor. 250 ms'lik sahte bir
+  denemede oran büyük görünüyor; gerçek bir denemede ajan 30–120 saniye
+  çalışıyor ve aynı 0.5 sn **%1'in altında** kalıyor. Ölçümün büyüklüğü değil,
+  oranı yanıltıcı.
+- Eş zamanlılık 4'te izole kolun hızlanması doğrusalın biraz altında: worker
+  açılışları CPU'yu paylaşıyor.
+
+**Host hız sınırı — ölçülmedi.**
+
+Yukarıdaki sayılar ağa çıkmayan bir adaptörle alındı. "Concurrency 4'te hız
+sınırına çarpıyor muyuz" sorusu ancak gerçek host'la ölçülür ve o koşum para
+harcar. Sözleşme 1 gereği tetiği kullanıcı çekiyor.
+
+Ne yapılacağı belli: aynı suite'i küçük bir tekrarla (ör. 2 vaka × 4 tekrar)
+`--concurrency 4` ile koşmak ve izde `429`/`rate limit` sinyali aramak. Tahmini
+maliyet birkaç yüz milisaniyelik değil, **birkaç dolar** mertebesinde ve süre
+birkaç dakika. Sonuç buraya, bu başlığın altına yazılacak.
+
+Bugün bilinen: bir hız sınırı yanıtı adaptör tarafında sıradan bir host hatası
+olarak görünür ve deneme `unknown` olur (değişmez #1). Yani hız sınırı ölçümü
+**bozmuyor**, yalnızca ölçülemeyen deneme sayısını artırıyor — ve bu, raporda
+ayrı bir kova olarak görünüyor.

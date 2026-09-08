@@ -2301,3 +2301,53 @@ sanıp `ENOENT` veriyordu. Vitest'te görünmedi çünkü orada modül `worker.t
 yalnızca gerçek süreçle koşan test yakaladı. Kaynaktan koşan bir test, ürünün
 koştuğu şeyi koşmuyor olabilir.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Eş zamanlılık varsayılan 1; kayda giriyor, ortam hash'ine girmiyor
+
+Bağlam: 0.3.0-d. 240 denemelik bir ölçüm sekiz saat sürüyordu ve denemeler
+sıralıydı.
+Seçenekler: varsayılanı makine çekirdek sayısına bağlamak · varsayılanı 2–4
+yapmak · varsayılan 1, `--concurrency` ile açmak
+Karar: Varsayılan 1. Değer 1'den büyükse `Run.concurrency` olarak kayda
+yazılıyor; `environmentHash`e **girmiyor**.
+Gerekçe: Eş zamanlı denemeler CPU'yu, belleği, portları ve host hız sınırını
+paylaşıyor. Hızlanmak kullanıcının bilerek verdiği bir karar olmalı — sessiz
+bir varsayılan, ölçümün koşullarını kullanıcı fark etmeden değiştirirdi.
+Hash'e katmamanın sebebi ayrı: hash "host'un bildirdiği ortam" kaydı ve
+eş zamanlılık koşum düzeninin özelliği. Katsaydık farklı hızda koşulmuş iki
+ölçüm **tetiklenme oranı** bakımından da karşılaştırılamaz olurdu; oysa
+etkilenen tek katman gecikme ve maliyet (katman 7). Doğru cevap o katmanı
+işaretlemek, hepsini durdurmak değil — terminal raporu eş zamanlılık 1'den
+büyükken "gecikme ve maliyet seri bir koşumla karşılaştırılamaz" diyor.
+Geri dönüş maliyeti: düşük (opsiyonel alan + bayrak)
+
+## 2026-09-08 — Kayıt beyan sırasında, bitiş sırasında değil
+
+Bağlam: Paralel koşumda denemeler karışık bitiyor.
+Seçenekler: bitiş sırasında yazmak (ucuz) · beyan sırasında yazmak
+Karar: İş listesi önceden kuruluyor, her sonuç kendi yerine konuyor; kayıt
+suite sırasında.
+Gerekçe: Aynı suite iki kez koşulduğunda kaydın vaka sırası değişirse iki kaydı
+yan yana okumak zorlaşır ve diff gürültülü olur. Bitiş sırası ölçümün değil
+zamanlamanın özelliği.
+Testin bunu gerçekten sınadığı ancak ters çevirmeyle anlaşıldı: hızlı bir sahte
+adaptörle denemeler zaten sırayla bitiyor ve sıralama kodu kaldırıldığında test
+yeşil kalıyordu. Test artık bitişi kasten tersine çeviren bir adaptör kullanıyor
+(ilk vaka en yavaş) ve ters çevirmede kırmızıya dönüyor.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Port kirası: yumuşatma, garanti değil
+
+Bağlam: Eş zamanlı iki denemenin ajanı aynı portu isterse biri diğerinin
+sunucusunu öldürür — 0.3.0-c'de kapatılan döngünün paralel hâli.
+Seçenekler: portları görmezden gelmek · işçi başına ayrık aralık verip
+"izole" demek · aralığı verip sınırını yazmak
+Karar: Üçüncüsü. İşçi başına ayrık aralık `PORT`, `VITE_PORT` ve
+`ASSAY_PORT_RANGE` olarak ajanın ortamına konuyor; adaptörün allowlist'ine bu
+üçü eklendi (değerleri Assay yazıyor, kullanıcının ortamından gelmiyorlar).
+Gerekçe: Ajanın bu değişkenlere uyma zorunluluğu yok; sabit port yazan bir dev
+sunucu yine çakışır. "İzole" demek, sağlanmayan bir garanti satmak olurdu —
+sandbox için verilen kararın aynısı (*gözlemler, zorlamaz*). Test kiranın
+gerçekten ayrık olduğunu ve ajanın ortamına ulaştığını ölçüyor; ajanın ona
+uyacağını değil.
+Geri dönüş maliyeti: düşük
