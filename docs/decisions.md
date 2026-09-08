@@ -2132,3 +2132,82 @@ daraltılıyor — şekli tutmayan bir değeri `Environment` diye geçirmek, ayn
 kusurun bir katman aşağıdaki hâli olurdu.
 Geri dönüş maliyeti: düşük (opsiyonel alan; eski kayıtlar okunmaya devam ediyor
 ve karşılaştırma onlarda hash düzeyinde konuşuyor)
+
+## 2026-09-08 — Journal append-only JSONL; tam kayıt her denemede yeniden yazılmıyor
+
+Bağlam: 0.3.0-b. Koşum ortasında ölen süreç, tamamlanmış her denemeyi de
+götürüyordu (4.2.2'de iki kez, ~40 dk ve ~$4).
+Seçenekler: kullanıcı chunk'lasın · her denemeden sonra tam `Run` kaydını
+yeniden yaz · append-only journal
+Karar: `.assay/runs/<id>.partial.jsonl`. İlk satır başlık (kimlik, pinler,
+beyan edilen tekrar sayısı), sonraki her satır bir deneme. Normal bitişte tek
+kayda katlanıp siliniyor.
+Gerekçe: Tam kaydı her denemede yeniden yazmak O(n²) ve 240 denemelik bir kayıt
+megabaytlarca — koruma tam da uzun ölçümlerde gerekiyor ve tam da orada
+pahalılaşırdı. Ekleme yapıldığı ve hiçbir satır sonradan değişmediği için
+süreç bir satırın ortasında ölürse yalnızca o satır bozuk olur.
+Yazma senkron (`appendFileSync`): asenkron bir yazımın kuyrukta beklerken
+kaybolması, engellenmek istenen şeyin ta kendisi olurdu.
+Geri dönüş maliyeti: düşük (geçici dosya; kayıt şemasına tek opsiyonel alan)
+
+## 2026-09-08 — Kurtarılan kayıt yarım olduğunu söyler; `runs` beyan edilen sayı kalır
+
+Bağlam: Yarım bir kayıt vaka başına daha az deneme taşıyor ama `runs` alanı
+suite'te beyan edilen tekrar sayısını taşıyor.
+Seçenekler: `runs`u gerçekleşen sayıya çekmek · kaydı olduğu gibi bırakmak ·
+`partial` künyesi eklemek
+Karar: `Run.partial { reason, recoveredAt, droppedLines? }`. `runs` beyan
+edilen sayı olarak kalıyor.
+Gerekçe: `runs`u gerçekleşene çekmek, beyan ile gerçeği aynı alana sıkıştırıp
+ikisini de kaybetmek olurdu — üstelik vaka başına farklı olabiliyorlar.
+Kaydı sessiz bırakmak ise okuyucuya `runs: 10` gösterip vaka başına 10 deneme
+sandırırdı. Değişmez #4 zaten vaka başına N'i gösteriyor; `partial` alanı
+kaydın kendisinin de yarım olduğunu söylemesini sağlıyor. Terminal ve HTML
+raporunda uyarı **manşette**: oranlar okunmadan önce görülmeli.
+Geri dönüş maliyeti: düşük (opsiyonel alan; eski kayıtlar okunmaya devam ediyor)
+
+## 2026-09-08 — Okunamayan satır atılıyor ama SAYILIYOR
+
+Bağlam: SIGKILL bir satırın ortasında gelebilir; journal'ın sonunda yarım bir
+JSON kalır.
+Seçenekler: sessizce atmak · kurtarmayı tamamen reddetmek · atıp saymak
+Karar: Atılıyor ve `partial.droppedLines` olarak kayda yazılıyor.
+Gerekçe: Sessizce atmak, kaç denemenin kaybolduğunu gizlemek olurdu — kaydın
+yarım olduğunu gizlemenin küçük hâli. Tamamen reddetmek ise okunabilen
+denemeleri de çöpe atardı; tam olarak engellenmek istenen kayıp.
+Başlıksız bir journal kayda çevrilmiyor **ve silinmiyor**: hangi koşuma ait
+olduğu bilinmeden denemeler bir kayda yazılamaz, ama okunamayan bir dosyayı
+yok etmek de ölçüm aracının işi değil.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — Öldürme testi gerçek bir süreçle, `dist` her koşumda derlenerek
+
+Bağlam: "Süreç koşum ortasında öldürüldü" senaryosu taklit edilebilirdi
+(`try/finally` ile bir hata fırlatmak). Kaybın nasıl olduğu ancak yazan süreç
+haber vermeden öldüğünde görülür.
+Seçenekler: süreç içinde taklit · gerçek çocuk süreç + SIGKILL
+Karar: Gerçek çocuk süreç (`tools/fixtures/killable-run.mjs`), üç deneme sonra
+`SIGKILL`. Çocuk derlenmiş `dist`ten içe aktarıyor ve test **her koşumda**
+`tsc -b` çağırıyor (güncelken ~100 ms).
+Gerekçe: "dist varsa koş, yoksa atla" sessiz geçiş olurdu: test koşmadığında da
+yeşil görünürdü. Daha incesi bu tuzağa bir kez düşüldü — kaynak geri
+yüklendikten sonra `tsc -b` zaman damgasına bakıp derlemeyi atladı ve test eski
+`dist`i koştu, yani ölçtüğünü sandığı şeyi ölçmedi. Her koşumda derlemek o
+kapıyı kapatıyor.
+Testin gerçekten yakaladığı ters çevirmeyle doğrulandı: journal'a yazma
+kaldırılınca kurtarılabilen deneme sayısı **0**, yani 4.2.2'deki kaybın aynısı.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-08 — jsonb alanları yayılımdan çıkarılıyor: Prisma `null`ı JSON null yazıyor
+
+Bağlam: `run_partial_shape` kısıtı normal biten her koşumu reddetti.
+Seçenekler: kısıtı gevşetmek · yazma tarafını düzeltmek
+Karar: `environment` ve `partial` `...runRow` yayılımından çıkarılıp yalnızca
+dolu olduklarında ekleniyor.
+Gerekçe: Prisma'ya `null` geçmek jsonb sütununa **JSON null** yazıyor ve
+`IS NULL` yanlış çıkıyor. Aynı tuzak `TraceEvent.hook`ta belgelenmişti; buna
+rağmen iki kez düşüldü — ilk düzeltmede koşullu ekleme yapıldı ama
+`...runRow` yayılımı `partial: null`ı zaten koyduğu için işe yaramadı.
+Kısıtı gevşetmek, kısıtın yakaladığı gerçek kusuru görmezden gelmek olurdu:
+kısıt doğru davrandı, yazma yanlıştı.
+Geri dönüş maliyeti: düşük

@@ -372,3 +372,25 @@ runner ölçtüğü ajanla aynı süreç alanında duruyor. Dışarıdan sarmala
 koşumu düşürmüyor, `unknown` yazılıyor). Gerçek izolasyon konteynerle gelir ve
 Faz 3'te ([sandbox-security.md](sandbox-security.md), A1); 0.3.0 tavanı açıkça
 yazacak: supervisor da aynı makinede bir `node` süreci, "korunuyor" denmeyecek.
+
+### 2026-09-08 — Kaybın yarısı kapandı (0.3.0-b)
+
+Yukarıdaki engelin **ikinci yarısı** — "koşum kayıt bırakmadan ölüyor" —
+kapandı. Runner'ın öldürülebilir olması **kapanmadı**; o 0.3.0-c'nin işi.
+
+Ne değişti: koşum her deneme bittiğinde `.assay/runs/<id>.partial.jsonl`
+dosyasına tek satır ekliyor. Normal bitişte satırlar tek bir kayda katlanıyor
+ve journal siliniyor. Süreç ölürse dosya diskte kalıyor ve `assay recover`
+onu kayda çeviriyor; kayıt `partial` alanıyla yarım olduğunu söylüyor.
+
+Doğrulandı — taklit değil, gerçek öldürme:
+
+| Ölçüm | Sonuç |
+|---|---|
+| Çocuk süreç, 3 deneme sonra `SIGKILL` | journal 3 denemeyi taşıyor |
+| `assay recover` | 3 deneme, 1 vaka, kayıt yazıldı, exit 0 |
+| `assay report` | manşette "incomplete run", oran `100% (N=3, 95% CI 44%–100%)` |
+| Aynı test, journal yazımı kaldırılınca | **0 deneme kurtarılabiliyor** — 4.2.2'deki kaybın aynısı |
+
+Kalan risk: journal'ı yazan süreç ölüyor ama runner hâlâ ölçtüğü ajanla aynı
+süreç alanında. Kayıp artık en fazla bir deneme; ölümün kendisi duruyor.

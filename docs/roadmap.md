@@ -191,7 +191,7 @@ hem tasarımda.
 | Adım | Çıktı | İş | Geri dönüş | Durum |
 |---|---|---|---|---|
 | 0.3.0-a Kayan pin adıyla söylensin | `compare` `environmentHash`i ve içinde kayan alanı adıyla raporlar | S (~0.5 gün) | düşük | **tamam** |
-| 0.3.0-b Öldürülen koşum ölçtüğünü kaybetmesin | Deneme başına append-only journal, `partial` kayıt, `assay recover` | M (~1 gün) | düşük | bekliyor |
+| 0.3.0-b Öldürülen koşum ölçtüğünü kaybetmesin | Deneme başına append-only journal, `partial` kayıt, `assay recover` | M (~1 gün) | düşük | **tamam** |
 | 0.3.0-c Runner ajanın erişiminden çıksın | Süreç ağacı öldürme + supervisor/worker ayrımı; öldürülen deneme `unknown` | L (2–3 gün) | orta | bekliyor |
 | 0.3.0-d Paralel koşum | `--concurrency`, varsayılan 1; port kirası; kayda yazılır | M (~1 gün) | düşük | bekliyor |
 | 0.3.0-e Hızlı mod | `--fast` = N=3 + yalnız tetiklenme katmanı; ölçülen katmanlar kayda girer | M (~1–1.5 gün) | düşük | bekliyor |

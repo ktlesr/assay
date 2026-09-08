@@ -63,7 +63,13 @@ assay init my-skill.suite.yaml
 assay validate my-skill.suite.yaml
 assay run my-skill.suite.yaml --skill ./my-skill
 assay compare <run-a> <run-b>
+assay recover                              # after a run was killed mid-way
 ```
+
+A run writes one journal line per attempt as it goes. If the process is killed
+— which happens: an agent under test that kills processes by port can take the
+runner with it — the attempts that finished are still on disk, and `assay
+recover` turns them into a record that says it is incomplete.
 
 To run from a checkout:
 
