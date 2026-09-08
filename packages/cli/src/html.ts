@@ -147,10 +147,9 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
   td.num, th.num { text-align: right; width: 4rem; }
   td.rate { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .warn { color: var(--unknown); font-weight: 600; }
-  .callout {
-    border: 1px solid var(--line); border-left: 3px solid var(--unknown);
-    border-radius: 8px; padding: .25rem 1rem 1rem; margin-top: 2rem;
-  }
+  /* Kart yok, yan sekme yok (docs/design.md #1): veri kutularda değil
+     çizgilerde durur. Bölümü ayıran şey basılı bir tablonun cetvel çizgisi. */
+  .callout { border-top: 1px solid var(--line); padding: 1rem 0 0; margin-top: 2rem; }
   .callout h2 { margin-bottom: .4rem; }
   .callout p { font-size: .85rem; margin: .4rem 0 0; }
   .pill {
