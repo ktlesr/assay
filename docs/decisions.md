@@ -2889,3 +2889,31 @@ Doğrulama: birim ters çevirmeler (e, f, h, g: 9) derleme kapılı, hepsi kırm
 sayfa maddeleri (j, k, l, n, o×3, f'nin route'u: 8) elle, derleme kapılı, gerçek
 sayfada ölçülerek, hepsi kırmızı. 7 sayfa × 2 tema × 2 genişlikte taşma yok.
 Geri dönüş maliyeti: düşük (e bir davranış değişikliği; sürüm notunda)
+
+## 2026-09-10 — Web'de çakışma matrisi: cevap önce, dağılım sonra (0.4.1-1)
+
+Bağlam: 0.4.0 matrisi terminal ve HTML raporuna koydu, veritabanında kazanan
+sütunlarını hazırladı; hosted koşum sayfası 0.4.1'e kalmıştı.
+Seçenekler: CLI tablosunun birebir kopyası ("won" en sağda) · "won" etiketin
+yanında
+Karar: Matris verdict'in hemen altında, precision/recall bloklarının üstünde;
+o iki blok çakışma koşumunda "target skill only" diye etiketleniyor. "won"
+sütunu etiketin yanında ve iki kırılmaz satırda (yüzde + sayım, %95 GA).
+Tablo kendi kabında kayıyor, etiket sütunu yapışkan ve opak. Renk yalnızca
+ölçüm: isabet `pass`, başka skill ilk tetiklendiyse `fail`, deneme yoksa soluk
+nokta. Gösterim mantığı `lib/collision-view.ts`te ve sınanıyor; önek kuralı
+core'un (`collisionPrefix`, `outsidePrefix`), yani terminal ve HTML ile aynı.
+Gerekçe: CLI düzeninde 375px'te en önemli sayı on altı sütun ötede kalıyordu
+(ekran görüntüsüyle görüldü). İlk sarma denemesi aralığı "0%–" / "28%)" diye
+bölüyordu; iki kasıtlı satır hem okunuyor hem N ve aralığı taşıyor (değişmez #4).
+Doğrulama verisi: kazanan beyan eden gerçek bir kayıt yok (0.4.0 ile
+kazananlı suite'te koşum yapılmadı, kullanıcı şimdilik istemedi). Görsel ve
+sayısal doğrulama için 0.4.0-f'de gerçek marketingskills kaydından yeniden
+puanlanan kayıt YALNIZCA yerel dev veritabanına `-rescored-local` kimliğiyle
+yazıldı; production'a yüklenmedi (2026-09-10 kararı geçerli). Sayfadaki matris,
+core'un aynı kayıttan hesapladığıyla 240 hücrenin 240'ında aynı —
+veritabanı gidiş-dönüşü ve çizim birlikte.
+Ters çevirme: görünüm modelinde 5 (derleme kapılı, hepsi kırmızı), sayfada 4
+(elle, web typecheck kapılı: matris çizilmiyor, ek yok, aralık yok, tablo kendi
+kabında kaymıyor — hepsi kırmızı).
+Geri dönüş maliyeti: düşük

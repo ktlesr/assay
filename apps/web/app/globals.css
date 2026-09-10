@@ -1646,6 +1646,82 @@ body {
   color: var(--text-faint);
 }
 
+/*
+ * Çakışma matrisi (0.4.1-1). `crosstab`ın dilinde ama on dört sütuna sığacak
+ * boyda. Renk yalnızca ölçüm: beklenen skill ilk tetiklendiyse `pass`,
+ * başkası tetiklendiyse `fail`, deneme yoksa soluk nokta. Tablo kendi kabında
+ * kayıyor; beklenen skill sütunu yapışkan ve zemini opak, altından kayan
+ * hücreler okunmasın.
+ */
+.collision-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.collision {
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.collision th[scope='col'] {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--hairline) solid var(--rule-strong);
+  font-weight: 400;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+.collision th[scope='row'],
+.collision .collision-corner {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  text-align: left;
+}
+.collision th[scope='row'] {
+  padding: var(--space-3) var(--space-4) var(--space-3) 0;
+  border-bottom: var(--hairline) solid var(--rule);
+  font-weight: 400;
+  color: var(--text);
+  white-space: nowrap;
+}
+.collision-cases {
+  display: block;
+  color: var(--text-faint);
+}
+.collision td {
+  padding: var(--space-3);
+  border-bottom: var(--hairline) solid var(--rule);
+  text-align: right;
+}
+.collision-cell.zero {
+  color: var(--text-faint);
+}
+.collision-cell.hit {
+  color: var(--pass);
+}
+.collision-cell.miss {
+  color: var(--fail);
+}
+.collision td.collision-won {
+  white-space: nowrap;
+  color: var(--text);
+  text-align: right;
+  border-right: var(--hairline) solid var(--rule-strong);
+}
+.collision-rate,
+.collision-ci {
+  display: block;
+}
+.collision-count,
+.collision-ci {
+  color: var(--text-faint);
+}
+.collision-note {
+  display: block;
+  color: var(--text-faint);
+}
+
 /* Aracın kendi sınırı — üç sayı, üç cümle. */
 .limit-grid {
   display: grid;

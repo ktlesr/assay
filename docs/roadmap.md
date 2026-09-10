@@ -608,7 +608,7 @@ yalnız `not_triggered` taşıyan vakalara düşen uyarı.
 
 | Adım | Çıktı | Durum |
 |---|---|---|
-| 0.4.1-1 Çakışma matrisi | Hosted koşum sayfasında `RunSummary.collision`; 0.4.0'ın veritabanı sütunu hazır, yalnızca ekran işi | bekliyor |
+| 0.4.1-1 Çakışma matrisi | Hosted koşum sayfasında `RunSummary.collision`; 0.4.0'ın veritabanı sütunu hazır, yalnızca ekran işi | **tamam** (production'da kazanan beyan eden kayıt yok; matris ilk gerçek kazananlı koşumla görünecek) |
 | 0.4.1-2 Yayımlanmış ölçümlerin dizini | Oturumsuz ziyaretçi de yayımlanmış suite'lerin listesini görür — `/suites`, tanıtım sayfasından bağlantılı (kusur 0.4.1-m) | **tamam** |
 | 0.4.1-3 Kişisel veri | `redact` üç biçimi ve bu makinenin hesap adını maskeler; `push` kalıntıda yüklemez (0.4.1-b, c) | **tamam** |
 | 0.4.1-4 0.2.0 öncesi kayıt | Aktivasyon kontrolü "yapılmadı" olarak saklanır ve gösterilir; bozuk kayıt yerini söyler (0.4.1-a, d) | **tamam** |

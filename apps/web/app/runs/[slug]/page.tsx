@@ -10,6 +10,7 @@ import {
 } from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { CollisionMatrixSection } from '../../components/collision-matrix'
 import { Pins } from '../../components/run-meta'
 import { Shell } from '../../components/shell'
 import { getRun, getSuite } from '../../../lib/runs'
@@ -41,6 +42,8 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
     ).values(),
   ]
   const unmeasuredCount = run.cases.reduce((total, c) => total + c.unknown, 0)
+  // Çakışma suite'inde bu iki oran yalnızca suite'in hedef skill'ini anlatıyor.
+  const targetOnly = summary.collision === undefined ? '' : ' · target skill only'
   // Kesinliğin paydası boş ama sinyal okundu: skill hiç tetiklenmedi (0.4.1-l).
   const neverFired =
     summary.trigger.precision.n === 0 &&
@@ -68,8 +71,13 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
         }
       />
 
+      {/* Çakışma suite'inde asıl cevap matris; altındaki iki oran yalnızca hedef skill (0.4.1-1). */}
+      {summary.collision === undefined ? null : (
+        <CollisionMatrixSection matrix={summary.collision} />
+      )}
+
       <MeasurementBlock
-        label="Fired when it should have"
+        label={`Fired when it should have${targetOnly}`}
         value={summary.trigger.recall}
         verb="fired"
         tone={summary.trigger.recall.rate === 1 ? 'text-pass' : 'text-fail'}
@@ -77,7 +85,7 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
 
       <div className="border-t border-rule">
         <MeasurementBlock
-          label="Was right when it fired"
+          label={`Was right when it fired${targetOnly}`}
           value={summary.trigger.precision}
           verb="was right"
           delayMs={70}

@@ -68,6 +68,14 @@ ac10d159, ui-ux-pro-max 2a900c03) 0.4.1 ile yüklendi — maskelenmemiş asılla
 push 1 ve 7 yeri maskeledi, yüklenen yolda ad sıfır. Üçü de gizli (yayımlama
 kullanıcı kararı). Sırada: küçük kusurlar (0.4.1-e…n) ve web matrisi (0.4.1-1).
 
+**0.4.2 yayımlandı (2026-09-10): küçük kusurlar turu.** Registry'de dört paket
+(`latest=0.4.2`, npm 12.0.2/OIDC, provenance; yayın koşumu `34523997246`,
+birleştirme `114f4b9`, PR #8). Eylem v1.3.2: `v1` ve `action-v1.3.2` →
+`114f4b9`; dış depoda koşum yapılmadı (istenmedi). CLI: `push` yükleme
+gerçekleşmezse 4 ile çıkıyor (davranış değişikliği), gizli koşumu söylüyor,
+`--version`. Web ve ui düzeltmeleri (g, j, k, l, n, o) Dokploy'la push'tan
+dağıtıldı. Sırada: web'de çakışma matrisi (0.4.1-1).
+
 **Geliştirme ortamı notu:** bu makinede 3000 ve 5433 başka projelerin
 konteynerlerinde. Assay: `ASSAY_DEV_PG_PORT=5434 node tools/dev-postgres.mjs`
 ve `apps/web` içinde `DATABASE_URL=postgres://postgres@127.0.0.1:5434/postgres
