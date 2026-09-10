@@ -628,6 +628,7 @@ gönderildi; beşi yüklendi. Kararlar: decisions.md, 2026-09-10.
 | 0.4.1-j | Dar ve sağ uca yakın bir aralıkta (`91%–100%`) uç etiketleri kutuya sığmıyor; `justify-content: space-between` taşmayı sağa veriyor (kod yorumu "iki yana eşit taşar" diyor) | ui | 375px'te hallmark koşum ve suite sayfası iki temada yatay kayıyor (etiket 380px'e uzanıyor) |
 | 0.4.1-k | Skill adı başlıkta kelimenin ortasından kırılıyor (`hallmark:hallmar` / `k`) | web | Mobilde okunmuyor; kırılma `:`'da olmalı |
 | 0.4.1-l | Payda 0 olan oranın gerekçesi her zaman "No attempt produced a readable signal" | ui | Hedef skill hiç tetiklenmediğinde precision'ın paydası tanım gereği 0; sinyal okundu. 0.3.0-a'daki "yanlış adres" kusurunun ekrandaki hâli |
+| 0.4.1-m | Oturumsuz ziyaretçi için yayımlanmış ölçümlerin dizini yok: kök `Landing` gösteriyor ve yalnızca tek suite'i öne çıkarıyor (herkese açık suite'ler içinde en son koşumu olan ilk `fail`, `landing.tsx:28-29`); "Measured skills" listesi yalnızca oturum açmış kullanıcıya | web | Üç suite yayımlandı, ziyaretçi yalnızca birine (hallmark) ulaşabiliyor; diğerleri yalnızca doğrudan URL ile açılıyor. Yayımlama ve görünürlük doğru çalışıyor; eksik olan keşif |
 
 Sitede kontrol edilen (2026-09-10, ziyaretçi gözüyle, açık/koyu × 1280/375): beş
 koşum sayfası ve iki suite sayfası 200; pinlerin yedisi ve Assay sürüm satırı
