@@ -219,20 +219,26 @@ export async function Landing() {
       <section className="section-minor">
         <p className="rule-label mb-8">Getting started</p>
         <ol className="ruled steps">
+          {/* Kapsamsız `assay` npm'de ilgisiz bir paket: `npx assay` onu çalıştırır. */}
+          <Step command="npm install -g @ktlsr/assay" note="installs the CLI; the command is assay" />
           <Step
-            command="npx assay init ./my-skill"
-            note="writes an example case set next to the skill"
+            command="assay init ./my-skill.suite.yaml"
+            note="writes an example case set to fill in for your skill"
           />
           <Step
-            command="npx assay run ./my-skill.suite.yaml --skill ./my-skill"
-            note="runs it against the host, N times per case, stores the record locally"
+            command="assay run ./my-skill.suite.yaml --skill ./my-skill"
+            note="runs it against the host, N times per case, stores the record locally; --concurrency 4 runs attempts in parallel"
           />
           <Step
-            command="npx assay ci ./my-skill.suite.yaml"
+            command="assay run ./my-skill.suite.yaml --skill ./my-skill --fast"
+            note="three attempts per case, trigger layer only — minutes instead of hours. An early warning, not evidence"
+          />
+          <Step
+            command="assay ci ./my-skill.suite.yaml"
             note="the same run, with a CI exit code: 1 for a failure, 3 for nothing measured"
           />
           <Step
-            command="npx assay push --suite ./my-skill.suite.yaml"
+            command="assay push --suite ./my-skill.suite.yaml"
             note="optional — keeps the history here so the next run can be compared against it"
           />
         </ol>
