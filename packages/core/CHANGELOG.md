@@ -1,5 +1,112 @@
 # @ktlsr/assay-core
 
+## 0.3.0
+
+### Minor Changes
+
+- d21e4e7: Comparison now names the field that actually moved. When two runs differ in
+  their environment, `compare` reported "systemPromptHash changed" — a field
+  that reads `not-provided-by-host` in both records and therefore never moved.
+  The auditor's finding was filed under the audited pin's name.
+  
+  `comparePins` now reports `environmentHash`, and the run record carries the
+  environment behind that hash (model, version, output style, permission mode,
+  tool/skill/agent/plugin lists) so the reason can say
+  `permissionMode: acceptEdits → bypassPermissions` instead of only "something
+  changed". Records written before this release have no environment components;
+  those comparisons fall back to hash level and say so.
+  
+  No verdict changes: the same comparisons are refused as before, with the
+  right reason.
+- 98651e0: Each attempt now runs in its own process, so an attempt that gets killed costs
+  an attempt instead of the run.
+  
+  The agent being measured verifies its work by starting dev servers and then
+  killing processes by port. The runner is an ordinary node process on the same
+  machine, and during a 240-attempt measurement it was killed twice that way.
+  Part of that was our own doing: the adapter killed only its direct child, so
+  the servers the agent started outlived the attempt and the next agent found the
+  port busy.
+  
+  `assay run` now supervises each attempt in a short-lived worker and closes that
+  worker together with its process tree when the attempt ends. A killed attempt
+  is recorded as `unknown` — not `fail`, because nothing was measured — with a
+  reason that names what happened. `--no-isolation` runs attempts in the calling
+  process as before; library callers that pass their own adapter instance keep
+  the in-process default.
+  
+  Measured, with real processes and a real killer: in-process, one kill ends the
+  run and records nothing; isolated, the same kills cost two attempts out of four
+  and the run finishes. No orphan servers were left behind in either arm.
+  
+  This is a limit, not a shield. The supervising process is a node process too,
+  and killing it still stops the run — the journal then holds the completed
+  attempts and `assay recover` turns them into a record. Real isolation needs a
+  container and stays in Phase 3.
+- b3c7e12: A killed run no longer loses the attempts it already measured.
+  
+  Until now the record was written once, after every case finished, so a process
+  killed mid-run took every completed attempt with it. That is not theoretical:
+  during a 240-attempt measurement the runner was killed twice by the agent it
+  was measuring, and ~40 minutes and ~$4 of attempts went with it.
+  
+  Each attempt is now appended to `.assay/runs/<run-id>.partial.jsonl` as it
+  completes. A run that finishes normally folds the journal into the usual record
+  and deletes it. A run that dies leaves the journal on disk, and the new `assay
+  recover` turns it into a record — one that says it is incomplete, carrying the
+  reason, the recovery time, and the count of any journal lines too damaged to
+  read. `assay run` warns when it finds a journal from an earlier run.
+  
+  The loss is now capped at one attempt. The runner is still killable; making it
+  survive is a separate change.
+- bae696c: `--concurrency <n>` runs attempts in parallel. The default stays 1.
+  
+  A 240-attempt measurement took eight hours because attempts ran one at a time.
+  They can now share the machine, but speeding up is a choice rather than a
+  default: parallel attempts compete for CPU, memory, ports and the host's rate
+  limit, and a default that quietly changed the conditions of a measurement would
+  be the wrong kind of help.
+  
+  The value is written to the run record and deliberately kept out of the
+  environment hash. The hash records the environment the host reported; how many
+  attempts ran at once is a property of the run, not of the host, and folding it
+  in would make runs at different speeds incomparable on trigger accuracy too.
+  What it does affect is latency and cost, so the report says so whenever
+  concurrency is above one.
+  
+  Each worker gets a disjoint port range, passed to the agent as `PORT`,
+  `VITE_PORT` and `ASSAY_PORT_RANGE`. This is a mitigation, not a guarantee: an
+  agent is free to ignore them, and a server with a hardcoded port will still
+  collide with its neighbour.
+  
+  Records written before this release have no concurrency field, which means one.
+- 468da43: `--fast` measures one layer and says so.
+  
+  Three attempts per case and the trigger layer only. It
+  answers "does this skill still fire" in minutes instead of hours, which is the
+  question a pull request asks. It is early warning, not evidence, and the report
+  leads with that: at three attempts the interval is wide enough that the run can
+  show a break but not a regression.
+  
+  The record declares its own scope. `Run.layers` names the layers that were
+  measured; declared assertions that were not evaluated are listed in
+  `Attempt.notEvaluated` rather than counted as `unknown`, because `unknown` means
+  "we looked and got no signal" and nobody looked here. Cases that only declare
+  assertions are not run at all and appear in `Run.skipped` with the reason — a
+  case that never ran is not a case with N=0.
+  
+  `--max-attempts <n>` caps the total attempts on any run, fast or not. Cases past
+  the cap are named in the record instead of being silently trimmed, and **a run
+  the cap cut short cannot pass**: at best it is `unknown`, and `assay ci` exits 3.
+  Measured on a real host before this rule existed, a cap of 3 cut every negative
+  case and the run passed on positives alone. A failure the run did measure still
+  counts. Fast mode sets no cap of its own — the cost ceiling is yours to choose.
+  
+  `--repeat` still wins when both are given: fast mode is a shortcut, not a lock.
+  No default changes — repeat, permission mode and concurrency are what they were.
+  
+  The GitHub Action gains a `fast` input, defaulting to false.
+
 ## 0.2.0
 
 ### Minor Changes
