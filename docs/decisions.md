@@ -2701,6 +2701,23 @@ koşulmadığı bir suite'le ölçüldüğünü iddia etmek olur (değişmez #2,
 üstelik kayıt `assayVersion: 0.3.2` derken kazanan semantiği 0.4.0'da var ve
 şemada "yeniden puanlandı" diyen bir alan yok. Dürüst yol: kazananlı suite'le
 0.4.0'da gerçek bir koşum (para harcar, tetik kullanıcıda) ve 0.4.1.
-Aynı sebeple eski suite'le puanlanmış 0bec859e de kullanıcı kararıyla gizli
-kaldı: yüklendi, ama suite'i yayımlanmadı.
+Aynı sebeple eski suite'le puanlanmış 0bec859e kullanıcı kararıyla gizlendi:
+yüklendi, suite'i bir süre yayımlı kaldı, sonra `/admin/suites`ten private
+yapıldı (anonim istek 404 döndüğü doğrulandı).
+Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Yayımlanmış ölçümlerin dizini oturumsuz ziyaretçiye de açılacak (0.4.1)
+
+Bağlam: Üç suite yayımlandı; oturumsuz ziyaretçi yalnızca birine ulaşabildi.
+Kök adres ziyaretçiye tanıtım sayfasını gösteriyor ve o sayfa tek bir suite'i
+öne çıkarıyor; "Measured skills" listesi yalnızca oturum açmış kullanıcıya.
+Yayımlama ve görünürlük doğru çalışıyor — üç sayfa da doğrudan URL ile açıldı.
+Seçenekler: olduğu gibi bırakmak · `/suites` dizini · tanıtım sayfasının altında
+liste
+Karar: 0.4.1'e alındı (kullanıcı kararı); adres ve yerleşim uygulama sırasında
+seçilecek.
+Gerekçe: "Publish" düğmesi ölçümü herkese açtığını söylüyor, ama ziyaretçinin
+ona ulaşacak bir yolu yoksa yayımlama yarım bir eylem. Veri katmanı hazır
+(`listSuites({ kind: 'public' })` tanıtım sayfasında zaten çağrılıyor); eksik
+olan yalnızca ekran.
 Geri dönüş maliyeti: düşük

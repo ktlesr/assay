@@ -604,10 +604,15 @@ Yükseltme yolu, gözleme sıralı bir seçim listesi eklemek.
 anlamı değişmiyor; id deseni eskisinin üst kümesi. Mevcut suite'lerde tek fark,
 yalnız `not_triggered` taşıyan vakalara düşen uyarı.
 
-## 0.4.1 — Çakışma matrisi web'de
+## 0.4.1 — Çakışma matrisi web'de ve yayımlanmış ölçümlerin dizini
 
-Hosted koşum sayfasında `RunSummary.collision`. 0.4.0'ın veritabanı sütunu
-hazır olduğu için yalnızca ekran işi.
+| Adım | Çıktı | Durum |
+|---|---|---|
+| 0.4.1-1 Çakışma matrisi | Hosted koşum sayfasında `RunSummary.collision`; 0.4.0'ın veritabanı sütunu hazır, yalnızca ekran işi | bekliyor |
+| 0.4.1-2 Yayımlanmış ölçümlerin dizini | Oturumsuz ziyaretçi de yayımlanmış suite'lerin listesini görür — `/suites` adresi ya da tanıtım sayfasının altı; `listSuites({ kind: 'public' })` zaten var (kusur 0.4.1-m) | bekliyor |
+
+Aşağıdaki kusur tablosu bu sürüme girecek düzeltmelerin havuzu; hangilerinin
+0.4.1'e alınacağı ayrıca kararlaştırılacak.
 
 ### `assay push`'un ilk gerçek kullanımında bulunanlar (2026-09-10)
 
@@ -629,6 +634,7 @@ gönderildi; beşi yüklendi. Kararlar: decisions.md, 2026-09-10.
 | 0.4.1-k | Skill adı başlıkta kelimenin ortasından kırılıyor (`hallmark:hallmar` / `k`) | web | Mobilde okunmuyor; kırılma `:`'da olmalı |
 | 0.4.1-l | Payda 0 olan oranın gerekçesi her zaman "No attempt produced a readable signal" | ui | Hedef skill hiç tetiklenmediğinde precision'ın paydası tanım gereği 0; sinyal okundu. 0.3.0-a'daki "yanlış adres" kusurunun ekrandaki hâli |
 | 0.4.1-m | Oturumsuz ziyaretçi için yayımlanmış ölçümlerin dizini yok: kök `Landing` gösteriyor ve yalnızca tek suite'i öne çıkarıyor (herkese açık suite'ler içinde en son koşumu olan ilk `fail`, `landing.tsx:28-29`); "Measured skills" listesi yalnızca oturum açmış kullanıcıya | web | Üç suite yayımlandı, ziyaretçi yalnızca birine (hallmark) ulaşabiliyor; diğerleri yalnızca doğrudan URL ile açılıyor. Yayımlama ve görünürlük doğru çalışıyor; eksik olan keşif |
+| 0.4.1-n | Yönetici onay penceresinin zemini saydam; arkadaki satırlar metnin içinden okunuyor | ui | `/admin/suites` "Make private" onayında görüldü; yazı okunuyor ama karışık |
 
 Sitede kontrol edilen (2026-09-10, ziyaretçi gözüyle, açık/koyu × 1280/375): beş
 koşum sayfası ve iki suite sayfası 200; pinlerin yedisi ve Assay sürüm satırı
