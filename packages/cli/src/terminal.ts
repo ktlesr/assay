@@ -9,8 +9,11 @@
 
 import {
   assayVersionLabel,
+  collisionPrefix,
   formatProportion,
+  NO_SKILL,
   type CaseComparison,
+  type CollisionMatrix,
   type Proportion,
   type Run,
   type RunComparison,
@@ -71,6 +74,50 @@ export function renderIssues(issues: readonly SuiteIssue[]): string {
     return `  ${tag}${where}\n    ${issue.message}`
   })
   return `${lines.join('\n')}\n`
+}
+
+/**
+ * Çakışma matrisi, terminal için.
+ *
+ * Satır beklenen kazanan, sütun ilk tetiklenen. Sıfır hücre "·" — boşluk
+ * hizayı bozar, "0" ise gözü asıl sayılardan uzaklaştırır. Her satırın sonunda
+ * "kazandı" oranı N ve aralığıyla (değişmez #4).
+ */
+export function renderCollision(matrix: CollisionMatrix): string[] {
+  const prefix = collisionPrefix(matrix)
+  const short = (name: string) => (prefix !== '' && name.startsWith(prefix) ? name.slice(prefix.length) : name)
+  const label = (expected: readonly string[]) =>
+    expected.length === 0 ? NO_SKILL : expected.map(short).join(' / ')
+  const rowWidth = Math.max(18, ...matrix.rows.map((r) => label(r.expected).length))
+  const widths = matrix.columns.map((c) => Math.max(short(c).length, 3))
+  const cell = (text: string, i: number) => text.padStart(widths[i] ?? 3)
+
+  const out: string[] = ['']
+  out.push(style.bold('  collision matrix') + style.grey('  rows: expected winner · columns: first skill to fire'))
+  if (prefix !== '') out.push(style.grey(`  names shown without the common prefix "${prefix}"`))
+  out.push(
+    `    ${pad('expected \\ fired', rowWidth)}  ${matrix.columns.map((c, i) => cell(short(c), i)).join('  ')}  won`,
+  )
+  for (const row of matrix.rows) {
+    const cells = matrix.columns.map((c, i) => {
+      const count = row.cells[c] ?? 0
+      const hit = row.expected.length === 0 ? c === NO_SKILL : row.expected.includes(c)
+      const text = cell(count === 0 ? '·' : String(count), i)
+      return count === 0 ? style.grey(text) : hit ? style.green(text) : style.red(text)
+    })
+    const notes = [
+      ...(row.alsoFired > 0 ? [`${row.alsoFired} also fired`] : []),
+      ...(row.unmeasured > 0 ? [`${row.unmeasured} unmeasured`] : []),
+    ]
+    out.push(
+      `    ${pad(label(row.expected), rowWidth)}  ${cells.join('  ')}  ${rate(row.won)}` +
+        (notes.length === 0 ? '' : style.grey(`  ${notes.join(', ')}`)),
+    )
+  }
+  if (matrix.unmeasured > 0) {
+    out.push(style.yellow(`    ${matrix.unmeasured} attempt(s) could not be measured and are not in the matrix`))
+  }
+  return out
 }
 
 export function renderRun(run: Run, summary: RunSummary): string {
@@ -200,8 +247,20 @@ export function renderRun(run: Run, summary: RunSummary): string {
     }
   }
 
+  /*
+   * Çakışma matrisi (0.4.0), hedef-yalnız doğruluğun ÜSTÜNDE.
+   *
+   * marketingskills koşumunda rapor "precision: no observations, recall 0%"
+   * dedi; ikisi de yalnızca hedef skill'i anlatıyordu ve çakışma suite'inde en
+   * az ilginç satır oydu. Asıl cevap matriste.
+   */
+  if (summary.collision !== undefined) out.push(...renderCollision(summary.collision))
+
   out.push('')
-  out.push(style.bold('  trigger accuracy'))
+  out.push(
+    style.bold('  trigger accuracy') +
+      (summary.collision === undefined ? '' : style.grey(`  target only: ${run.skill}`)),
+  )
   out.push(`    precision  ${rate(summary.trigger.precision)}`)
   out.push(`    recall     ${rate(summary.trigger.recall)}`)
   out.push(

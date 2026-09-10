@@ -206,6 +206,11 @@ export interface RunSummary {
   verdict: Verdict
   /** Negatif tarafın ayrım gücü ölçülebildi mi (bkz. `Discrimination`). */
   discrimination: Discrimination
+  /**
+   * Çakışma matrisi (0.4.0): yalnızca en az bir vaka kazanan beklediğinde.
+   * Varken `trigger` yalnız hedef skill'i anlatır ve raporda öyle etiketlenir.
+   */
+  collision?: CollisionMatrix
 }
 
 /**
@@ -302,8 +307,135 @@ export function summarize(
  */
 export function summarizeRun(run: Run): RunSummary {
   const expected = new Map(run.cases.map((c) => [c.caseId, c.expectedTrigger]))
-  return summarize(
+  const summary = summarize(
     run.cases.flatMap((c) => c.attempts),
     (caseId) => expected.get(caseId),
   )
+  const collision = collisionMatrix(run)
+  return collision === undefined ? summary : { ...summary, collision }
+}
+
+// ---------------------------------------------------------------------------
+// Çakışma matrisi (0.4.0)
+// ---------------------------------------------------------------------------
+
+/** Matriste "hiçbir skill tetiklenmedi" sütunu ve `winner: none` satırı. */
+export const NO_SKILL = 'none'
+
+/**
+ * Matristeki bütün skill adlarının ortak `plugin:` öneki, yoksa `''`.
+ *
+ * `marketing-skills:copy-editing` gibi on dört sütun terminale sığmıyor; önek
+ * bir kez başlıkta söylenip hücrelerden atılıyor. Tek bir ad öneksizse önek
+ * yok sayılır — atılırsa iki farklı skill aynı adla görünebilirdi.
+ */
+export function collisionPrefix(matrix: CollisionMatrix): string {
+  const names = matrix.columns.filter((c) => c !== NO_SKILL)
+  const prefixes = new Set(names.map((n) => (n.includes(':') ? n.slice(0, n.indexOf(':') + 1) : '')))
+  const [only] = [...prefixes]
+  return prefixes.size === 1 && only !== undefined ? only : ''
+}
+
+/**
+ * Beklenen kazanan × ilk tetiklenen.
+ *
+ * Suite'in tek hedefi olduğu için `trigger` alanındaki precision/recall
+ * yalnızca hedef skill'i anlatıyor; çakışma suite'inde bu en az ilginç satır.
+ * Asıl cevap burada: her vakada model önce hangi skill'e uzandı.
+ */
+export interface CollisionMatrix {
+  /** Satırlar vaka sırasında ilk görülüşe göre; aynı kazananı bekleyen vakalar birleşir. */
+  rows: readonly CollisionRow[]
+  /**
+   * Sütunlar: önce `none`, sonra satırların beklediği skill'ler (köşegen
+   * görünsün diye), sonra beklenmeyen ama gözlenen skill'ler.
+   */
+  columns: readonly string[]
+  /** Matrise girmeyen, ölçülemeyen deneme sayısı (değişmez #1). */
+  unmeasured: number
+}
+
+export interface CollisionRow {
+  /** Beklenen kazanan(lar); `[]` = hiçbir skill (`winner: none`). */
+  expected: readonly string[]
+  /** Bu satıra düşen vaka sayısı. */
+  cases: number
+  /** Sütun → ilk tetiklenenin o sütun olduğu deneme sayısı. */
+  cells: Readonly<Record<string, number>>
+  /** İlk tetiklenenden sonra başka bir skill'in de tetiklendiği deneme sayısı. */
+  alsoFired: number
+  /** Beklenenin ilk tetiklendiği ölçülmüş denemeler — N ve aralıkla (değişmez #4). */
+  won: Proportion
+  /** Bu satırda ölçülemeyen ve matrise girmeyen deneme sayısı. */
+  unmeasured: number
+}
+
+/**
+ * Kayıttan çakışma matrisi; hiçbir vaka kazanan beklemiyorsa `undefined`.
+ *
+ * Bir deneme matrise ancak sinyal okunduysa, liste tamsa ve tetiklenme kontrolü
+ * `unknown` değilse girer. Aksi hâlde "none" sütununa düşer ve reddedilen bir
+ * aktivasyonu "hiçbiri tetiklenmedi" diye sayardı.
+ */
+export function collisionMatrix(run: Run): CollisionMatrix | undefined {
+  const withWinner = run.cases.filter((c) => c.expectedWinner !== undefined)
+  if (withWinner.length === 0) return undefined
+
+  const rows = new Map<
+    string,
+    { expected: readonly string[]; cases: number; cells: Map<string, number>; alsoFired: number; won: number; measured: number; unmeasured: number }
+  >()
+  const observed = new Set<string>()
+  let unmeasured = 0
+
+  for (const caseResult of withWinner) {
+    const expected = caseResult.expectedWinner as readonly string[]
+    const key = expected.length === 0 ? NO_SKILL : expected.join(' / ')
+    const row = rows.get(key) ?? {
+      expected,
+      cases: 0,
+      cells: new Map<string, number>(),
+      alsoFired: 0,
+      won: 0,
+      measured: 0,
+      unmeasured: 0,
+    }
+    row.cases += 1
+    for (const attempt of caseResult.attempts) {
+      const trigger = attempt.trigger
+      if (!trigger.available || !trigger.complete || attempt.triggerCheck?.verdict === 'unknown') {
+        row.unmeasured += 1
+        unmeasured += 1
+        continue
+      }
+      const first = trigger.skills[0] ?? NO_SKILL
+      if (first !== NO_SKILL) observed.add(first)
+      row.cells.set(first, (row.cells.get(first) ?? 0) + 1)
+      if (trigger.skills.length > 1) row.alsoFired += 1
+      row.measured += 1
+      const won = expected.length === 0 ? first === NO_SKILL : expected.includes(first)
+      if (won) row.won += 1
+    }
+    rows.set(key, row)
+  }
+
+  const diagonal = [...rows.values()].flatMap((r) => r.expected)
+  const columns = [
+    NO_SKILL,
+    ...new Set(diagonal),
+    ...[...observed].filter((skill) => !diagonal.includes(skill)).sort(),
+  ]
+
+  return {
+    rows: [...rows.values()].map((row) => ({
+      expected: row.expected,
+      cases: row.cases,
+      cells: Object.fromEntries(row.cells),
+      alsoFired: row.alsoFired,
+      won: proportion(row.won, row.measured),
+      unmeasured: row.unmeasured,
+    })),
+    columns,
+    unmeasured,
+  }
 }

@@ -10,8 +10,11 @@
 
 import {
   assayVersionLabel,
+  collisionPrefix,
   formatProportion,
+  NO_SKILL,
   redact,
+  type CollisionMatrix,
   type Run,
   type RunSummary,
   type Verdict,
@@ -36,6 +39,50 @@ const escape = (value: string): string =>
 
 const caseVerdict = (failed: number, unknown: number): Verdict =>
   failed > 0 ? 'fail' : unknown > 0 ? 'unknown' : 'pass'
+
+/**
+ * Çakışma matrisi, HTML için (0.4.0).
+ *
+ * Kendi yatay kaydırma kabında: on dört sütunluk bir matris sayfayı yana
+ * taşırmasın. Köşegen yeşil, köşegen dışı kırmızı, sıfır soluk; renk kalkınca
+ * da sayılar okunuyor.
+ */
+function renderCollisionHtml(matrix: CollisionMatrix): string {
+  const prefix = collisionPrefix(matrix)
+  const short = (name: string) => (prefix !== '' && name.startsWith(prefix) ? name.slice(prefix.length) : name)
+  const label = (expected: readonly string[]) =>
+    expected.length === 0 ? NO_SKILL : expected.map(short).join(' / ')
+  const head = matrix.columns.map((c) => `<th class="num">${escape(short(c))}</th>`).join('')
+  const rows = matrix.rows
+    .map((row) => {
+      const cells = matrix.columns
+        .map((c) => {
+          const count = row.cells[c] ?? 0
+          const hit = row.expected.length === 0 ? c === NO_SKILL : row.expected.includes(c)
+          const cls = count === 0 ? 'zero' : hit ? 'hit' : 'miss'
+          return `<td class="c ${cls}">${count === 0 ? '·' : count}</td>`
+        })
+        .join('')
+      const notes = [
+        ...(row.alsoFired > 0 ? [`${row.alsoFired} also fired`] : []),
+        ...(row.unmeasured > 0 ? [`${row.unmeasured} unmeasured`] : []),
+      ]
+      return `        <tr><td class="mono">${escape(label(row.expected))}</td>${cells}<td class="rate">${escape(formatProportion(row.won))}${notes.length === 0 ? '' : `<br><span class="note">${escape(notes.join(', '))}</span>`}</td></tr>`
+    })
+    .join('\n')
+  return `  <section>
+    <h2>Collision matrix</h2>
+    <p class="note">Rows are the expected winner, columns the first skill to fire. Winning means firing first; a skill that fired later is counted under "also fired".${prefix === '' ? '' : ` Names are shown without the common prefix <span class="mono">${escape(prefix)}</span>.`}${matrix.unmeasured === 0 ? '' : ` ${matrix.unmeasured} attempt(s) could not be measured and are not in the matrix.`}</p>
+    <div class="matrix">
+    <table>
+      <thead><tr><th>expected \\ fired</th>${head}<th>Won</th></tr></thead>
+      <tbody>
+${rows}
+      </tbody>
+    </table>
+    </div>
+  </section>`
+}
 
 export function renderHtmlReport(run: Run, summary: RunSummary): string {
   const rows = run.cases
@@ -188,6 +235,10 @@ ${skipped
       <p class="note">A note, not a verdict — it does not change the run result.</p>
     </section>`
 
+  const collisionSection =
+    summary.collision === undefined ? '' : renderCollisionHtml(summary.collision)
+  const targetOnly =
+    summary.collision === undefined ? '' : ` <span class="note">target only: ${escape(run.skill)}</span>`
   const f1 =
     summary.trigger.f1 === null ? 'not measurable' : summary.trigger.f1.toFixed(2)
   const cost =
@@ -227,6 +278,12 @@ ${skipped
   th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
   td.num, th.num { text-align: right; width: 4rem; }
   td.rate { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .matrix { overflow-x: auto; }
+  .matrix table { width: auto; }
+  .matrix td.c { text-align: right; font-variant-numeric: tabular-nums; min-width: 2.5rem; }
+  .matrix td.hit { color: var(--pass); font-weight: 600; }
+  .matrix td.miss { color: var(--fail); font-weight: 600; }
+  .matrix td.zero { color: var(--muted); }
   .warn { color: var(--unknown); font-weight: 600; }
   /* Kart yok, yan sekme yok (docs/design.md #1): veri kutularda değil
      çizgilerde durur. Bölümü ayıran şey basılı bir tablonun cetvel çizgisi. */
@@ -261,10 +318,11 @@ ${skipped
 ${fastNote}
 ${skippedNote}
 ${partialNote}
+${collisionSection}
 
   <div class="grid">
-    <div class="card"><div class="label">Trigger precision</div><div class="value">${escape(formatProportion(summary.trigger.precision))}</div></div>
-    <div class="card"><div class="label">Trigger recall</div><div class="value">${escape(formatProportion(summary.trigger.recall))}</div></div>
+    <div class="card"><div class="label">Trigger precision${targetOnly}</div><div class="value">${escape(formatProportion(summary.trigger.precision))}</div></div>
+    <div class="card"><div class="label">Trigger recall${targetOnly}</div><div class="value">${escape(formatProportion(summary.trigger.recall))}</div></div>
     <div class="card"><div class="label">F1</div><div class="value">${escape(f1)}</div></div>
     <div class="card"><div class="label">Attempts</div><div class="value">${summary.totals.attempts} · ${summary.counts.unknown > 0 ? `<span class="warn">${summary.counts.unknown} unknown</span>` : 'none unknown'}</div></div>
   </div>

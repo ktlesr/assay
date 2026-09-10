@@ -571,6 +571,41 @@ describe('hızlı mod raporu', () => {
     expect(text).toContain('An incomplete record cannot pass')
   })
 
+  it('cakisma matrisi terminal ve HTMLde, hedef-yalniz dogrulugun ustunde (0.4.0)', () => {
+    // İki çakışma vakası: biri doğru kazananı bekliyor (s ilk tetikleniyor),
+    // biri başka bir skill'i bekliyor ve kaybediyor.
+    const base = makeRun('run-collision', [
+      ['collide.s.a', 3, 0, 0],
+      ['collide.other.b', 0, 2, 0],
+    ])
+    const run: Run = {
+      ...base,
+      cases: base.cases.map((c, i) => ({ ...c, expectedWinner: i === 0 ? ['s'] : ['other'] })),
+    }
+    const summary = summarizeRun(run)
+    const text = renderRun(run, summary)
+    expect(text).toContain('collision matrix')
+    expect(text).toContain('target only: widget')
+    // Matris hedef-yalniz doğruluktan ÖNCE.
+    expect(text.indexOf('collision matrix')).toBeLessThan(text.indexOf('trigger accuracy'))
+    // "kazandı" oranı N ve aralıkla (değişmez #4).
+    expect(text).toContain('100% (N=3, 95% CI')
+
+    const html = renderHtmlReport(run, summary)
+    expect(html).toContain('<h2>Collision matrix</h2>')
+    expect(html).toContain('<div class="matrix">')
+    expect(html).toContain('<td class="c hit">3</td>')
+    expect(html).toContain('<td class="c miss">2</td>')
+    expect(html).toContain('target only: widget')
+    expect(html.indexOf('Collision matrix')).toBeLessThan(html.indexOf('Trigger precision'))
+
+    // Pozitif kontrol: kazanan beklemeyen koşumda hiçbiri yok.
+    const plain = makeRun('run-plain', [['trigger.positive.a', 3, 0, 0]])
+    expect(renderRun(plain, summarizeRun(plain))).not.toContain('collision matrix')
+    expect(renderRun(plain, summarizeRun(plain))).not.toContain('target only')
+    expect(renderHtmlReport(plain, summarizeRun(plain))).not.toContain('Collision matrix')
+  })
+
   it('raporlar Assay surumunu gosteriyor; surumsuz kayit icin bos birakmiyor (0.3.2)', () => {
     const stamped: Run = { ...makeRun('run-stamped', [['trigger.positive.explicit', 3, 0, 0]]), assayVersion: '0.3.2' }
     expect(renderRun(stamped, summarizeRun(stamped))).toContain('assay 0.3.2')
