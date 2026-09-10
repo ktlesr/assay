@@ -526,6 +526,37 @@ body {
   color: var(--text);
 }
 
+/*
+ * Dar ekranda başlık: Measurements eklenince 375px'te 343px'lik alana ~380px
+ * düşüyordu ve "Sign in" iki satıra kırılıyordu (0.4.1-o, ölçüldü). Yazı bir
+ * kademe küçülüyor, harf aralığı ve boşluklar daralıyor; hiçbir bağlantı
+ * gizlenmiyor.
+ */
+@media (max-width: 26rem) {
+  .head-link {
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+  }
+  .head-nav {
+    gap: var(--space-3);
+  }
+  .head-tools {
+    gap: var(--space-3);
+  }
+}
+/* 320px'te küçülme de yetmiyor: sözcük işareti görsel olarak çekiliyor, simge
+   kalıyor. Metin ekran okuyucuda duruyor — bağlantı adsız kalmıyor. */
+@media (max-width: 21.25rem) {
+  .wordmark span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .crumbs {
   display: flex;
   align-items: center;
@@ -2403,6 +2434,9 @@ main {
 .interval-bounds {
   position: absolute;
   top: calc(50% + 0.5rem);
+  /* Kutu genişliği `ch` ile ölçülüyor (BOUNDS_WIDTH): etiketlerin yazı tipi. */
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   display: flex;
   justify-content: space-between;
   gap: 0.75ch;

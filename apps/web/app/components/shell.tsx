@@ -22,7 +22,7 @@ export function Shell({
     <div className="min-h-dvh">
       <header className="page-head">
         <div className="page-head-inner">
-          <div className="flex min-w-0 items-center gap-4">
+          <div className="head-nav flex min-w-0 items-center gap-4">
             <Link href="/" className="wordmark">
               <Mark size={18} />
               <span>Assay</span>
@@ -34,6 +34,14 @@ export function Shell({
             */}
             <Link href="/methodology" className="head-link">
               Method
+            </Link>
+            {/*
+              Bir koşum sayfasına doğrudan gelen ziyaretçi — issue'lardan gelen
+              herkes — diğer ölçümlere buradan ulaşıyor (0.4.1-o). Adres
+              `/suites`, etiket sitenin kendi dili: "measurement".
+            */}
+            <Link href="/suites" className="head-link">
+              Measurements
             </Link>
             {breadcrumbs.length === 0 ? null : (
               <nav aria-label="Breadcrumb" className="crumbs">
@@ -54,7 +62,7 @@ export function Shell({
               </nav>
             )}
           </div>
-          <div className="flex items-center gap-5">
+          <div className="head-tools flex items-center gap-5">
             <UserMenu />
             <ThemeToggle />
           </div>

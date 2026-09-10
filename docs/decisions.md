@@ -2846,3 +2846,46 @@ Tavan: etiket uzun; 375 px'te "Method", "Sign in" ve tema düğmesiyle birlikte
 sığmazsa mobilde kısaltma ya da taşıma uygulama sırasında ekran görüntüsüyle
 seçilecek.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Küçük kusurlar turu (0.4.1-e…o)
+
+Bağlam: İlk gerçek `assay push`ın bulduğu, önceki turda ertelenen kusurlar.
+Kararlar:
+- **e — `push` için çıkış kodu 4.** Sunucuya ulaşılamadığında ya da sunucu
+  reddettiğinde kod 2'ydi (kullanım hatası); CI kullanıcısı komutunu düzeltmeye
+  gidiyordu. Yeni kod ölçüm kodlarından (0–3) ayrı: yükleme bir ölçüm değil.
+  Davranış değişikliği, sürüm notunda.
+- **f — sunucu görünürlüğü söylüyor.** `POST /api/runs` 201 ile `public`
+  döndürüyor; CLI vaka seti gizliyse "only you can open this link" diyor. CLI
+  tahmin etmiyor: aynı suite'e daha önce yayımlanmış bir koşum yazılabilir.
+- **g — token sayfası isteğin kökünü öneriyor** (`x-forwarded-host`/`-proto`,
+  yoksa `host`).
+- **h — `--version`**, runner'ın sürümü; kayıttaki `assayVersion` ile aynı değer.
+- **j — aralık etiketleri.** Kutu en az iki etiket genişliğinde (`9ch`, kutunun
+  mono yazı tipinde) ve sağ kenarı çizginin sonunu geçmiyor. Koddaki "iki yana
+  eşit taşar" yorumu yanlıştı: `space-between` taşmayı sona iter.
+- **k — ad kırılması.** `BreakableName` `:` ve `/`'den sonra `<wbr>` koyuyor;
+  `overflow-wrap: anywhere` son çare olarak kalıyor.
+- **l — boş payda.** `MeasurementBlock` sebebi çağırandan alıyor (`empty`);
+  koşum sayfası okunmuş deneme varken kesinliğin boş paydasını "never fired"
+  diye söylüyor. Bileşen sebebi tahmin etmiyor.
+- **n — onay penceresi.** Saydam zemin, görünmeyen kenarlık ve karartmayan
+  backdrop'un tek sebebi yığın sırasıydı: `main` z-index 1 ile kendi yığın
+  bağlamını kuruyor, portal katmanlarının z-index'i yoktu ve sayfanın altında
+  çiziliyorlardı. Bütün portal katmanları `z-50`. İki ders: (1) bileşen
+  kataloğu `main` kullanmıyordu, kusur orada hiç görülemezdi — katalog artık
+  `main`; (2) ilk doğrulama yanlış sebeple yeşildi: Radix modal body'ye
+  `pointer-events: none` veriyor ve `elementFromPoint` o öğeleri atlıyor, yani
+  ölçülen şey çizim sırası değil tıklanabilirlikti. Ölçüm artık geçici
+  `pointer-events: auto` ile yapılıyor; ters çevrildiğinde iki temada kırmızı.
+- **o — üst çubukta "Measurements"** ve 404 sayfasından dizine bağlantı. 375px'te
+  başlık 343px'e ~380px düşüyordu ve "Sign in" iki satıra kırılıyordu (ölçüldü).
+  Kullanıcının önerisiyle dar ekranda (≤26rem) başlık yazısı bir kademe
+  küçülüyor, harf aralığı ve boşluklar daralıyor; "Sign in" `head-link`
+  sınıfını alıp kırılmıyor. 320px'te bu da yetmedi: ≤340px'te sözcük işareti
+  görsel olarak çekiliyor (ekran okuyucuda duruyor), simge kalıyor. Hiçbir
+  bağlantı gizlenmiyor.
+Doğrulama: birim ters çevirmeler (e, f, h, g: 9) derleme kapılı, hepsi kırmızı;
+sayfa maddeleri (j, k, l, n, o×3, f'nin route'u: 8) elle, derleme kapılı, gerçek
+sayfada ölçülerek, hepsi kırmızı. 7 sayfa × 2 tema × 2 genişlikte taşma yok.
+Geri dönüş maliyeti: düşük (e bir davranış değişikliği; sürüm notunda)

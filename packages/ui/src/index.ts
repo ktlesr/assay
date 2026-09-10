@@ -30,6 +30,7 @@ export {
 
 export {
   Badge,
+  BreakableName,
   Callout,
   Determination,
   EmptyState,

@@ -613,6 +613,7 @@ yalnız `not_triggered` taşıyan vakalara düşen uyarı.
 | 0.4.1-3 Kişisel veri | `redact` üç biçimi ve bu makinenin hesap adını maskeler; `push` kalıntıda yüklemez (0.4.1-b, c) | **tamam** |
 | 0.4.1-4 0.2.0 öncesi kayıt | Aktivasyon kontrolü "yapılmadı" olarak saklanır ve gösterilir; bozuk kayıt yerini söyler (0.4.1-a, d) | **tamam** |
 | 0.4.1-5 `/compare` yayın modunda | Açık; kapsam koşumu sızdırmıyor (0.4.1-i) | **tamam** |
+| 0.4.1-6 Küçük kusurlar turu | e, f, g, h, j, k, l, n, o (i ve m 0.4.1-5 ve 0.4.1-2'de kapandı) | **tamam** |
 
 Aşağıdaki kusur tablosu bu sürüme girecek düzeltmelerin havuzu; hangilerinin
 0.4.1'e alınacağı ayrıca kararlaştırılacak.

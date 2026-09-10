@@ -1,5 +1,6 @@
 import {
   Badge,
+  BreakableName,
   EmptyState,
   IntervalRule,
   MeasurementBlock,
@@ -33,7 +34,9 @@ export default async function SuitePage({
     <Shell breadcrumbs={[{ label: suite.skill }]}>
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
-          <h1 className="page-title">{suite.skill}</h1>
+          <h1 className="page-title">
+            <BreakableName name={suite.skill} />
+          </h1>
           <p className="page-lede">
             {runs.length} {runs.length === 1 ? 'run' : 'runs'} stored, most recent on{' '}
             {latest.run.startedAt.slice(0, 10)}.

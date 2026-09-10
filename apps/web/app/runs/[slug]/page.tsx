@@ -41,6 +41,10 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
     ).values(),
   ]
   const unmeasuredCount = run.cases.reduce((total, c) => total + c.unknown, 0)
+  // Kesinliğin paydası boş ama sinyal okundu: skill hiç tetiklenmedi (0.4.1-l).
+  const neverFired =
+    summary.trigger.precision.n === 0 &&
+    run.cases.some((c) => c.attempts.some((a) => a.trigger.available))
 
   return (
     <Shell
@@ -77,6 +81,15 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
           value={summary.trigger.precision}
           verb="was right"
           delayMs={70}
+          {...(neverFired
+            ? {
+                empty: {
+                  count: 'never fired',
+                  reason:
+                    'The skill did not fire in any attempt that was read, so there is nothing it could have been right or wrong about.',
+                },
+              }
+            : {})}
           tone={summary.trigger.precision.rate === 1 ? 'text-pass' : 'text-fail'}
         />
       </div>
