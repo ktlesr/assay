@@ -2438,3 +2438,21 @@ kaldırılınca her biri tam kendi testinde kırmızı — iki platformda da.
 Tavan: kök çağrıdan önce ölmüş bir ara sürecin altındakiler init'e geçmiştir ve
 yürüyüşte görünmez; kesin cevap subreaper ya da konteyner, Faz 3.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Eylem pini sürüm PR'ında betikle yükseliyor
+
+Bağlam: `changeset version` yalnızca paket manifestlerini yükseltiyor. 0.2.0'da
+`action.yml`'deki `assay-version` pini sürüm dalına elle bir commit'le
+yükseltildi; changesets o dalı her `main` push'unda yeniden ürettiği için elle
+eklenen commit düşebiliyordu. 0.3.0'ın sürüm PR'ı (#3) pinsiz açıldı.
+Seçenekler: her sürümde elle yükseltmek · `version-packages` betiğine bağlamak
+Karar: `tools/sync-action-pin.mjs`, `changeset version`dan hemen sonra.
+Gerekçe: Unutulmaya en açık adım, unutulduğunda sessiz yanlış ölçüm üreten adım:
+eylem deponun ürettiğinden eski bir CLI kurar (0.2.0 öncesi bir sürüm reddedilen
+aktivasyonları tetiklenme sayar). Betiğin kanıtı mevcut `pin >= manifest` testi.
+Sınandı: pin eşitken fark yok, 0.3.0'a yükseltmede yalnızca pin satırı değişiyor,
+desen bulunamazsa exit 1.
+Not: bot'un açtığı sürüm PR'ında CI koşmuyor (`GITHUB_TOKEN` ile açılan PR iş
+akışı tetiklemez). PR içeriği main + sürüm yükseltmesi olduğu için pin testi PR
+dalının dosyalarıyla yerelde koşuldu: 10/10.
+Geri dönüş maliyeti: düşük

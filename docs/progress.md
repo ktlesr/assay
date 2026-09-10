@@ -13,8 +13,9 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 Son güncelleme: 2026-09-09.
 
 Dört paket yayımlanıyor: `@ktlsr/assay`, `-core`, `-runner`, `-adapters`.
-Registry'deki son sürüm **0.2.0**. Depoda **beş changeset** bekliyor
-(0.3.0-a…e); birleştirilince sürüm PR'ı 0.3.0'ı açar, yayın elle tetiklenir.
+Registry'deki son sürüm **0.2.0**. **0.3.0 sürüm PR'ı hazır: #3** (beş changeset,
+dört paket + eylem pini 0.3.0). Birleştirilince yayın elle tetiklenir:
+`gh workflow run release.yml -f confirm=yayimla` — geri alınamaz.
 
 ## Tamamlananlar
 
