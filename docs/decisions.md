@@ -2638,3 +2638,69 @@ uzandı") orada da `fail` diyor. (a) ayrıca kaydın `active_skills`'i taşımas
 gerektirirdi; matris kayıttan kurulamazdı.
 Geri dönüş maliyeti: düşük (yalnızca matris sütunu; ikinci bir süzgeçli görünüm
 istenirse eklenebilir)
+
+## 2026-09-10 — Hosted'a yüklenecek koşumlar: her ölçümden bir temsilci, bir çift
+
+Bağlam: `assay push` ilk kez gerçek kullanımda. Ölçüm deposunda 40 kayıt, altı
+ölçüm (animate, better-typography, ui-ux-pro-max, impeccable, marketingskills,
+hallmark). Hepsini yüklemek istenmedi; en az biri kırmızı, biri karşılaştırılabilir
+çift, biri çakışma matrisi taşımalıydı.
+Seçenekler: hepsini yüklemek · her ölçümün en büyük kaydı · her ölçümden bir
+temsilci + dört pini aynı bir çift
+Karar: sekiz aday — animate 57205e2b, better-typography ac10d159 (tek `unknown`
+denemesiyle üç durumu gösteren kayıt), ui-ux-pro-max 2a900c03, impeccable 4.2.1
+c3d2b624 (N=10 tam ölçüm), impeccable 4.2.2 acceptEdits parçaları 631543d1 +
+c4c1faa3 (çift: skillHash, model, environmentHash, suiteHash aynı; 12 vakanın
+12'si ikisinde de var), marketingskills 0bec859e, hallmark ablation A kolu
+2dc28f84 (12/38, en kırmızı kayıt; B kolu skill'i çıkarılmış hâli, tek başına
+yanıltıcı olurdu).
+Gerekçe: Suite dosyası kayıttaki `suiteHash`e uymayan 15 kayıt zaten
+yüklenemiyor (push hash'i yerel suite'le karşılaştırıyor). Parça parça koşulmuş
+bir ölçümün (impeccable 4.2.2, 5+6 parça) hepsini yüklemek aynı ölçümü on bir
+kez göstermek olurdu; iki parça çiftin işini görüyor. Çift için 4.2.1 ile 4.2.2
+seçilmedi: skillHash kaydığı için `compare` bunu doğru olarak reddediyor — o bir
+karşılaştırma değil, reddin gösterimi.
+Sonuç: sekizin beşi yüklendi. 09-03 tarihli üçü hosted tarafın bir kusuru
+yüzünden yüklenemedi (bkz. roadmap 0.4.1-a). marketingskills yüklendi ama
+kullanıcı kararıyla gizli kaldı (aşağıda).
+Geri dönüş maliyeti: düşük (yönetici panelinden silinebilir, gizlenebilir)
+
+## 2026-09-10 — `scrub`un bıraktığı kullanıcı adı, yüklemeden önce elle maskelendi
+
+Bağlam: Yükleme public bir siteye gidiyor. Seçilen sekiz kaydın kopyasına
+yayımlanmış 0.4.0 `assay scrub` uygulandı; üç kaydı yeniden yazdı ama makine
+kullanıcı adı 68 yerde kaldı. Üç biçim desenlerin dışında: ajanın kabuk
+komutunda ters bölüleri yenmiş `C:Users<ad>AppData...`, izole config'in bellek
+yolundaki Claude Code proje adı `C--Users-<ad>` (0bec859e'de 55 kez) ve ajanın
+yazdığı koddaki çift kaçışlı `C:` + dört ters bölü + `Users`. Sır (anahtar,
+token, JWT, özel anahtar) bulunmadı; e-postaların hepsi örnek adres.
+Seçenekler: kayıtları yüklememek · 0.4.0'ın bıraktığıyla yüklemek · kalan adı
+aynı `<user>` işaretiyle maskeleyip yüklemek · önce `redact`i düzeltip yayımlamak
+Karar: Üçüncüsü — yalnızca scratch kopyada, yalnızca o dizge (büyük/küçük harf
+duyarsız) `<user>` ile değiştirildi; ölçüm deposundaki asıllara dokunulmadı.
+Sonrasında bağımsız bir taramayla sıfır kaldığı doğrulandı.
+Gerekçe: Değiştirilen şey ölçüm değil kimlik: hiçbir verdict, sayı veya pin
+değişmiyor ve işaret `redact`in kendi işaretinin aynısı. Yüklememek görevin
+kendisini düşürürdü; olduğu gibi yüklemek kullanıcı adını public siteye koymak
+olurdu. Desenleri düzeltip yayımlamak doğru kalıcı cevap ama "yayımlanmış 0.4.0
+ile çalış" talimatının dışında; kusur roadmap'e yazıldı (0.4.1-b).
+Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Yeniden puanlanmış çakışma kaydı yüklenmedi
+
+Bağlam: Kullanıcı 0.4.0-f'de `tools/rescore.mjs` ile yeniden puanlanan
+marketingskills kaydının (179/21 → 79/121, matrisli) yüklenmesini sordu.
+Seçenekler: kaydı v2 suite'le yüklemek · kazananlı suite'le yüklemek · pini
+kazananlı suite'e çevirip yüklemek · yüklememek
+Karar: Yüklenmedi.
+Gerekçe: (1) Site matrisi çizemiyor — `apps/web` içinde tek bir `collision`
+referansı yok (0.4.1). (2) Kayıt ölçüldüğü v2 suite'in pinini taşıyor; push onu
+kazananlı suite'le reddeder, v2 ile gönderilirse 79/121 verdict'leri onları
+üretmeyen, kazanan beyan etmeyen bir vaka setine bağlanır. Pini çevirmek kaydın
+koşulmadığı bir suite'le ölçüldüğünü iddia etmek olur (değişmez #2, sözleşme 3);
+üstelik kayıt `assayVersion: 0.3.2` derken kazanan semantiği 0.4.0'da var ve
+şemada "yeniden puanlandı" diyen bir alan yok. Dürüst yol: kazananlı suite'le
+0.4.0'da gerçek bir koşum (para harcar, tetik kullanıcıda) ve 0.4.1.
+Aynı sebeple eski suite'le puanlanmış 0bec859e de kullanıcı kararıyla gizli
+kaldı: yüklendi, ama suite'i yayımlanmadı.
+Geri dönüş maliyeti: düşük

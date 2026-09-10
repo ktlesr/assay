@@ -609,6 +609,28 @@ yalnız `not_triggered` taşıyan vakalara düşen uyarı.
 Hosted koşum sayfasında `RunSummary.collision`. 0.4.0'ın veritabanı sütunu
 hazır olduğu için yalnızca ekran işi.
 
+### `assay push`'un ilk gerçek kullanımında bulunanlar (2026-09-10)
+
+Ölçüm deposundan sekiz kayıt yayımlanmış 0.4.0 ile https://assayctl.dev'e
+gönderildi; beşi yüklendi. Kararlar: decisions.md, 2026-09-10.
+
+| # | Kusur | Katman | Etki |
+|---|---|---|---|
+| 0.4.1-a | 0.2.0 öncesi kayıtta `trigger.refusals` yok; `toAttemptRow` (`packages/db/src/mapping.ts:329`) `[...trigger.refusals]` ile TypeError atıyor | hosted | Ölçüm deposundaki 10 kaydın hiçbiri yüklenemiyor — animate, better-typography ve ui-ux-pro-max ölçümlerinin tamamı ve impeccable pilotu |
+| 0.4.1-b | `redact` üç biçimi kaçırıyor: ters bölüsü yenmiş `C:Users<ad>`, Claude Code proje adı `C--Users-<ad>`, çift kaçışlı yol | core | Seçilen 8 kayıtta `scrub` sonrası 68 kullanıcı adı kaldı; koşum anında maskeleme de aynı desenleri kullandığı için 0.3.2 kayıtlarında da var |
+| 0.4.1-c | `push` göndermeden önce maskelemiyor ve uyarmıyor | cli | Kullanıcı `scrub`u bilmiyorsa kayıt ham gider |
+| 0.4.1-d | Sunucu tanımadığı her hatayı "the run could not be stored" diye dönüyor | hosted | 0.4.1-a'nın sebebi ancak kod yerel veritabanında koşturularak bulundu |
+| 0.4.1-e | `push` sunucu hatasında çıkış kodu 2 (kullanım hatası) veriyor | cli | CI "komutu yanlış yazdın" sanar |
+| 0.4.1-f | `push` yüklenen koşumun suite'i yayımlanana kadar gizli olduğunu söylemiyor; bastığı URL herkese 404 | cli/hosted | İlk kullanımda "yüklendi ama sitede yok" |
+| 0.4.1-g | Token sayfasının boş durumu `--url http://localhost:3000` öneriyor | web | Üretimde yanlış komut |
+| 0.4.1-h | `--version` yok | cli | Hangi sürümle çalışıldığını görmenin yolu `npx` çıktısı |
+
+**0.4.1-a notu — `[]` ile doldurmak düzeltme değil.** 0.2.0 öncesi adaptör
+aktivasyonu doğrulamıyordu (0.2.0-d: bir pilotta 4 "tetiklenme"nin 4'ü reddedilmiş
+aktivasyondu). Eksik alanı boş liste saymak, yapılmamış bir kontrolü "red yok"
+diye kaydetmek olur. Kayıt "aktivasyon doğrulanmadı (0.2.0 öncesi)" diye
+saklanmalı ve gösterilmeli — `assayVersionLabel`in yaptığının aynısı.
+
 ---
 
 ## Sonraki dalga
