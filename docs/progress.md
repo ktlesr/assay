@@ -79,6 +79,25 @@ POSIX yolu yalnızca grup sinyali gönderiyordu — Docker konteynerinde ölçü
 kapatıldı (decisions.md, 2026-09-10). Linux yolu artık yerelde de sınanabiliyor:
 `node:22.20.0` konteyneri.
 
+**`--fast` gerçek hostta koşuldu (2026-09-10).** `impeccable.suite.yaml`'dan
+türetilmiş 13 vakalık bir set (12 vaka + koşulmaması gereken bir yalnız-artefakt
+vakası), `claude-haiku-4-5-20251001`, `--concurrency 4`.
+
+| Kontrol | Sonuç |
+|---|---|
+| Yalnız artefakt ölçen vaka | koşulmadı; `skipped`'da sebebiyle, `cases`'te yok ✓ |
+| Koşulan vakada assertion'lar | `assertions: []`, `notEvaluated: [file_exists, trace]`, verdict tetiklenmeden (`fail`), 0 `unknown` ✓ |
+| Rapor manşeti | terminal ve HTML'de oranların üstünde ✓ — HTML vaka bazında hangi assertion'ın değerlendirilmediğini söylemiyor (terminal söylüyor) |
+| `layers` | `["trigger"]` ✓ |
+| Bütçe tavanı | `--max-attempts 3`: 3 deneme, 11 vaka sebebiyle `skipped` ✓ — **ama koşum `PASS`** |
+
+36 + 3 deneme, $2.43 + $0.37. `--concurrency 4` ile duvar saati 6.2 dk, ajan
+zamanı 23.0 dk (3.7x) — 0.3.0-d'nin gerçek hosttaki ilk ölçümü.
+
+**Açık — 0.3.0 yayını bunu bekliyor:** bütçenin kestiği koşum `pass` verebiliyor.
+Tavan hiçbir negatifi koşturmadan dolabiliyor ve koşum yalnız pozitiflerle
+"geçti" diyor; değişmez #1 ve #5 ile çelişki. Karar kullanıcıda.
+
 Yan iş: bu makinedeki Git Bash `add_item` çökmesi ölü domain kaydından
 geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 
