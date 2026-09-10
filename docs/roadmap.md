@@ -456,7 +456,14 @@ yapılmayacak.
 
 ---
 
-## 0.3.1 — Uyarlanabilir durdurma
+## 0.3.1 — Uyarlanabilir durdurma ve yarım kaydın verdict'i
+
+| Adım | Çıktı | Durum |
+|---|---|---|
+| 0.3.1-a Uyarlanabilir durdurma | Sabit bakış çizelgesi + Bonferroni; kalibrasyon koşumu | bekliyor |
+| 0.3.1-b Kurtarılan yarım kayıt `pass` veremez | Yarım kaydın verdict'i en iyi ihtimalle `unknown`; hiç koşulmamış vakalar kayıtta adıyla | bekliyor |
+
+### 0.3.1-a — Uyarlanabilir durdurma
 
 **Amaç:** Denemeyi kararı çoktan netleşmiş vakaya değil, kararsız vakaya
 harcamak.
@@ -504,6 +511,48 @@ yana gerekiyor (~$10–20). Sözleşme 1 gereği tetiği kullanıcı çeker.
 **İş.** L — ~2 gün kod + bir kalibrasyon koşumu.
 **Geri dönüş maliyeti.** Orta — yayımlanmış aralığın anlamı bir kez
 değiştirilir.
+
+### 0.3.1-b — Kurtarılan yarım kayıt `pass` veremez
+
+**Kanıt.** 0.3.0'da bütçenin kestiği koşumun `pass` verebildiği gerçek hostta
+görüldü ve kapatıldı (decisions.md, 2026-09-10). Aynı kusur ikinci bir yoldan
+açık kalıyor: öldürülüp `assay recover` ile kurtarılan bir koşum, ölçülen her
+denemesi geçtiyse `pass` diyor. `recoverJournal` verdict'i yalnızca tamamlanmış
+denemelerden hesaplıyor; koşulmamış olanlar hesaba girmiyor.
+
+**Bütçeden daha ağır olan kısmı.** Bütçe kesmesi vakaları `skipped`a sebebiyle
+yazıyor. Kurtarma yazmıyor: koşum sıradaki vakalara hiç gelmeden öldüyse o
+vakalar kaydın **hiçbir yerinde** görünmüyor — ne `cases`'te ne `skipped`'da.
+Suite sırasında negatifler sondaysa (ölçülen bütün setlerde öyle), yarıda
+kesilen bir koşum yalnız pozitiflerle `pass` diyen ve eksiğini söylemeyen bir
+kayıt bırakır. Kayıt `partial` künyesini ve manşetteki "incomplete run" notunu
+taşıyor, ama verdict alanı tek başına okunduğunda — `assay push` sonrası
+dashboard, `compare`'in taban çizgisi — yalan söylüyor.
+
+| # | Seçenek | Karar |
+|---|---|---|
+| A | Olduğu gibi bırakmak; `partial` künyesi yeter | Hayır — verdict alanı künyeden bağımsız okunuyor |
+| B | Yarım kaydı hiç kaydetmemek | Hayır — 0.3.0-b'nin kurtardığı ölçümü geri atar |
+| C | Yarım kaydın verdict'i en iyi ihtimalle `unknown`; ölçülmüş `fail` yine `fail` | **Evet** |
+
+**C.** Bütçe kuralının aynısı: koşulmamış deneme ölçülmedi, ölçülmeyen şey
+geçmiş sayılmaz. Ek olarak kurtarma, planlanıp hiç koşulmamış vakaları
+`skipped`a yazar (`cause: 'interrupted'`). Plan journal başlığında zaten
+duruyor (0.3.0'da `layers`/`skipped` için oraya taşındı); eksik olan vaka
+listesinin kendisi. Gerekçe cümlesi kesilmeyi adıyla söyler.
+
+**Doğrulama.** `killable-run` fixture'ı üç denemeden sonra SIGKILL ediyor ve
+bugün kurtarılan kayıt `pass`. Test o kaydın `unknown` olmasını ve koşulmamış
+vakaların adıyla listelenmesini istemeli; ters çevirme verdict kuralını ve
+vaka listesini ayrı ayrı sınamalı — ve bu fazda dört kez yaşandığı gibi,
+mutasyon derlemeyi kırmamalı.
+
+**Davranış değişikliği.** Bugün `pass` olarak kurtarılan kayıtlar `unknown`
+olur. Hosted tarafa daha önce yüklenmiş kayıtların verdict'i değişmez; kural
+yeni kurtarmalara uygulanır. Sürüm notunda yazılacak.
+
+**İş.** S–M — `recoverJournal`, `verdictOf`, başlığa vaka planı, testler. ~0.5–1 gün.
+**Geri dönüş maliyeti.** Düşük.
 
 ---
 

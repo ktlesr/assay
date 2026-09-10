@@ -13,9 +13,17 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 Son güncelleme: 2026-09-09.
 
 Dört paket yayımlanıyor: `@ktlsr/assay`, `-core`, `-runner`, `-adapters`.
-Registry'deki son sürüm **0.2.0**. **0.3.0 sürüm PR'ı hazır: #3** (beş changeset,
-dört paket + eylem pini 0.3.0). Birleştirilince yayın elle tetiklenir:
-`gh workflow run release.yml -f confirm=yayimla` — geri alınamaz.
+**0.3.0 yayımlandı (2026-09-10).** Dört paket registry'de, `latest=0.3.0`, npm
+12.0.2 ile (OIDC, token değil), dördünde de SLSA provenance. `npx
+@ktlsr/assay@0.3.0` temiz bir dizinde kurulup çalıştı; bağımlılıklar `0.3.0`'a
+sabit. Yayın koşumu `34452831662`, birleştirme `b66f74c` (PR #3).
+
+**Açık:** eylemin `v1` etiketi hâlâ `f7113d0`'ı (pin 0.2.0) gösteriyor;
+Marketplace kullanıcıları 0.3.0'ı alamıyor. Etiketi taşımak kullanıcı onayı
+istiyor (yayımlanmış bir ref'i değiştirmek).
+
+Sırada **0.3.1**: uyarlanabilir durdurma ve kurtarılan yarım kaydın `pass`
+verebilmesi (roadmap.md).
 
 ## Tamamlananlar
 
