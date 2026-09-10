@@ -2626,8 +2626,9 @@ Assay'in onaylanan tanımı ("ilk doğrulanmış aktivasyon") `run` sütununa.
 Seçenekler: (a) ilk tetiklenen = `active_skills` içindeki ilk aktivasyon
 (`collide.py` ile birebir) · (b) ilk tetiklenen = herhangi bir doğrulanmış
 aktivasyon (onaylanan tanım)
-Karar: (b). Aynı Assay kodunun (a)'nın süzgeciyle `collide.py` ile 17 hücrenin
-17'sinde aynı sonucu verdiği ayrıca gösterildi; fark yalnızca tanımda.
+Karar: (b), kullanıcı onayıyla (süzgeç eklenmedi; `run`'ın isteği kapması
+görünür kalsın). Aynı Assay kodunun (a)'nın süzgeciyle `collide.py` ile 17
+hücrenin 17'sinde aynı sonucu verdiği ayrıca gösterildi; fark yalnızca tanımda.
 Gerekçe: (a) o deneme için "hiçbir skill tetiklenmedi" der, oysa bir skill
 tetiklendi — "none" sütununun anlamını bozar. Host skill'inin isteği kapması da
 bir çakışma: plugin yazarının bilmek isteyeceği şey tam olarak bu. Verdict iki

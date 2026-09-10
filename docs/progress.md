@@ -41,14 +41,17 @@ koşumu `34464668930`, birleştirme `94677c4` (PR #5). Eylem v1.2.2: `v1` ve
 koşum `34465074947`): `@v1` → `94677c4`, `ASSAY_VERSION: 0.3.2`, ve kaydın
 kendisinde `assayVersion: "0.3.2"` — sürüm doğrulaması artık doğrudan.
 
-**0.4.0 hazır (2026-09-10), yayımlanmadı: çakışma ölçümü şeması.** `expect.winner`
+**0.4.0 yayımlandı (2026-09-10): çakışma ölçümü şeması.** Registry'de dört paket
+(`latest=0.4.0`, npm 12.0.2/OIDC, provenance; yayın koşumu `34506237094`,
+birleştirme `4109517`, PR #6). Eylem v1.3.0: `v1` ve `action-v1.3.0` → `4109517`;
+dışarıdan doğrulandı (`ktlesr/assay-example` koşum `34506753558`, kayıtta
+`assayVersion: "0.4.0"`). Tek hücre farkı kullanıcı onayıyla bırakıldı. `expect.winner`
 (ilk doğrulanmış aktivasyon kazanır; `winner: none` negatif), hiçbiri
 tetiklenmediyse `fail`, terminal ve HTML'de çakışma matrisi, tireli vaka id'leri,
 hosted şemada kazanan sütunları. Kanıt: marketingskills kaydı yeniden puanlandı
 — 179/21 → 79/121, "100 sahte pass"in tam kümesi döndü, matris `collide.py` ile
 aynı süzgeçte 17/17 hücre aynı (docs/measurements.md, 0.4.0-f). 63 ters çevirme,
-63'ü derleme temizken kırmızı. Changeset `collisions-have-winners` (minor).
-Sırada: 0.4.1 (web'de matris) ve 0.3.1-a (kalibrasyon, para harcar).
+63'ü derleme temizken kırmızı. Sırada: 0.4.1 (web'de matris) ve 0.3.1-a (kalibrasyon, para harcar).
 
 **Geliştirme ortamı notu:** bu makinede 3000 ve 5433 başka projelerin
 konteynerlerinde. Assay: `ASSAY_DEV_PG_PORT=5434 node tools/dev-postgres.mjs`
