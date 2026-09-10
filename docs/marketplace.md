@@ -95,14 +95,42 @@ yeterli.
 
 ## Sürüm çıkarırken
 
-CLI sürümü yükseldiğinde `action.yml` içindeki `assay-version` pini de
-yükseltilmeli; ikisi ayrışırsa test kırmızıya döner. Sonra:
+`assay-version` pini sürüm PR'ında kendiliğinden yükseliyor
+(`tools/sync-action-pin.mjs`, `version-packages` betiğinin parçası); `pin >=
+manifest` testi kaçırırsa PR kırmızıya döner. npm yayını bittikten sonra:
 
 ```
-git tag -a action-v1.1.0 -m "..."
-git tag -f v1 action-v1.1.0
-git push origin action-v1.1.0 && git push -f origin v1
+git tag -a action-vX.Y.Z -m "action: assay CLI pin A.B.C" origin/main
+git tag -f v1 origin/main
+git push origin action-vX.Y.Z && git push -f origin v1
+gh release create action-vX.Y.Z --verify-tag --latest   --title "Assay action vX.Y.Z — pins CLI A.B.C" --notes-file <notlar>
 ```
+
+Sürüm notu önce **davranış değişikliğini** söyler: çıkış kodu kayıyorsa hangi
+durumda ve `allow-unknown` ile nasıl geri alınır.
+
+### Dışarıdan doğrulama — `v1`'i taşıdıktan sonra her seferinde
+
+`ktlesr/assay-example` eylemi başka bir depodan `@v1` ile kullanan tüketici
+deposu; host kimliği (`CLAUDE_CODE_OAUTH_TOKEN`) secret olarak orada. Elle
+tetiklenen `Assay` iş akışı 3 vaka × 2 deneme koşuyor (birkaç sent).
+
+```
+gh workflow run assay.yml -R ktlesr/assay-example --ref main
+```
+
+Üç şeye bakılır, üçü de gerekli:
+
+1. Kütükte `Download action repository 'ktlesr/assay@v1' (SHA:…)` — `v1`
+   yeni commit'e çözülmüş mü.
+2. Kütükte `ASSAY_VERSION: A.B.C` — kurulması *istenen* sürüm.
+3. `assay-runs` artefaktındaki kayıtta yalnızca yeni sürümün yazdığı bir alan —
+   gerçekten o sürümün *koştuğunun* kanıtı. 0.3.0 için: `run.environment`.
+
+**Ad tuzağı.** Bu makinedeki `D:ssay-example` klasörü `ktlesr/assay-example`
+DEĞİL; uzağı `ktlesr/skill-trigger-measurements` (ölçüm deposu). Orada secret
+yok ve eylem oradan koşamaz. 0.3.0 doğrulamasında bir duman testi iş akışı
+yanlışlıkla oraya kondu ve geri alındı.
 
 Kırıcı bir değişiklikte `v1`'i oynatma; `v2` aç ve marketplace listesini
 oradan güncelle.

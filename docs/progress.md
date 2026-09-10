@@ -18,9 +18,11 @@ Dört paket yayımlanıyor: `@ktlsr/assay`, `-core`, `-runner`, `-adapters`.
 @ktlsr/assay@0.3.0` temiz bir dizinde kurulup çalıştı; bağımlılıklar `0.3.0`'a
 sabit. Yayın koşumu `34452831662`, birleştirme `b66f74c` (PR #3).
 
-**Açık:** eylemin `v1` etiketi hâlâ `f7113d0`'ı (pin 0.2.0) gösteriyor;
-Marketplace kullanıcıları 0.3.0'ı alamıyor. Etiketi taşımak kullanıcı onayı
-istiyor (yayımlanmış bir ref'i değiştirmek).
+**Eylem v1.2.0 (2026-09-10).** `v1` ve `action-v1.2.0` → `3bef824` (pin 0.3.0),
+GitHub Release "Latest". Dışarıdan doğrulandı (`ktlesr/assay-example`, koşum
+`34456079954`): `@v1` → `3bef824`, `ASSAY_VERSION: 0.3.0`, 6/6 pass, ve
+artefakttaki kayıt yalnızca 0.3.0'ın yazdığı `environment` alanını taşıyor.
+Yol docs/marketplace.md'de.
 
 Sırada **0.3.1**: uyarlanabilir durdurma ve kurtarılan yarım kaydın `pass`
 verebilmesi (roadmap.md).
