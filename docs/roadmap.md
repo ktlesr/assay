@@ -541,8 +541,9 @@ geçmiş sayılmaz. Ek olarak kurtarma, planlanıp hiç koşulmamış vakaları
 duruyor (0.3.0'da `layers`/`skipped` için oraya taşındı); eksik olan vaka
 listesinin kendisi. Gerekçe cümlesi kesilmeyi adıyla söyler.
 
-**Doğrulama.** `killable-run` fixture'ı üç denemeden sonra SIGKILL ediyor ve
-bugün kurtarılan kayıt `pass`. Test o kaydın `unknown` olmasını ve koşulmamış
+**Doğrulama.** `killable-run` fixture'ı üç denemeden sonra SIGKILL ediyor.
+Ölçüldü (2026-09-10, 0.3.0): kurtarılan kayıt `verdict=pass`, içinde yalnız
+`trigger.positive.explicit:3`; negatif vaka ne `cases`'te ne `skipped`'da. Test o kaydın `unknown` olmasını ve koşulmamış
 vakaların adıyla listelenmesini istemeli; ters çevirme verdict kuralını ve
 vaka listesini ayrı ayrı sınamalı — ve bu fazda dört kez yaşandığı gibi,
 mutasyon derlemeyi kırmamalı.
