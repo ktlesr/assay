@@ -87,21 +87,72 @@ async function killWindowsTree(pid: number): Promise<KillTreeResult> {
   })
 }
 
-/** POSIX: süreç grubuna sinyal; çocuklar `detached: true` ile gruba giriyor. */
+/**
+ * POSIX: ağaç PPID üzerinden yürünüyor, sonra her düğüme ve grubuna sinyal.
+ *
+ * Yalnızca köke grup sinyali (`kill(-pid)`) yetmiyor ve bu CI'da **ölçüldü**:
+ * `detached: true` POSIX'te `setsid` demek, yani öyle başlatılan bir torun
+ * kendi grubunu kuruyor ve kökün grubundan kaçıyor. Kabuktan ayrılmış bir dev
+ * sunucu tam olarak böyle. Windows yolu PPID yürüdüğü için bunu hiç yaşamadı;
+ * test yalnızca Linux runner'ında kırmızıya döndü.
+ *
+ * Önce bütün ağacın fotoğrafı çekiliyor, sonra öldürülüyor: yukarıdan aşağı
+ * öldürürken çocuklar init'e evlat verilir ve PPID zinciri kopar.
+ *
+ * ponytail: tavan — kök çağrıdan ÖNCE ölmüş bir ara süreç varsa altındakiler
+ * zaten init'e geçmiştir ve yürüyüşte görünmez; ancak bir grubun üyesiyse
+ * ölür. Kesin cevap Linux'ta PR_SET_CHILD_SUBREAPER (native eklenti) ya da
+ * konteyner — ikisi de Faz 3.
+ */
 async function killPosixGroup(pid: number): Promise<KillTreeResult> {
-  try {
-    process.kill(-pid, 'SIGKILL')
-    return { ok: true }
-  } catch (cause) {
-    if ((cause as NodeJS.ErrnoException).code === 'ESRCH') return { ok: true }
-    try {
-      process.kill(pid, 'SIGKILL')
-      return { ok: true }
-    } catch (fallback) {
-      const error = fallback as NodeJS.ErrnoException
-      return error.code === 'ESRCH' ? { ok: true } : { ok: false, reason: error.message }
-    }
+  const tree = [pid, ...(await posixDescendants(pid))]
+  for (const member of tree) {
+    // Grup sinyali: `setsid` ile kendi grubunu kuran düğüm grubunun lideri,
+    // yani `-member` onun altındaki her şeyi de alıyor. Lider değilse ESRCH.
+    signal(-member)
+    signal(member)
   }
+  // Kök SIGKILL'den sonra ebeveyni onu toplayana kadar zombi kalır ve sinyal 0
+  // ona hâlâ "yaşıyor" der; o yüzden burada `alive` sorulmuyor.
+  return { ok: true }
+}
+
+function signal(target: number): void {
+  try {
+    process.kill(target, 'SIGKILL')
+  } catch {
+    // ESRCH: zaten yok. EPERM: bizim değil — dokunmamak doğru olan.
+  }
+}
+
+/**
+ * Kökün bütün torunları, `ps` çıktısından.
+ *
+ * `ps` yoksa (procps'suz ince bir konteyner) boş liste dönüyor ve yalnızca grup
+ * sinyali kalıyor — eski davranış, daha kötüsü değil.
+ */
+function posixDescendants(root: number): Promise<number[]> {
+  return new Promise((resolve) => {
+    execFile('ps', ['-A', '-o', 'pid=,ppid='], (error, stdout) => {
+      if (error) return resolve([])
+      const children = new Map<number, number[]>()
+      for (const line of stdout.split('\n')) {
+        const [pid, ppid] = line.trim().split(/\s+/).map(Number)
+        if (pid === undefined || ppid === undefined || Number.isNaN(pid)) continue
+        children.set(ppid, [...(children.get(ppid) ?? []), pid])
+      }
+      const found: number[] = []
+      const queue = [root]
+      while (queue.length > 0) {
+        for (const child of children.get(queue.shift() as number) ?? []) {
+          if (found.includes(child)) continue
+          found.push(child)
+          queue.push(child)
+        }
+      }
+      resolve(found)
+    })
+  })
 }
 
 /** Süreç hâlâ yaşıyor mu. Sinyal 0 hiçbir şey göndermez, yalnızca sorar. */
