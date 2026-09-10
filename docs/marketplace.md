@@ -124,10 +124,12 @@ gh workflow run assay.yml -R ktlesr/assay-example --ref main
 1. Kütükte `Download action repository 'ktlesr/assay@v1' (SHA:…)` — `v1`
    yeni commit'e çözülmüş mü.
 2. Kütükte `ASSAY_VERSION: A.B.C` — kurulması *istenen* sürüm.
-3. `assay-runs` artefaktındaki kayıtta yalnızca yeni sürümün yazdığı bir alan —
-   gerçekten o sürümün *koştuğunun* kanıtı. 0.3.0 için: `run.environment`.
+3. `assay-runs` artefaktındaki kayıtta `run.assayVersion` yeni sürüme eşit mi —
+   gerçekten o sürümün *koştuğunun* doğrudan kanıtı (0.3.2'den itibaren; ilk kez
+   0.3.2'nin kendi doğrulamasında okundu). Terminal raporu da aynı değeri
+   `assay X.Y.Z` satırında basıyor.
 
-Üçüncü kanıt her sürümde bulunmayabilir: 0.3.1 normal biten bir koşumun kaydına
+0.3.2 öncesi sürümlerde üçüncü kanıt dolaylıydı: 0.3.1 normal biten bir koşumun kaydına
 yeni alan eklemiyor (değişiklik yalnız kurtarma yolunda). O zaman zincir şöyle
 kuruluyor: kütükte "using the assay CLI built in this workspace" satırının
 **olmadığı** (npm dalı çalıştı) + tam sürüm kurulumunun başarılı olduğu (sürüm

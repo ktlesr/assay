@@ -33,9 +33,13 @@ Eylem v1.2.1: `v1` ve `action-v1.2.1` → `ddf5014`; dışarıdan doğrulandı
 (`ktlesr/assay-example`, koşum `34460704366`, `@v1` → `ddf5014`,
 `ASSAY_VERSION: 0.3.1`, npm dalı, 6/6 pass).
 
-**0.3.2 hazır (2026-09-10), yayımlanmadı:** koşum kaydı onu üreten Assay
-sürümünü taşıyor (`Run.assayVersion`); eski kayıtlar "0.3.1 or earlier" diye
-okunuyor. Changeset `stamped-runs-say-who` (patch).
+**0.3.2 yayımlandı (2026-09-10).** Koşum kaydı onu üreten Assay sürümünü
+taşıyor (`Run.assayVersion`); eski kayıtlar "0.3.1 or earlier" diye okunuyor.
+Dört paket registry'de (`latest=0.3.2`, npm 12.0.2/OIDC, provenance); yayın
+koşumu `34464668930`, birleştirme `94677c4` (PR #5). Eylem v1.2.2: `v1` ve
+`action-v1.2.2` → `94677c4`. Dışarıdan doğrulandı (`ktlesr/assay-example`,
+koşum `34465074947`): `@v1` → `94677c4`, `ASSAY_VERSION: 0.3.2`, ve kaydın
+kendisinde `assayVersion: "0.3.2"` — sürüm doğrulaması artık doğrudan.
 
 **Geliştirme ortamı notu:** bu makinede 3000 ve 5433 başka projelerin
 konteynerlerinde. Assay: `ASSAY_DEV_PG_PORT=5434 node tools/dev-postgres.mjs`
