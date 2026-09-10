@@ -2748,3 +2748,37 @@ Doğrulama: 13 ters çevirme, derleme kapılı; on üçü de kendi testinde kır
 Kapı bir kez tabanı yakaladı: eklenen bir test tip hatası taşıyordu ve 13
 mutasyonun hepsi "geçersiz" çıktı — kırmızı sayılmadı.
 Geri dönüş maliyeti: düşük (push'a bir ret yolu ve bir bayrak)
+
+## 2026-09-10 — 0.2.0 öncesi kayıt: aktivasyon kontrolü "yapılmadı" olarak saklanır (0.4.1-a, d)
+
+Bağlam: İlk gerçek yüklemede ölçüm deposundaki on kaydın (animate,
+better-typography, ui-ux-pro-max ölçümlerinin tamamı ve impeccable pilotu)
+hiçbiri yüklenemedi. Tetiklenme gözleminde `refused`/`refusals` yoktu ve
+eşleme `[...trigger.refusals]` ile TypeError attı; sunucu kullanıcıya yalnızca
+"the run could not be stored" gönderdi.
+Seçenekler: (a) eksik alanı `refused: false, refusals: []` ile doldurmak ·
+(b) alanları opsiyonel yapıp yokluğu "kontrol yapılmadı" diye saklamak
+Karar: (b). Core'da iki alan opsiyonel; veritabanında `triggerRefused` NULL
+yalnızca boş red listesiyle birlikte geçerli. Migration 0.2.0'ın eski satırlara
+yazdığı `false`ı NULL'a çeviriyor; eski satır izin modu olmayan koşumla
+tanınıyor (ölçüm deposundaki 40 kayıtta iki yokluk birebir örtüşüyor).
+`evaluateTrigger` eski bir gözlemde seçilmiş bir skill varsa `unknown` veriyor;
+hiçbir şey seçilmediyse gözlem tam. Hosted koşum sayfası künyede "Activation
+check: not made" satırını gösteriyor. Bozuk bir kayıt işleme girmeden yerini
+söyleyen bir `RecordShapeError` ile reddediliyor ve sunucu bu mesajı iletiyor.
+Gerekçe: (a) yapılmamış bir kontrolü "red yok" diye kaydetmek olurdu; 0.2.0-d'de
+bir pilotta dört "tetiklenme"nin dördü reddedilmiş aktivasyondu. 0.2.0
+migration'ı `false` yazarken gerekçesi "yerel store'da alan yok → falsy" ile
+hizalanmaktı; core artık yokluğu "doğrulanmadı" diye okuduğu için aynı gerekçe
+şimdi NULL'u gösteriyor. Hata mesajı bizim eşleme kodumuzdan geliyor, tablo ya
+da sütun adı taşımıyor.
+Mevcut bir kısıt testi eski kuralı sabitliyordu ("sinyal okundu ama red durumu
+bilinmiyor → reddedilir"); anlamı değiştiği için iki teste bölündü: boş red
+listesiyle NULL kabul, dolu listeyle NULL red.
+Doğrulama: 9 ters çevirme derleme kapılı, dokuzu da kendi testinde kırmızı;
+route'unki (vitest dışında) elle: ters çevrildiğinde mesaj yine genel 400'e
+düşüyor. Yerel veritabanında migration 0.2.0 öncesi 198 satırın hepsini NULL
+yaptı, sonrası 218 satıra dokunmadı; üç eski gerçek kayıt yazıldı (297 deneme)
+ve sayfasında satır göründü.
+Geri dönüş maliyeti: orta (alan anlamı ve kısıt değişti; migration veriyi
+dönüştürüyor, ama dönüşüm geri çevrilebilir)

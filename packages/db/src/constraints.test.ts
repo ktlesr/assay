@@ -649,9 +649,21 @@ describe('değişmez #1 — reddedilen aktivasyon tetiklenme sayılamaz', () => 
     ).rejects.toThrow('attempt_refusal_shape')
   })
 
-  it('sinyal okundu ama red durumu bilinmiyor → reddedilir', async () => {
+  // 0.4.1-a: 0.2.0 öncesi kayıtta aktivasyon kontrolü yok. NULL "kimse
+  // bakmadı" demek; `false` ("red yok") ile karıştırılmıyor.
+  it('sinyal okundu, red kontrolü yapılmamış (0.2.0 öncesi) → kabul edilir', async () => {
     await expect(
       insertAttempt(caseResultId, { triggerAvailable: true, triggerRefused: null }),
+    ).resolves.toBeTypeOf('string')
+  })
+
+  it('red listesi dolu ama red durumu bilinmiyor → reddedilir', async () => {
+    await expect(
+      insertAttempt(caseResultId, {
+        triggerAvailable: true,
+        triggerRefused: null,
+        triggerRefusals: '[{"skill":"docx","reason":"the host denied permission"}]',
+      }),
     ).rejects.toThrow('attempt_refusal_shape')
   })
 

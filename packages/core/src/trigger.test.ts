@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RefusedActivation, TriggerObservation } from './records.js'
+import { activationUnverified } from './records.js'
 import { evaluateTrigger } from './trigger.js'
 
 const seen = (
@@ -297,5 +298,38 @@ describe('evaluateTrigger — winner (0.4.0)', () => {
     expect(evaluateTrigger(seen(true), { triggered: true })?.reason).toBe(
       'the skill triggered, as expected (via transcript)',
     )
+  })
+})
+
+/**
+ * 0.2.0 öncesi gözlem (0.4.1-a): `refused` ve `refusals` yok. O sürüm seçilen
+ * her skill'i tetiklenmiş sayıyordu; eksik alan "red yok" diye okunamaz.
+ */
+describe('0.2.0 öncesi gözlem', () => {
+  const legacy = (skills: string[]): TriggerObservation => ({
+    available: true,
+    triggered: skills.includes('docx'),
+    skills,
+    complete: true,
+    via: 'transcript',
+  })
+
+  it('seçilmiş bir skill üzerine kurulan iddia ölçülmemiştir', () => {
+    const result = evaluateTrigger(legacy(['docx']), { triggered: true })
+    expect(result?.verdict).toBe('unknown')
+    expect(result?.reason).toContain('predates 0.2.0')
+  })
+
+  it('hiçbir skill seçilmediyse gözlem tamdır', () => {
+    expect(evaluateTrigger(legacy([]), { triggered: false })?.verdict).toBe('pass')
+    expect(evaluateTrigger(legacy([]), { triggered: true })?.verdict).toBe('fail')
+  })
+
+  it('kayıt düzeyinde işaretlenir', () => {
+    const attempt = (trigger: TriggerObservation) => ({ trigger }) as never
+    const run = (trigger: TriggerObservation) => ({ cases: [{ attempts: [attempt(trigger)] }] }) as never
+    expect(activationUnverified(run(legacy(['docx'])))).toBe(true)
+    expect(activationUnverified(run(seen(true)))).toBe(false)
+    expect(activationUnverified(run(blind()))).toBe(false)
   })
 })

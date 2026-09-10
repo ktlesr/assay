@@ -44,6 +44,21 @@ export function evaluateTrigger(
     }
   }
 
+  /*
+   * 0.2.0 öncesi kayıt: aktivasyon doğrulanmadı. Gözlenen "tetiklenme"
+   * reddedilmiş bir seçim olabilir (0.2.0-d'de bir pilotta dördün dördü
+   * öyleydi), yani seçilmiş bir skill üzerine kurulan her iddia ölçülmemiş.
+   * Hiçbir skill seçilmediyse ise gözlem tam: reddedilecek bir çağrı yoktu.
+   */
+  if (observation.refused === undefined && observation.skills.length > 0) {
+    return {
+      verdict: 'unknown',
+      reason: `the record predates 0.2.0, which began confirming that a selected skill actually loaded; ${observation.skills.join(', ')} was selected, but whether it activated was never checked`,
+      detail: { observedSkills: observation.skills, via: observation.via },
+    }
+  }
+  const refusals = observation.refusals ?? []
+
   const problems: string[] = []
   const unmeasurable: string[] = []
 
@@ -59,7 +74,7 @@ export function evaluateTrigger(
    */
   const targetUnmeasurable = observation.refused && !observation.triggered
   if (targetUnmeasurable && wantsTriggered) {
-    const why = observation.refusals.map((r) => r.reason)
+    const why = refusals.map((r) => r.reason)
     unmeasurable.push(
       `the skill was selected but its activation was not confirmed, so whether it triggers could not be measured${
         why.length === 0 ? '' : ` (${[...new Set(why)].join('; ')})`
@@ -87,7 +102,7 @@ export function evaluateTrigger(
       }
       // Seçilmiş ama aktive olmamış bir komşu skill de ölçülemez: "tetiklenmedi"
       // demek, modelin ona uzandığını gizlemek olurdu.
-      const refusedNames = observation.refusals.map((r) => r.skill)
+      const refusedNames = refusals.map((r) => r.skill)
       const unresolved = notTriggered.filter(
         (skill) => !observation.skills.includes(skill) && refusedNames.includes(skill),
       )
@@ -114,7 +129,7 @@ export function evaluateTrigger(
   let winnerPass: string | undefined
   if (winner !== undefined) {
     const first = observation.skills[0]
-    const refusedNames = observation.refusals.map((r) => r.skill)
+    const refusedNames = refusals.map((r) => r.skill)
     if (!observation.complete) {
       unmeasurable.push(
         'the host reports only the target skill, not the full set of triggered skills, so which skill fired first cannot be checked',
@@ -168,7 +183,7 @@ export function evaluateTrigger(
       detail: {
         via: observation.via,
         observedSkills: observation.skills,
-        ...(observation.refusals.length === 0 ? {} : { refusals: observation.refusals }),
+        ...(refusals.length === 0 ? {} : { refusals }),
       },
     }
   }

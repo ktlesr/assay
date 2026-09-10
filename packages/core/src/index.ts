@@ -25,6 +25,8 @@ export {
 
 export {
   assayVersionLabel,
+  activationUnverified,
+  ACTIVATION_UNVERIFIED,
   PRE_VERSION_STAMP,
   comparePins,
   diffEnvironments,

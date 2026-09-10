@@ -8,6 +8,7 @@ import { proportion, type Attempt, type Run, type Suite } from '@ktlsr/assay-cor
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '../generated/client/client.js'
 import {
+  RecordShapeError,
   RunAlreadyStoredError,
   listRuns,
   loadRun,
@@ -411,5 +412,48 @@ describe('çakışma suite\'i gidiş-dönüş (0.4.0)', () => {
       ['collide.copy-editing.tighten', ['marketing-skills:copy-editing']],
       ['negative.pricing', []],
     ])
+  })
+})
+
+/**
+ * 0.2.0 öncesi kayıtlar (0.4.1-a). İlk gerçek `assay push`ta ölçüm
+ * deposundaki on kaydın hiçbiri yüklenemedi: tetiklenme gözleminde `refused`
+ * ve `refusals` yoktu ve eşleme onları varsayıyordu.
+ */
+describe('0.2.0 öncesi kayıt', () => {
+  const legacy = (run: Run): Run => ({
+    ...run,
+    cases: run.cases.map((result) => ({
+      ...result,
+      attempts: result.attempts.map((a) => {
+        if (!a.trigger.available) return a
+        const trigger = { ...a.trigger }
+        delete trigger.refused
+        delete trigger.refusals
+        return { ...a, trigger }
+      }),
+    })),
+  })
+
+  it('saklanır ve aktivasyon kontrolü "yapılmadı" olarak geri döner', async () => {
+    const run = legacy(makeRun('run-legacy-activation'))
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded).toEqual(run)
+    // `false` değil: alan hiç yok. "Red yok" ile "kimse bakmadı" ayrı şeyler.
+    const trigger = loaded?.cases[0]?.attempts[0]?.trigger
+    expect(trigger !== undefined && 'refused' in trigger).toBe(false)
+  })
+
+  it('bozuk kayıt nerede bozuk olduğunu söyler ve hiçbir şey yazılmaz', async () => {
+    const base = makeRun('run-malformed')
+    const [first] = base.cases
+    if (first === undefined) throw new Error('makeRun returned no case')
+    const broken = { ...first.attempts[1]!, trigger: undefined as never }
+    const run = { ...base, cases: [{ ...first, attempts: [first.attempts[0]!, broken] }] }
+    const stored = storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    await expect(stored).rejects.toBeInstanceOf(RecordShapeError)
+    await expect(stored).rejects.toThrow(/malformed at case "trigger\.positive\.explicit", attempt 1: /)
+    expect(await loadRun(db, run.id, ALL)).toBeNull()
   })
 })

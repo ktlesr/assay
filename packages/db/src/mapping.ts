@@ -325,8 +325,10 @@ export function toAttemptRow(attempt: Attempt): AttemptRow {
     triggerVia: trigger.available ? trigger.via : null,
     triggerReason: trigger.available ? null : trigger.reason,
     triggerSkills: trigger.available ? [...trigger.skills] : [],
-    triggerRefused: trigger.available ? trigger.refused : null,
-    triggerRefusals: trigger.available ? [...trigger.refusals] : [],
+    // 0.2.0 öncesi kayıtta ikisi de yok: NULL "kontrol yapılmadı" demek,
+    // `[]` ise "kontrol yapıldı, red yok". Birbirine çevrilmezler (0.4.1-a).
+    triggerRefused: trigger.available ? (trigger.refused ?? null) : null,
+    triggerRefusals: trigger.available ? [...(trigger.refusals ?? [])] : [],
     latencyMs: attempt.latencyMs ?? null,
     inputTokens: attempt.cost?.inputTokens ?? null,
     outputTokens: attempt.cost?.outputTokens ?? null,
@@ -426,10 +428,14 @@ export function fromAttemptRow(
           available: true,
           triggered: row.triggerTriggered ?? false,
           skills: row.triggerSkills,
-          refused: row.triggerRefused ?? false,
-          refusals: Array.isArray(row.triggerRefusals)
-            ? (row.triggerRefusals as RefusedActivation[])
-            : [],
+          ...(row.triggerRefused === null
+            ? {}
+            : {
+                refused: row.triggerRefused,
+                refusals: Array.isArray(row.triggerRefusals)
+                  ? (row.triggerRefusals as RefusedActivation[])
+                  : [],
+              }),
           complete: row.triggerComplete ?? false,
           via: row.triggerVia ?? '',
         }

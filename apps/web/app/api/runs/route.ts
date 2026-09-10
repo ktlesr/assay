@@ -1,5 +1,6 @@
 import { parseSuite, type Run } from '@ktlsr/assay-core'
 import {
+  RecordShapeError,
   RunAlreadyStoredError,
   SuiteNotStorableError,
   isConfigured,
@@ -95,7 +96,9 @@ export async function POST(request: Request): Promise<Response> {
     // Prisma'nın hata metni tablo ve sütun adlarını taşıyor; dışarıya yalnızca
     // bizim yazdığımız kural mesajları çıkar.
     const known =
-      cause instanceof SuiteNotStorableError || (cause instanceof Error && expected(cause))
+      cause instanceof SuiteNotStorableError ||
+      cause instanceof RecordShapeError ||
+      (cause instanceof Error && expected(cause))
     if (!known) console.error('run ingest failed', cause)
     return json(
       {

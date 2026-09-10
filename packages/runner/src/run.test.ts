@@ -473,7 +473,7 @@ describe('reddedilen aktivasyon her iki vakada da unknown', () => {
     const result = await run(new MockAdapter({ scenarios: [REFUSED_ACTIVATION] }))
     const trigger = result.cases[0]?.attempts[0]?.trigger
     expect(trigger?.available).toBe(true)
-    expect(trigger?.available === true && trigger.refusals[0]?.skill).toBe('docx')
+    expect(trigger?.available === true && trigger.refusals?.[0]?.skill).toBe('docx')
   })
 })
 

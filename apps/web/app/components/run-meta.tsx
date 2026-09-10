@@ -1,4 +1,9 @@
-import { assayVersionLabel, type Run } from '@ktlsr/assay-core'
+import {
+  ACTIVATION_UNVERIFIED,
+  activationUnverified,
+  assayVersionLabel,
+  type Run,
+} from '@ktlsr/assay-core'
 
 /**
  * Sertifikanın künyesi: dört pin ve iki denetçisi.
@@ -58,6 +63,11 @@ export function Pins({ run, drifted = [] }: { run: Run; drifted?: readonly strin
     { key: 'suiteHash', driftKey: 'suiteHash', label: 'Case set hash', value: run.pins.suiteHash },
     // Pin değil ama yargının koşulu: kaydı hangi Assay sürümü üretti (0.3.2).
     { key: 'assayVersion', driftKey: 'assayVersion', label: 'Assay version', value: assayVersionLabel(run) },
+    // Yalnızca 0.2.0 öncesi kayıtta: tetiklenme sayıları doğrulanmamış
+    // aktivasyonlardan geliyor ve bu künyede görünmeli (0.4.1-a).
+    ...(activationUnverified(run)
+      ? [{ key: 'activation', driftKey: 'activation', label: 'Activation check', value: ACTIVATION_UNVERIFIED }]
+      : []),
   ]
   return (
     <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2">

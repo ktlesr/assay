@@ -293,10 +293,14 @@ export type TriggerObservation =
        * Hedef skill seçildi ama aktivasyonu doğrulanamadı ve hiç aktive
        * olmadı. `true` iken tetiklenme iddiası `unknown` üretir — ne pass ne
        * fail (değişmez #1).
+       *
+       * Yoksa kayıt 0.2.0'dan önce yazılmış: o sürüm aktivasyonu doğrulamıyor,
+       * seçilen her skill'i tetiklenmiş sayıyordu (0.2.0-d). Eksik alan "red
+       * yok" diye okunamaz — kontrol hiç yapılmadı (`activationUnverified`).
        */
-      refused: boolean
-      /** Aktivasyonu doğrulanamayan her çağrı, sebebiyle. */
-      refusals: readonly RefusedActivation[]
+      refused?: boolean
+      /** Aktivasyonu doğrulanamayan her çağrı, sebebiyle. `refused` ile birlikte yok olur. */
+      refusals?: readonly RefusedActivation[]
       /**
        * `skills` tetiklenen skill'lerin *tamamı* mı, yoksa yalnızca hedef mi?
        * `false` ise "şu skill tetiklenmedi" iddiası doğrulanamaz ve `unknown`
@@ -565,6 +569,21 @@ export function assayVersionLabel(run: Pick<Run, 'assayVersion'>): string {
     ? `${PRE_VERSION_STAMP} (the record predates version stamping)`
     : run.assayVersion
 }
+
+/**
+ * Kaydın tetiklenme gözlemleri aktivasyonu doğrulamadan mı yazıldı (0.4.1-a).
+ *
+ * 0.2.0 öncesi kayıtlarda `refused` yok: o sürüm seçilen her skill'i
+ * tetiklenmiş sayıyordu. Terminal ve hosted taraf aynı cümleyi kullanıyor.
+ */
+export function activationUnverified(run: Pick<Run, 'cases'>): boolean {
+  return run.cases.some((result) =>
+    result.attempts.some((a) => a.trigger.available && a.trigger.refused === undefined),
+  )
+}
+
+export const ACTIVATION_UNVERIFIED =
+  'not made: the record predates 0.2.0, which began confirming that a selected skill actually loaded'
 
 /**
  * Bir koşumun ölçebileceği katmanlar.

@@ -37,6 +37,50 @@ export class RunAlreadyStoredError extends Error {
 }
 
 /**
+ * Kayıt saklanabilir biçimde değil — ve nerede değil (0.4.1-d).
+ *
+ * İlk gerçek `assay push`ta 0.2.0 öncesi kayıtlar eşlemede bir TypeError ile
+ * düştü ve kullanıcıya yalnızca "the run could not be stored" gitti; sebep
+ * ancak kod yerel veritabanında koşturularak bulundu. Mesaj artık vakayı,
+ * denemeyi ve iz olayını adıyla söylüyor. Metin bizim eşleme kodumuzdan
+ * geliyor, veritabanından değil: tablo ya da sütun adı taşımıyor.
+ */
+export class RecordShapeError extends Error {
+  constructor(place: string, cause: unknown) {
+    super(
+      `the run record is malformed at ${place}: ${cause instanceof Error ? cause.message : String(cause)}`,
+    )
+    this.name = 'RecordShapeError'
+  }
+}
+
+function at<T>(place: string, map: () => T): T {
+  try {
+    return map()
+  } catch (cause) {
+    throw new RecordShapeError(place, cause)
+  }
+}
+
+/** Eşlemenin tamamı, işleme girmeden: bozuk bir kayıt yarım yazılmaz ve yerini söyler. */
+function assertShape(run: Run): void {
+  at('the run', () => toRunRow(run))
+  for (const result of at('the run', () => [...run.cases])) {
+    const inCase = `case "${String(result.caseId)}"`
+    at(inCase, () => toCaseResultRow(result))
+    for (const attempt of at(inCase, () => [...result.attempts])) {
+      const inAttempt = `${inCase}, attempt ${String(attempt.index)}`
+      at(inAttempt, () => toAttemptRow(attempt))
+      for (const event of at(inAttempt, () => [...(attempt.trace ?? [])])) {
+        at(`${inAttempt}, trace event ${String(event.seq)}`, () => toTraceEventRow(event))
+      }
+      const env = attempt.env
+      if (env !== undefined) at(`${inAttempt}, environment diff`, () => toEnvDiffRow(env))
+    }
+  }
+}
+
+/**
  * Bir koşumu ve ait olduğu vaka setini yazar.
  *
  * Tek bir işlem: yarım yazılmış bir koşum, ölçülmemiş bir vakayı "hiç
@@ -48,6 +92,7 @@ export async function storeRun(
   input: { suite: Suite; suiteHash: string; run: Run; ownerId?: string | undefined },
 ): Promise<{ runId: string; suiteId: string }> {
   assertSuiteStorable(input.suite)
+  assertShape(input.run)
 
   const existing = await db.run.findUnique({ where: { id: input.run.id } })
   if (existing !== null) throw new RunAlreadyStoredError(input.run.id)
