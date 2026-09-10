@@ -21,8 +21,35 @@ import { z } from 'zod'
 // Şema
 // ---------------------------------------------------------------------------
 
-/** Hiyerarşik vaka kimliği: `trigger.negative.near_neighbor.pdf` */
-const CASE_ID = /^[a-z0-9]+(?:\.[a-z0-9_]+)+$/
+/**
+ * Hiyerarşik vaka kimliği: `trigger.negative.near_neighbor.pdf`,
+ * `collide.copy-editing.tighten_paragraph`.
+ *
+ * 0.4.0: tire her segmentte serbest. Skill adları çoğunlukla tireli
+ * (`copy-editing`, `cold-email`) ve çakışma suite'i skill'in adını id'ye
+ * yazamıyordu. Eski desenin tam üst kümesi: ilk segment harf/rakamla, sonrakiler
+ * eskisi gibi `_` ile de başlayabilir; hiçbiri tireyle başlayamaz.
+ */
+const CASE_ID = /^[a-z0-9][a-z0-9_-]*(?:\.[a-z0-9_][a-z0-9_-]*)+$/
+
+/**
+ * Geçersiz bir id'nin neden geçersiz olduğu.
+ *
+ * Eski mesaj yalnızca "hierarchical and lowercase" diyordu; 20 tireli id için
+ * 20 kez aynı cümle basıldı ve hiçbiri sorunun tire olduğunu söylemedi.
+ */
+function caseIdProblem(id: string): string {
+  const illegal = [...id].find((ch) => !/[a-z0-9_.-]/.test(ch))
+  if (illegal !== undefined) {
+    return /[A-Z]/.test(illegal)
+      ? `case id "${id}" contains "${illegal}": ids are lowercase`
+      : `case id "${id}" contains "${illegal}": segments may use a-z, 0-9, "_" and "-"`
+  }
+  if (!id.includes('.')) {
+    return `case id "${id}" has one segment: ids are hierarchical, e.g. "trigger.positive.explicit"`
+  }
+  return `case id "${id}" has an empty segment or one that starts with "-": each segment starts with a letter or digit ("_" is also allowed after the first)`
+}
 
 /** `near_neighbor` segmenti taşıyan negatif vaka, tetiklenme suite'inin asıl sinyali. */
 const NEAR_NEIGHBOR_SEGMENT = 'near_neighbor'
@@ -35,12 +62,9 @@ export const TRACE_RULES = [
   'tool_args_valid',
 ] as const
 
-const caseIdSchema = z
-  .string()
-  .regex(
-    CASE_ID,
-    'case id must be hierarchical and lowercase, e.g. "trigger.positive.explicit"',
-  )
+const caseIdSchema = z.string().superRefine((id, ctx) => {
+  if (!CASE_ID.test(id)) ctx.addIssue({ code: 'custom', message: caseIdProblem(id) })
+})
 
 const assertionSchema = z.discriminatedUnion('type', [
   z.object({

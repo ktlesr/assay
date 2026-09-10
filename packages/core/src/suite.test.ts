@@ -172,16 +172,41 @@ describe('parseSuite — vaka kimlikleri', () => {
     expect(messagesOf(result.issues)).toContain('first defined at cases[0]')
   })
 
-  it.each([['flat'], ['Trigger.Positive'], ['trigger..positive'], ['trigger.pos itive']])(
-    'hiyerarşik olmayan id reddedilir: %s',
-    (id) => {
-      const result = parse(
-        withReplacement('  - id: trigger.positive.explicit', `  - id: "${id}"`),
-      )
-      expect(result.ok).toBe(false)
-      expect(messagesOf(result.issues)).toContain('hierarchical')
-    },
-  )
+  /*
+   * 0.4.0 — geçersiz id sebebini adıyla söyler. Eski mesaj her durumda
+   * "hierarchical and lowercase" diyordu ve tirenin sorun olduğunu söylemedi.
+   */
+  it.each([
+    ['flat', 'has one segment'],
+    ['Trigger.Positive', 'contains "T": ids are lowercase'],
+    ['trigger..positive', 'empty segment'],
+    ['trigger.pos itive', 'contains " "'],
+    ['collide.copy:editing', 'contains ":": segments may use a-z, 0-9, "_" and "-"'],
+    ['trigger.-positive', 'starts with "-"'],
+    ['-trigger.positive', 'starts with "-"'],
+    ['_trigger.positive', 'starts with "-"'],
+  ])('gecersiz id reddedilir ve sebebini soyler: %s', (id, reason) => {
+    const result = parse(
+      withReplacement('  - id: trigger.positive.explicit', `  - id: "${id}"`),
+    )
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain(reason)
+  })
+
+  it.each([
+    ['collide.copy-editing.tighten_paragraph'],
+    ['marketing-skills.cold-email.follow-up'],
+    ['trigger.positive.explicit'],
+    // Eski desen ilk segment dışında `_` ile başlayan segmente izin veriyordu;
+    // yeni desen onun üst kümesi olmalı.
+    ['trigger.negative._legacy'],
+  ])('tireli ve eski bicimli id kabul edilir: %s', (id) => {
+    const result = parse(
+      withReplacement('  - id: trigger.positive.explicit', `  - id: "${id}"`),
+    )
+    expect(messagesOf(result.issues)).not.toContain('case id')
+    expect(result.ok).toBe(true)
+  })
 
   it('hiçbir şey ölçmeyen vaka reddedilir', () => {
     const result = parse(
