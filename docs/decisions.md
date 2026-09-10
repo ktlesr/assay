@@ -2529,3 +2529,39 @@ artık sonuç ne olursa olsun worker'ı kapatıyor; aynı mutasyonla sınandı, 
 worker kalmadı.
 Geri dönüş maliyeti: düşük (davranış değişikliği: bugün `pass` kurtarılan kayıt
 `unknown` olur; sürüm notunda)
+
+## 2026-09-10 — Koşum kaydı onu üreten Assay sürümünü taşıyor (0.3.2)
+
+Bağlam: 0.3.1'in dışarıdan doğrulanmasında, kaydın hangi sürümden geldiğini
+gösteren bir alan yoktu ve kanıt dolaylı kaldı. Asıl sorun doğrulamadan büyük:
+verdict'in anlamı sürümler arasında değişti (0.2.0 reddedilen aktivasyonu
+tetiklenme sayıyordu, 0.3.0 yarım kaydı `pass` sayabiliyordu).
+Seçenekler: sürümü CLI'ın yazması · runner'ın kendi `package.json`'undan ·
+elle yazılmış bir sabit
+Karar: Runner, `package.json`'undan (`packages/runner/src/version.ts`). Kurtarılan
+kayıt journal başlığındaki sürümü taşıyor, kurtaranı değil. Eski kayıtlar
+doldurulmuyor; `core`'daki `assayVersionLabel` onları "0.3.1 or earlier (the
+record predates version stamping)" diye okuyor. Terminal, HTML ve hosted koşum
+sayfası aynı cümleyi kullanıyor. Hosted şemada `assayVersion` sütunu var ve boş
+string bir kısıtla reddediliyor.
+Gerekçe: CLI yazsaydı `runSuite`'i kütüphane olarak çağıranların kayıtları
+sürümsüz kalırdı. Dört paket tek sürümle yayımlandığı için runner'ın sürümü
+CLI'ınkiyle aynı. Elle yazılmış bir sabit sürüm PR'ında unutulurdu; testi zaten
+değeri diskteki `package.json`'la karşılaştırıyor. Kurtarmada kurtaranın sürümünü
+basmak, kaydı hiç koşmadığı bir sürümün ürünü gibi gösterirdi. Geriye dönük
+doldurma tahmin olurdu: bilinmeyen sürüm bilinmeyen kalır, ama boş değil,
+adıyla.
+Etiket "0.3.1 öncesi" değil "0.3.1 or earlier": alan 0.3.2'de geldi, yani
+0.3.1'in kendi kayıtları da sürümsüz. İstenen ifade 0.3.1 kayıtları için yanlış
+olurdu.
+Doğrulama: 14 ters çevirme, derleme kapılı. Biri (veritabanı okuması) ilk
+biçimiyle derlemeyi bozdu ve kapı onu "geçersiz" olarak işaretledi. Önceki
+turlarda bu tür bir mutasyon "yanlış sebeple kırmızı" diye okunmuştu. Tip-geçerli
+biçimiyle doğru sebeple kırmızı. Hosted sayfa gerçek (31 Ağustos) kayıtlarla
+açık/koyu/mobil çekildi.
+Yan düzeltme: `records.ts` ortam farkında ayırıcı olarak çıplak NUL karakteri
+taşıyordu (0.3.0-a); `grep` dosyayı ikili sanıp aramıyordu. Anlamı aynı olan
+`'\u0000'` kaçışıyla değiştirildi.
+Ortam notu: bu makinede 3000 ve 5433 başka projelerin Docker konteynerlerinde.
+Assay web 3100'de, geliştirme veritabanı 5434'te açıldı (`ASSAY_DEV_PG_PORT`).
+Geri dönüş maliyeti: düşük (opsiyonel alan + nullable sütun)

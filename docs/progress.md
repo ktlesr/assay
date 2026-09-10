@@ -33,8 +33,14 @@ Eylem v1.2.1: `v1` ve `action-v1.2.1` → `ddf5014`; dışarıdan doğrulandı
 (`ktlesr/assay-example`, koşum `34460704366`, `@v1` → `ddf5014`,
 `ASSAY_VERSION: 0.3.1`, npm dalı, 6/6 pass).
 
-**Açık:** koşum kaydı onu üreten Assay sürümünü taşımıyor; sürüm doğrulaması
-bu yüzden dolaylı kanıtlara dayanıyor (docs/marketplace.md).
+**0.3.2 hazır (2026-09-10), yayımlanmadı:** koşum kaydı onu üreten Assay
+sürümünü taşıyor (`Run.assayVersion`); eski kayıtlar "0.3.1 or earlier" diye
+okunuyor. Changeset `stamped-runs-say-who` (patch).
+
+**Geliştirme ortamı notu:** bu makinede 3000 ve 5433 başka projelerin
+konteynerlerinde. Assay: `ASSAY_DEV_PG_PORT=5434 node tools/dev-postgres.mjs`
+ve `apps/web` içinde `DATABASE_URL=postgres://postgres@127.0.0.1:5434/postgres
+npx next dev --port 3100`.
 
 Sırada **0.3.1-a** (uyarlanabilir durdurma): kalibrasyon koşumu ~$10–20, tetiği
 kullanıcı çeker.
