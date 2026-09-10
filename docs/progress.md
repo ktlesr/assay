@@ -7,10 +7,58 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 
 ## Durum
 
-**Faz 0–3 tamam** · **kalibrasyon tamam** · **npm'de 0.2.0** ·
-**0.3.0 kodda tamam, yayımlanmadı**
+**Faz 0–3 tamam** · **kalibrasyon tamam** · **npm'de 0.4.2** ·
+**eylem v1.3.2** · **assayctl.dev'de beş ölçüm (üçü public)**
 
-Son güncelleme: 2026-09-09.
+Son güncelleme: 2026-09-10 (oturum sonu). Yarın buradan: aşağıdaki
+**"Oturum kaydı — 2026-09-10"** ve **"Sırada"**.
+
+## Oturum kaydı — 2026-09-10
+
+**Çıkan sürümler (hepsi registry'den ve `ls-remote` ile doğrulandı):**
+
+| npm | eylem | birleştirme | içerik |
+|---|---|---|---|
+| 0.3.0 | v1.2.0 | `b66f74c` (#3) | hayatta kalma, paralellik, `--fast`; bütçe kesmesi `pass` veremez |
+| 0.3.1 | v1.2.1 | `ddf5014` (#4) | kurtarılan yarım kayıt `pass` veremez, ulaşılamayan vaka adıyla |
+| 0.3.2 | v1.2.2 | `94677c4` (#5) | kayıt `assayVersion` taşıyor |
+| 0.4.0 | v1.3.0 | `4109517` (#6) | çakışma şeması: `expect.winner`, matris (terminal/HTML) |
+| 0.4.1 | v1.3.1 | `bb2f192` (#7) | maskeleme üç biçim + hesap adı, push taraması; 0.2.0 öncesi kayıt; `/compare`, `/suites` |
+| 0.4.2 | v1.3.2 | `114f4b9` (#8) | push çıkış 4, gizli koşum uyarısı, `--version`; küçük kusurlar turu |
+
+0.3.x–0.4.0 dışarıdan (`ktlesr/assay-example`) doğrulandı; 0.4.1 ve 0.4.2'de dış
+koşum yapılmadı (istenmedi, para harcıyor).
+
+**İlk gerçek `assay push` (0.4.0 ile).** assayctl.dev'e sekiz temsilci kayıt
+seçildi, beşi yüklendi; üç eski ölçüm 0.4.1 hosted düzeltmesinden sonra
+yüklendi. Sitede şu an: impeccable (3 koşum) ve hallmark **public**;
+marketingskills (0bec859e, eski suite'le puanlanmış) **gizli** (kullanıcı
+kararı); animate, better-typography, ui-ux-pro-max **yüklü ama gizli** —
+yayımlama kullanıcıda. Production Dokploy'la main'e her push'ta kendiliğinden
+dağıtılıyor.
+
+**Bulunan kusurlar ve durumları** (tablo roadmap.md 0.4.1):
+0.4.1-a…o'nun hepsi kapandı — eski kayıt reddi (a), maskeleme kaçakları (b, c),
+genel 400 (d), push çıkış kodu (e), gizli koşum sessizliği (f), token sayfası (g),
+`--version` (h), `/compare` 404 (i), aralık taşması (j), ad kırılması (k), boş
+payda gerekçesi (l), dizin eksikliği (m), onay penceresi yığın sırası (n), üst
+çubukta dizin (o). Web matrisi (0.4.1-1) tamam. Ek olarak tanıtım sayfasında
+`npx assay` (ilgisiz bir npm paketini çalıştırıyordu), yanlış `init` yolu ve elle
+yazılmış sayılar düzeltildi.
+
+**Önemli kararlar** (tam metin decisions.md, 2026-09-10): bütçe/kurtarma kesmesi
+`pass` veremez; hızlı modun gizli tavanı yok; kazanan = ilk doğrulanmış
+aktivasyon, `winner: none`, hiçbiri tetiklenmediyse `fail`; host skill'i de
+"ilk tetiklenen" sayılır; yeniden puanlanmış kayıt yüklenmez (köken); push
+kalıntıda yüklemez (`--allow-unmasked`); 0.2.0 öncesi aktivasyon "yapılmadı"
+olarak NULL; `/compare` yayın modunda açık; dizin `/suites`, üst çubukta
+"Measurements"; push için çıkış kodu 4.
+
+**Dersler.** Derleme kapılı ters çevirme bugün iki kez tabanı yakaladı (bir test
+tip hatası, tüm tur "geçersiz" sayıldı). Bir doğrulama yanlış sebeple yeşildi:
+Radix modal `pointer-events: none` verdiği için `elementFromPoint` çizim
+sırasını değil tıklanabilirliği ölçtü; bileşen kataloğu `<main>` kullanmadığı
+için kusur orada hiç oluşmuyordu. İkisi de düzeltildi.
 
 Dört paket yayımlanıyor: `@ktlsr/assay`, `-core`, `-runner`, `-adapters`.
 **0.3.0 yayımlandı (2026-09-10).** Dört paket registry'de, `latest=0.3.0`, npm
@@ -181,13 +229,31 @@ geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 
 ## Sırada
 
-**0.3.1 — uyarlanabilir durdurma.** Sabit bakış çizelgesi + Bonferroni
-düzeltmesi; naif Wilson erken durma reddedildi (optional stopping, kapsama
-garantisi kaybolur). ~2 gün kod + **para harcayan bir kalibrasyon koşumu
-(~$10–20)** — tetiği kullanıcı çeker.
+Sıra ve onay durumu (2026-09-10 sonunda):
 
-Ondan sonrası roadmap.md'nin "sonraki dalga"sı: skill çakışma testi, model
-güncelleme sertifikasyonu, çapraz-host matrisi. Bilerek yapılmadı.
+1. **Kazananlı suite'le gerçek bir çakışma koşumu** — `examples/measurements/
+   marketingskills.collide.winner.suite.yaml`, 0.4.2 ile; `--fast` ≈ 60 deneme,
+   birkaç dolar. Web matrisi hazır ama production'da kazanan beyan eden kayıt
+   yok; bu koşum yüklenince matris sitede görünür. **Onay bekliyor (para).**
+2. **Üç eski ölçümün yayımlanması** (animate, better-typography, ui-ux-pro-max)
+   — yüklü ve gizli; sayfaları "activation not verified" diyor. `/admin/suites`
+   → Publish. **Kullanıcı kararı.**
+3. **0.3.1-a — uyarlanabilir durdurma.** Sabit bakış çizelgesi + Bonferroni;
+   ~2 gün kod + kalibrasyon koşumu (~$10–20). **Onay bekliyor (para).**
+4. İsteğe bağlı: 0.4.1/0.4.2 için dış depo doğrulaması (`gh workflow run
+   assay.yml -R ktlesr/assay-example`, birkaç sent). **Onay bekliyor (para).**
+5. Kayıt dışı kalanlar, küçük: tanıtım sayfasının öne çıkardığı suite
+   yayımlananlara göre değişiyor (şu an hallmark) — bilinçli seçim gerekirse
+   bir "featured" alanı; `robots.ts` `/compare`'ı taramaya kapalı tutuyor
+   (bilinçli).
+
+Ondan sonrası roadmap.md'nin "sonraki dalga"sı: model güncelleme
+sertifikasyonu, çapraz-host matrisi. Bilerek yapılmadı.
+
+**Ölçüm reposu (D:\assay-example = ktlesr/skill-trigger-measurements).**
+Commit edilmemiş değişiklik yok, origin ile eşit (`c7984f6`). Ama 40 koşum kaydı
+`.assay/runs/` altında ve `.assay/` gitignore'da: kayıtların tek kopyası bu
+makinede. Salt okunur kullanılıyor.
 
 ## Yayın durumu
 
@@ -248,6 +314,17 @@ istatistiksel, [calibration.md](calibration.md)'de yazılı.
   Doğrulamak için `node tools/check-auth.mjs`.
 - Gerçek host koşumu para harcar: attempt başına ~$0.03–0.06.
 - `pnpm dev` → http://localhost:3000
+- **Bu makinede** 3000 ve 5433 başka projelerin Docker konteynerlerinde:
+  `ASSAY_DEV_PG_PORT=5434 node tools/dev-postgres.mjs`, `apps/web` içinde
+  `DATABASE_URL=postgres://postgres@127.0.0.1:5434/postgres DATABASE_POOL_MAX=1
+  npx next dev --port 3100`.
+- PGlite soketi **tek istemci** kabul ediyor ve bir istemci ayrıldıktan sonra
+  yenisini çoğu zaman kabul etmiyor. Web açıkken betikle veritabanına
+  yazılmaz: web'i ve DB'yi durdur, DB'yi başlat, tek süreçte yaz, DB'yi yeniden
+  başlat, web'i aç.
+- Yerel dev veritabanında sınama için yazılanlar (production'da yok):
+  `…0bec859e-rescored-local` (matris doğrulaması, 0.4.0-f kaydı), `run-f3-*`
+  kopyaları, yerel public bayrakları, `xlsx` gizli.
 - Hosted taraf veritabanı ister. Geliştirmede: `pnpm db:dev` (PGlite,
   127.0.0.1:5433). `apps/web/.env.local` içinde `DATABASE_URL`, `AUTH_SECRET`
   ve `DATABASE_POOL_MAX=1`.

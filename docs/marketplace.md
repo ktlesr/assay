@@ -138,7 +138,7 @@ gösteren bir parmak izi (0.3.1 için: aynı yarım journal'ı 0.3.0 `pass`, 0.3
 `unknown` diye kurtarıyor). Kök sebep kayıtta: koşum kaydı onu üreten Assay
 sürümünü taşımıyor.
 
-**Ad tuzağı.** Bu makinedeki `D:ssay-example` klasörü `ktlesr/assay-example`
+**Ad tuzağı.** Bu makinedeki `D:\assay-example` klasörü `ktlesr/assay-example`
 DEĞİL; uzağı `ktlesr/skill-trigger-measurements` (ölçüm deposu). Orada secret
 yok ve eylem oradan koşamaz. 0.3.0 doğrulamasında bir duman testi iş akışı
 yanlışlıkla oraya kondu ve geri alındı.
