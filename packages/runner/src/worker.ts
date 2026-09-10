@@ -101,9 +101,39 @@ async function main(): Promise<void> {
    * Sonucun kaynağı dosya; bu satır yalnızca "yazdım" demek.
    */
   process.stdout.write(`${DONE}\n`)
+
+  /*
+   * Canlı kalmak için AÇIK BİR ZAMANLAYICI şart.
+   *
+   * İlk hâli yalnızca `await new Promise(() => {})` idi ve yukarıdaki iddiayı
+   * yerine getirmiyordu: çözülmeyen bir söz event loop'u açık tutmaz, Node
+   * worker'ı `DONE` yazar yazmaz kapatıyordu. Windows'ta görünmedi — PPID alanı
+   * ebeveyn ölünce de korunuyor ve ağaç yine yürünüyor. Linux'ta yetim init'e
+   * geçiyor, zincir kopuyor ve ağaç kapatma onu hiç görmüyordu. CI yakaladı,
+   * konteynerde ölçüldü.
+   *
+   * Zamanlayıcı ayrıca ebeveyne bakıyor: sevk katmanı öldürülürse (tavan,
+   * `taskkill /F /IM node.exe`) worker sonsuza kadar asılı kalmasın.
+   */
+  const parent = process.ppid
+  setInterval(() => {
+    if (!parentAlive(parent)) process.exit(0)
+  }, 1_000)
   await new Promise(() => {
-    // Sevk katmanı kapatacak. Kasıtlı olarak çözülmeyen bir söz.
+    // Sevk katmanı kapatacak; yukarıdaki zamanlayıcı süreci ayakta tutuyor.
   })
+}
+
+/** Ebeveyn hâlâ orada mı. POSIX'te ölen ebeveynin yerini init alır, PPID değişir. */
+function parentAlive(parent: number): boolean {
+  if (process.ppid !== parent) return false
+  try {
+    process.kill(parent, 0)
+    return true
+  } catch (cause) {
+    // EPERM: süreç var ama bizim değil — yaşıyor sayılır.
+    return (cause as NodeJS.ErrnoException).code === 'EPERM'
+  }
 }
 
 /** Sevk katmanının beklediği işaret: sonuç dosyası yazıldı. */

@@ -122,8 +122,8 @@ export async function superviseAttempt(
     const child = spawn(process.execPath, [workerEntry(), payloadPath], {
       stdio: ['ignore', 'pipe', 'pipe'],
       ...(options.env === undefined ? {} : { env: { ...process.env, ...options.env } }),
-      // POSIX'te kendi süreç grubunda: ağaç kapatma `kill(-pid)` ile grubun
-      // tamamına gidiyor. Windows'ta `taskkill /T` zaten PID ağacını yürüyor.
+      // POSIX'te kendi süreç grubunda: ağaç kapatma yürüyüşe ek olarak grubun
+      // tamamına da sinyal gönderiyor (process.ts). Windows'ta PPID yürünüyor.
       ...(process.platform === 'win32' ? {} : { detached: true }),
     })
 

@@ -72,6 +72,12 @@ döndü. İlk denemede "yalnız-artefakt vakası" mutasyonu **yanlış sebeple**
 kırmızıydı (derlemeyi kırdı, 9 test atlandı); tip-geçerli bir mutasyonla
 tekrarlandı ve 4 test gerçekten düştü.
 
+**CI 2026-09-08'den 2026-09-10'a kadar kırmızıydı** (0.3.0-c'den beri): süreç
+ağacı testi yalnızca Linux'ta düşüyordu. İki kusur — worker canlı kalmıyordu,
+POSIX yolu yalnızca grup sinyali gönderiyordu — Docker konteynerinde ölçülüp
+kapatıldı (decisions.md, 2026-09-10). Linux yolu artık yerelde de sınanabiliyor:
+`node:22.20.0` konteyneri.
+
 Yan iş: bu makinedeki Git Bash `add_item` çökmesi ölü domain kaydından
 geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 

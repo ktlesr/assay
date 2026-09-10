@@ -2408,3 +2408,33 @@ tetiklenmeye bakar ve kimse fark etmez. Öneri belgeye, karar kullanıcıya ait.
 Not: girdi verildiğinde `assay-version` pini bayrağı tanıyan bir sürümü
 göstermeli; pin sürüm PR'ında zaten birlikte yükseliyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Worker gerçekten canlı kalıyor; POSIX'te ağaç da yürünüyor
+
+Bağlam: CI 0.3.0-c'den (`2f4fbb7`) beri her push'ta kırmızıydı: süreç ağacı
+testi Windows'ta geçip Linux runner'ında düşüyordu. İki ayrı kusur üst üste
+biniyordu ve ikisi de Windows'ta görünmüyordu.
+1. Worker'ın "canlı bekle" satırı `await new Promise(() => {})` idi. Çözülmeyen
+   bir söz event loop'u açık tutmaz; Node worker'ı `DONE` yazar yazmaz
+   kapatıyordu. Yorum tersini iddia ediyordu.
+2. POSIX yolu yalnızca köke grup sinyali gönderiyordu. `detached: true` POSIX'te
+   `setsid` demek; öyle başlayan bir torun kendi grubunu kuruyor ve kaçıyor.
+Windows'ta ikisi de görünmedi, çünkü PPID alanı ebeveyn ölünce de korunuyor ve
+yürüyüş yetimi yine buluyor.
+Seçenekler: testi Linux'ta atlamak · yalnızca grup sinyalini düzeltmek · ikisini
+birden düzeltip her birini ayrı ölçmek
+Karar: Üçüncüsü. Worker açık bir zamanlayıcıyla canlı; zamanlayıcı ebeveyn
+ölünce worker'ı kapatıyor. POSIX'te ağaç `ps -A -o pid=,ppid=` fotoğrafından
+yürünüyor, her düğüme ve grubuna SIGKILL.
+Gerekçe: Testi Linux'ta atlamak ürünün Linux'ta yetim bıraktığını gizlerdi —
+CI'da koşan her kullanıcı Linux'ta. İlk düzeltme (yalnızca yürüyüş) CI'da yine
+kırmızıydı; konteynerde ölçülünce ikinci kusur çıktı. Aynı kod bir koşumda
+kırmızı, diğerinde yeşil verdi: worker'ın çıkışı ile `ps` fotoğrafı arasında
+yarış vardı ve eski test onu şansa bağlı yakalıyordu. Bu yüzden canlı kalma ve
+ebeveyn ölünce çıkma iki ayrı, yarışsız testle ölçülüyor.
+Doğrulama (node:22.20.0 konteyneri + Windows): düzeltme 3/3 koşumda 6/6 yeşil;
+zamanlayıcı kaldırılınca, ebeveyn kontrolü kaldırılınca ve yürüyüş
+kaldırılınca her biri tam kendi testinde kırmızı — iki platformda da.
+Tavan: kök çağrıdan önce ölmüş bir ara sürecin altındakiler init'e geçmiştir ve
+yürüyüşte görünmez; kesin cevap subreaper ya da konteyner, Faz 3.
+Geri dönüş maliyeti: düşük

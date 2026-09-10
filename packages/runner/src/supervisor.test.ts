@@ -185,7 +185,82 @@ describe('süreç ağacı', () => {
     // Ve gerçekten öldü. Ölüm anlıksa değil; kısa bir pencere tanınıyor.
     expect(await goneWithin(orphanPid, 5_000)).toBe(true)
   }, 60_000)
+
+  /*
+   * Yukarıdaki test worker'ın canlı kalmasına YARIŞLA bağlı: worker `DONE`
+   * yazıp kendiliğinden çıkarsa Linux'ta ağaç kopuyor, ama `ps` fotoğrafı ondan
+   * önce çekilirse test yine geçiyor. Konteynerde aynı kod bir kez kırmızı, bir
+   * kez yeşil çıktı. Canlı kalma burada doğrudan ve yarışsız ölçülüyor.
+   */
+  it('worker DONE dedikten sonra kendi kendine cikmiyor', async () => {
+    const worker = await startWorker(process.execPath, [workerEntry()])
+    await new Promise((r) => setTimeout(r, 1_500))
+    expect(alive(worker.pid)).toBe(true)
+    await killTree(worker.pid)
+  }, 60_000)
+
+  it('ebeveyni olen worker asili kalmiyor', async () => {
+    // Ara süreç worker'ı başlatıp PID'ini basıyor ve ölüyor — sevk katmanının
+    // `taskkill /F /IM node.exe` ile öldürüldüğü tavan durumu.
+    const launcher = `
+      const { spawn } = require('node:child_process')
+      const w = spawn(process.execPath, process.argv.slice(1), { stdio: ['ignore', 'pipe', 'ignore'], detached: true })
+      w.stdout.on('data', (d) => { if (String(d).includes('assay:attempt-done')) { console.log(w.pid); process.exit(0) } })
+    `
+    const worker = await startWorker(process.execPath, ['-e', launcher, workerEntry()], true)
+    // Pozitif kontrol yukarıdaki testte: ebeveyni yaşarken worker ölmüyor.
+    expect(await goneWithin(worker.pid, 5_000)).toBe(true)
+  }, 60_000)
 })
+
+/**
+ * Worker'ı sevk katmanının kurduğu yükle başlatır, `DONE` görene kadar bekler.
+ * `viaLauncher` iken stdout'taki ilk sayı worker'ın PID'i (ara süreç basıyor).
+ */
+async function startWorker(
+  command: string,
+  args: string[],
+  viaLauncher = false,
+): Promise<{ pid: number }> {
+  // Önceki testin yetim ayarları `process.env`de kalıyor; worker devralırsa
+  // kendi yetimini doğurur ve ölçülen şey değişir.
+  delete process.env['ASSAY_TEST_ORPHAN_PORT']
+  delete process.env['ASSAY_TEST_ORPHAN_PID_FILE']
+  const dir = await mkdtemp(join(tmpdir(), 'assay-worker-test-'))
+  const payloadPath = join(dir, 'payload.json')
+  await writeFile(
+    payloadPath,
+    JSON.stringify({
+      suite,
+      testCase: suite.cases[0],
+      index: 0,
+      adapter: spec(),
+      options: { source: SUITE_SOURCE, skillPath },
+      resultPath: join(dir, 'result.json'),
+    }),
+    'utf8',
+  )
+  const child = spawn(command, [...args, payloadPath], { stdio: ['ignore', 'pipe', 'inherit'] })
+  let out = ''
+  child.stdout.setEncoding('utf8')
+  await new Promise<void>((resolve, reject) => {
+    child.stdout.on('data', (chunk: string) => {
+      out += chunk
+      if (viaLauncher ? /^\d+\s/m.test(out) : out.includes('assay:attempt-done')) resolve()
+    })
+    child.on('error', reject)
+  })
+  return { pid: viaLauncher ? Number(out.trim().split(/\s+/)[0]) : (child.pid as number) }
+}
+
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
 
 // ---------------------------------------------------------------------------
 // TAVAN — sevk katmanı da öldürülebilir
