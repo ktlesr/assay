@@ -10,6 +10,7 @@ export {
   validateSuite,
   suiteSchema,
   expectedWinnerOf,
+  isNegativeCase,
   WINNER_NONE,
   FILE_FORMATS,
   TRACE_RULES,

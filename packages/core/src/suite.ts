@@ -132,6 +132,19 @@ const expectSchema = z.object({
   assertions: z.array(assertionSchema).optional(),
 })
 
+/**
+ * Değişmez #5'in "negatif vaka" tanımı — TEK yer.
+ *
+ * `triggered: false` ya da `winner: none`. Bu tanım eskiden iki yerde yazılıydı
+ * (doğrulayıcı ve veritabanı katmanı); 0.4.0'da biri güncellenip öteki
+ * unutulunca bir çakışma suite'i doğrulamadan geçip hosted tarafa yüklenemedi.
+ */
+export function isNegativeCase(c: { expect: { triggered?: boolean | undefined; winner?: string | readonly string[] | undefined } }): boolean {
+  if (c.expect.triggered === false) return true
+  const winner = expectedWinnerOf(c.expect)
+  return winner !== undefined && winner.length === 0
+}
+
 /** `winner: none` — ayrılmış sözcük; bir skill adı değil. */
 export const WINNER_NONE = 'none'
 
@@ -474,8 +487,7 @@ function checkCases(suite: Suite, issues: SuiteIssue[]): void {
     }
 
     // `winner: none` çakışma suite'inin negatifi: değişmez #5 onu da sayar.
-    const noneWins = winner !== undefined && winner.length === 0
-    if (triggered === false || noneWins) {
+    if (isNegativeCase(c)) {
       negatives += 1
       if (c.id.split('.').includes(NEAR_NEIGHBOR_SEGMENT)) nearNeighbours += 1
     }

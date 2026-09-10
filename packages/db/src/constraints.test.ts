@@ -512,7 +512,47 @@ describe('vaka kısıtları', () => {
     ).resolves.toBeDefined()
   })
 
-  it.each(['flat', 'Trigger.Positive', 'trigger..x', 'trigger.pos itive'])(
+  /*
+   * 0.4.0 — id kısıtı core ile aynı desen. Yalnız core genişletilseydi tireli
+   * bir id doğrulayıcıdan geçip `assay push`'ta burada reddedilirdi.
+   */
+  it.each(['collide.copy-editing.tighten_paragraph', 'marketing-skills.cold-email.x', 'trigger.negative._legacy'])(
+    'tireli ve eski bicimli id kabul edilir: %s',
+    async (caseId) => {
+      const suiteId = await makeSuite()
+      await expect(makeCase(suiteId, { caseId })).resolves.toBeDefined()
+    },
+  )
+
+  it('yalniz kazanan tasiyan vaka (winner: none) bir sey olcuyor sayilir (0.4.0)', async () => {
+    const suiteId = await makeSuite()
+    await expect(
+      run(
+        `INSERT INTO "Case" ("id","suiteId","caseId","prompt","expectTriggered","expectsWinner","expectedWinner")
+         VALUES ($1,$2,'negative.pricing','p',NULL,true,'{}')`,
+        [next(), suiteId],
+      ),
+    ).resolves.toBeDefined()
+  })
+
+  it('kazanan iddiasi yokken dolu kazanan listesi reddedilir: Case ve CaseResult', async () => {
+    const suiteId = await makeSuite()
+    await violates(
+      'case_winner_consistent',
+      `INSERT INTO "Case" ("id","suiteId","caseId","prompt","expectTriggered","expectsWinner","expectedWinner")
+       VALUES ($1,$2,'collide.x.y','p',true,false,'{cro}')`,
+      [next(), suiteId],
+    )
+    const caseId = await makeCase(suiteId)
+    const runId = await makeRun(suiteId)
+    await expect(
+      makeCaseResult(runId, caseId).then((id) =>
+        run(`UPDATE "CaseResult" SET "expectsWinner" = false, "expectedWinner" = '{cro}' WHERE "id" = $1`, [id]),
+      ),
+    ).rejects.toThrow('case_result_winner_consistent')
+  })
+
+  it.each(['flat', 'Trigger.Positive', 'trigger..x', 'trigger.pos itive', 'trigger.-positive'])(
     'hiyerarşik olmayan id reddedilir: %s',
     async (caseId) => {
       const suiteId = await makeSuite()

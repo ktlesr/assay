@@ -378,3 +378,38 @@ describe('RunScope', () => {
     expect(run?.id).toBe('run-private')
   })
 })
+
+/**
+ * 0.4.0 — bir çakışma suite'i hosted tarafa gerçekten yüklenebiliyor mu?
+ *
+ * `case_measures_something` kısıtı güncellenmeseydi `winner: none` vakası
+ * reddedilir ve suite hiç yüklenemezdi; id kısıtı güncellenmeseydi tireli id.
+ */
+describe('çakışma suite\'i gidiş-dönüş (0.4.0)', () => {
+  it('tireli id, winner ve winner: none tasiyan kosum yazilip aynen geri okunuyor', async () => {
+    const collision: Suite = {
+      ...SUITE,
+      target: { skill: 'marketing-skills:cro', source: 'o/r@1' },
+      environment: { ...SUITE.environment, active_skills: ['marketing-skills:cro', 'marketing-skills:copy-editing'] },
+      cases: [
+        { id: 'collide.copy-editing.tighten', prompt: 'p', expect: { winner: 'marketing-skills:copy-editing' } },
+        { id: 'negative.pricing', prompt: 'p', expect: { winner: 'none' } },
+      ],
+    }
+    const base = makeRun('run-roundtrip-collision')
+    const template = base.cases[0] as NonNullable<(typeof base.cases)[number]>
+    const run: Run = {
+      ...base,
+      cases: [
+        { ...template, caseId: 'collide.copy-editing.tighten', expectedWinner: ['marketing-skills:copy-editing'] },
+        { ...template, caseId: 'negative.pricing', expectedWinner: [] },
+      ],
+    }
+    await storeRun(db, { suite: collision, suiteHash: 'sha256:collision', run })
+    const loaded = await loadRun(db, run.id, ALL)
+    expect(loaded?.cases.map((c) => [c.caseId, c.expectedWinner])).toEqual([
+      ['collide.copy-editing.tighten', ['marketing-skills:copy-editing']],
+      ['negative.pricing', []],
+    ])
+  })
+})

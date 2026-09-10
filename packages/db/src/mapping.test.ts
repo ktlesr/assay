@@ -580,6 +580,38 @@ describe('0.2.0 alanları — eşleme', () => {
     expect(back.pins.environmentHash).toBe('sha256:env')
   })
 
+  it('beklenen kazanan: iddia yok, none ve liste ayri kaliyor (0.4.0)', () => {
+    const base = run.cases[0] as NonNullable<(typeof run.cases)[number]>
+    for (const expectedWinner of [undefined, [], ['a'], ['a', 'b']]) {
+      const result = { ...base, ...(expectedWinner === undefined ? {} : { expectedWinner }) }
+      const row = toCaseResultRow(result)
+      expect(row.expectsWinner).toBe(expectedWinner !== undefined)
+      const back = fromCaseResultRow(row, result.attempts)
+      if (expectedWinner === undefined) expect('expectedWinner' in back).toBe(false)
+      else expect(back.expectedWinner).toEqual(expectedWinner)
+    }
+  })
+
+  it('vaka tanimi kazanan iddiasini tasiyor; none bayrak acik + bos liste (0.4.0)', () => {
+    const parsed = parseSuite(`
+version: 1
+target: { skill: cro, source: o/r@1 }
+environment: { host: h, model: m, system_prompt_hash: x, active_skills: [cro, signup] }
+runs: 2
+cases:
+  - id: collide.signup.a
+    prompt: p
+    expect: { winner: signup }
+  - id: negative.b
+    prompt: p
+    expect: { winner: none }
+`)
+    if (!parsed.ok) throw new Error(parsed.issues.map((i) => i.message).join('; '))
+    const [a, b] = parsed.suite.cases.map(toCaseRow)
+    expect([a?.expectsWinner, a?.expectedWinner]).toEqual([true, ['signup']])
+    expect([b?.expectsWinner, b?.expectedWinner]).toEqual([true, []])
+  })
+
   it('butce kesmesiyle unknown olan kosumun gerekcesi kesmeyi soyluyor', () => {
     // Bütçe kesmesi hiçbir denemeyi `unknown` yapmıyor; gerekçe denemelerden
     // türetilseydi yedek cümleye düşer ve "hiçbir deneme açıklamadı" derdi.

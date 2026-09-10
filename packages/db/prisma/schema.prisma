@@ -101,6 +101,9 @@ model Case {
   expectTriggered Boolean?
   /// Coexistence: tetiklenmemesi gereken diğer skill'ler.
   notTriggered    String[] @default([])
+  /// Beklenen kazanan (0.4.0); bayrak açık + boş dizi = `winner: none`.
+  expectsWinner   Boolean  @default(false)
+  expectedWinner  String[] @default([])
   /// Assertion listesi. Biçimi `@ktlsr/assay-core`'daki `Assertion` birleşimi.
   assertions      Json     @default("[]")
 
@@ -211,6 +214,11 @@ model CaseResult {
 
   /// Vakanın tetiklenme iddiası — kayıt kendi kendine yetsin diye kopyalanır.
   expectTriggered Boolean?
+
+  /// Çakışma vakasının beklenen kazananı (0.4.0). Bayrak iddianın varlığı,
+  /// dizi içeriği; bayrak açık + boş dizi = `winner: none`.
+  expectsWinner  Boolean  @default(false)
+  expectedWinner String[] @default([])
 
   attempts Attempt[]
 

@@ -11,6 +11,8 @@
  */
 
 import {
+  expectedWinnerOf,
+  isNegativeCase,
   proportion,
   type Attempt,
   type CaseResult,
@@ -80,6 +82,9 @@ export interface CaseRow {
   prompt: string
   expectTriggered: boolean | null
   notTriggered: string[]
+  /** Kazanan iddiası var mı; bayrak açık + boş dizi = `winner: none` (0.4.0). */
+  expectsWinner: boolean
+  expectedWinner: string[]
   assertions: unknown
   nearNeighbour: boolean
 }
@@ -145,6 +150,9 @@ export interface CaseResultRow {
   ciLow: number | null
   ciHigh: number | null
   expectTriggered: boolean | null
+  /** Kazanan iddiası var mı; `expectedWinner` boşken `none` ile "iddia yok"u ayırır. */
+  expectsWinner: boolean
+  expectedWinner: string[]
 }
 
 export interface AttemptRow {
@@ -224,6 +232,8 @@ export function toCaseRow(testCase: SuiteCase): CaseRow {
     prompt: testCase.prompt,
     expectTriggered: testCase.expect.triggered ?? null,
     notTriggered: [...(testCase.expect.not_triggered ?? [])],
+    expectsWinner: expectedWinnerOf(testCase.expect) !== undefined,
+    expectedWinner: [...(expectedWinnerOf(testCase.expect) ?? [])],
     assertions: testCase.expect.assertions ?? [],
     nearNeighbour: isNearNeighbour(testCase.id),
   }
@@ -296,6 +306,8 @@ export function toCaseResultRow(result: CaseResult): CaseResultRow {
     ciLow: result.passRate.ci?.low ?? null,
     ciHigh: result.passRate.ci?.high ?? null,
     expectTriggered: result.expectedTrigger ?? null,
+    expectsWinner: result.expectedWinner !== undefined,
+    expectedWinner: [...(result.expectedWinner ?? [])],
   }
 }
 
@@ -456,6 +468,8 @@ export function fromCaseResultRow(
   return {
     caseId: row.caseId,
     ...(row.expectTriggered === null ? {} : { expectedTrigger: row.expectTriggered }),
+    // Bayrak kapalıysa iddia yok; açık ve boşsa `winner: none`.
+    ...(row.expectsWinner ? { expectedWinner: row.expectedWinner } : {}),
     attempts,
     // Oran satırdan yeniden hesaplanmıyor, saklanan sayımlardan kuruluyor:
     // aynı `proportion` fonksiyonu, aynı sonuç.
@@ -520,7 +534,8 @@ export class SuiteNotStorableError extends Error {
  * *tamamına* bakıyor. Bu yüzden kaydetmeden önce burada kontrol edilir.
  */
 export function assertSuiteStorable(suite: Suite): void {
-  const negatives = suite.cases.filter((c) => c.expect.triggered === false)
+  // Tanım core'da tek yerde: `triggered: false` ya da `winner: none` (0.4.0).
+  const negatives = suite.cases.filter(isNegativeCase)
   if (negatives.length === 0) {
     throw new SuiteNotStorableError(
       'a trigger suite without a negative case cannot be stored: a skill that fires on ' +
@@ -532,7 +547,7 @@ export function assertSuiteStorable(suite: Suite): void {
 /** Uyarı düzeyinde: yakın komşu yoksa suite kaydedilir ama işaretlenir. */
 export function suiteWarnings(suite: Suite): string[] {
   const warnings: string[] = []
-  const negatives = suite.cases.filter((c) => c.expect.triggered === false)
+  const negatives = suite.cases.filter(isNegativeCase)
   if (negatives.length > 0 && !negatives.some((c) => isNearNeighbour(c.id))) {
     warnings.push(
       'no near-neighbour case: an unrelated negative is easy to pass, the discriminating ' +
