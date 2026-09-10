@@ -624,6 +624,17 @@ gönderildi; beşi yüklendi. Kararlar: decisions.md, 2026-09-10.
 | 0.4.1-f | `push` yüklenen koşumun suite'i yayımlanana kadar gizli olduğunu söylemiyor; bastığı URL herkese 404 | cli/hosted | İlk kullanımda "yüklendi ama sitede yok" |
 | 0.4.1-g | Token sayfasının boş durumu `--url http://localhost:3000` öneriyor | web | Üretimde yanlış komut |
 | 0.4.1-h | `--version` yok | cli | Hangi sürümle çalışıldığını görmenin yolu `npx` çıktısı |
+| 0.4.1-i | Yayın modunda `/compare` 404, ama koşum ve suite sayfaları "vs previous" ile oraya bağlanıyor | web | Sitede karşılaştırma yapılamıyor; dört pini aynı çift yalnızca CLI'da karşılaştırılabildi (12/12 `within_noise`) |
+| 0.4.1-j | Dar ve sağ uca yakın bir aralıkta (`91%–100%`) uç etiketleri kutuya sığmıyor; `justify-content: space-between` taşmayı sağa veriyor (kod yorumu "iki yana eşit taşar" diyor) | ui | 375px'te hallmark koşum ve suite sayfası iki temada yatay kayıyor (etiket 380px'e uzanıyor) |
+| 0.4.1-k | Skill adı başlıkta kelimenin ortasından kırılıyor (`hallmark:hallmar` / `k`) | web | Mobilde okunmuyor; kırılma `:`'da olmalı |
+| 0.4.1-l | Payda 0 olan oranın gerekçesi her zaman "No attempt produced a readable signal" | ui | Hedef skill hiç tetiklenmediğinde precision'ın paydası tanım gereği 0; sinyal okundu. 0.3.0-a'daki "yanlış adres" kusurunun ekrandaki hâli |
+
+Sitede kontrol edilen (2026-09-10, ziyaretçi gözüyle, açık/koyu × 1280/375): beş
+koşum sayfası ve iki suite sayfası 200; pinlerin yedisi ve Assay sürüm satırı
+tam (0.3.2 öncesi kayıtlarda "0.3.1 or earlier" etiketi); konsol hatası yok;
+yatay taşma yalnızca 0.4.1-j. Çakışma matrisi render olmuyor (bu sürümün asıl
+maddesi) ve matris taşıyan bir kayıt da yok: çakışma ölçümü 0.3.2 ile, kazanan
+beyan etmeyen suite'le koşuldu.
 
 **0.4.1-a notu — `[]` ile doldurmak düzeltme değil.** 0.2.0 öncesi adaptör
 aktivasyonu doğrulamıyordu (0.2.0-d: bir pilotta 4 "tetiklenme"nin 4'ü reddedilmiş
