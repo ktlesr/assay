@@ -552,6 +552,25 @@ describe('hızlı mod raporu', () => {
     expect(layerOnly).not.toContain('cannot pass')
   })
 
+  it('ulasilamayan vaka ve yarim kayit raporda neden gecemedigini soyluyor', () => {
+    const base = makeRun('run-interrupted', [['trigger.positive.explicit', 3, 0, 0]])
+    const cut: Run = {
+      ...base,
+      verdict: 'unknown',
+      partial: { reason: 'the run was interrupted', recoveredAt: '2026-09-10T00:00:00.000Z' },
+      skipped: [
+        { caseId: 'trigger.negative.x', reason: 'the run was interrupted before this case started', cause: 'interrupted' },
+      ],
+    }
+    const html = renderHtmlReport(cut, summarizeRun(cut))
+    expect(html).toContain('The run was interrupted before 1 case(s) started — this record cannot pass')
+    expect(html).toContain('trigger.negative.x')
+    expect(html).toContain('An incomplete record cannot pass')
+    const text = renderRun(cut, summarizeRun(cut))
+    expect(text).toContain('The run was interrupted before 1 of them started, so this record')
+    expect(text).toContain('An incomplete record cannot pass')
+  })
+
   it('hizli mod olmadan butceyle kesilen kosumun HTML raporu da kesilen vakalari listeliyor', () => {
     // İlk hâli atlanan vakaları yalnızca hızlı mod notunun içinde anıyordu.
     const base = makeRun('run-budget-full', [['trigger.positive.explicit', 3, 0, 0]])

@@ -540,8 +540,11 @@ export interface SkippedCase {
    * `budget` — deneme tavanı doldu. Hangi vakanın kesileceğini kullanıcı değil
    *   suite sırası seçti; kesilen vaka negatifse ayrım gücü hiç ölçülmemiş
    *   olabilir. Koşum bu yüzden `pass` veremez (değişmez #1 ve #5).
+   * `interrupted` — koşum bu vakaya hiç ulaşmadan öldü; kurtarma journal
+   *   başlığındaki plandan buluyor. `budget` ile aynı sebepten `pass` engeli.
+   *   Bu etiket olmadan ulaşılamayan vaka kayıttan iz bırakmadan düşüyordu.
    */
-  cause: 'layer' | 'budget'
+  cause: 'layer' | 'budget' | 'interrupted'
 }
 
 /** Yarım kalmış bir koşumun künyesi. */

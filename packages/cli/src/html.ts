@@ -120,21 +120,32 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
    */
   const skipped = run.skipped ?? []
   const budgetCut = skipped.filter((item) => item.cause === 'budget').length
+  // Koşumun hiç ulaşamadığı vakalar (0.3.1-b): bütçeyle aynı sebepten geçemez.
+  const unreached = skipped.filter((item) => item.cause === 'interrupted').length
+  const skippedHeading =
+    budgetCut > 0
+      ? `The attempt budget cut ${budgetCut} case(s) — this run cannot pass`
+      : unreached > 0
+        ? `The run was interrupted before ${unreached} case(s) started — this record cannot pass`
+        : `${skipped.length} case(s) were not run`
   const skippedNote =
     skipped.length === 0
       ? ''
       : `  <section class="callout">
-    <h2>${
-      budgetCut === 0
-        ? `${skipped.length} case(s) were not run`
-        : `The attempt budget cut ${budgetCut} case(s) — this run cannot pass`
-    }</h2>${
+    <h2>${skippedHeading}</h2>${
       budgetCut === 0
         ? ''
         : `
     <p>A case the budget cut was never measured, and it may be every negative in
     the set: a run of positives alone would look perfect. At best the run is
     unknown; a failure it did measure still counts.</p>`
+    }${
+      unreached === 0
+        ? ''
+        : `
+    <p>A case the run never reached was never measured, and it may be every
+    negative in the set. At best the record is unknown; a failure it did measure
+    still counts.</p>`
     }
     <ul class="reasons">
 ${skipped
@@ -154,7 +165,8 @@ ${skipped
     <p>${escape(run.partial.reason)}</p>
     <p class="note">Recovered ${escape(run.partial.recoveredAt)}. Every rate below is
     over the attempts that completed — read N on each case, not the declared
-    ${run.runs} runs per case.${
+    ${run.runs} runs per case. An incomplete record cannot pass; at best it is
+    unknown.${
       run.partial.droppedLines === undefined
         ? ''
         : ` ${run.partial.droppedLines} journal line(s) were unreadable and were dropped.`

@@ -267,6 +267,14 @@ function unknownReasonOf(run: Run): string {
   if (cut > 0) {
     reasons.push(`the attempt budget cut ${cut} case(s), so the run cannot pass`)
   }
+  // Yarım kayıt da hiçbir denemeyi `unknown` yapmadan `unknown`; sebep künyede.
+  const unreached = (run.skipped ?? []).filter((s) => s.cause === 'interrupted').length
+  if (unreached > 0) {
+    reasons.push(`the run was interrupted before ${unreached} case(s) started`)
+  }
+  if (run.partial !== undefined) {
+    reasons.push(`the record is incomplete, so it cannot pass: ${run.partial.reason}`)
+  }
   const unique = [...new Set(reasons)]
   return unique.length > 0
     ? unique.join(' | ').slice(0, 2000)
@@ -582,7 +590,9 @@ function isSkipped(value: unknown): value is SkippedCase[] {
         ((item as Record<string, unknown>)['reason'] as string).length > 0 &&
         // `cause` verdict'in dayandığı alan: eksikse kayıt "neden koşulmadı"yı
         // biliyor ama "bu verdict'i etkiler mi"yi bilmiyor.
-        ['layer', 'budget'].includes((item as Record<string, unknown>)['cause'] as string),
+        ['layer', 'budget', 'interrupted'].includes(
+          (item as Record<string, unknown>)['cause'] as string,
+        ),
     )
   )
 }

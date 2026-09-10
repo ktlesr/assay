@@ -184,6 +184,8 @@ export async function runSuite<S extends AgentSession>(
     ...(concurrency === 1 ? {} : { concurrency }),
     ...(options.layers === undefined ? {} : { layers: options.layers }),
     ...(skipped.length === 0 ? {} : { skipped }),
+    // Kurtarma, koşumun hiç ulaşamadığı vakaları buradan adlandırıyor.
+    planned: [...new Set(work.map((item) => item.testCase.id))],
   })
 
   // Ajana kullanıcının canlı skill dizini değil, bir kopyası verilir. Aksi

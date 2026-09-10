@@ -209,7 +209,11 @@ describe('süreç ağacı', () => {
     `
     const worker = await startWorker(process.execPath, ['-e', launcher, workerEntry()], true)
     // Pozitif kontrol yukarıdaki testte: ebeveyni yaşarken worker ölmüyor.
-    expect(await goneWithin(worker.pid, 5_000)).toBe(true)
+    const gone = await goneWithin(worker.pid, 5_000)
+    // Test düşerse worker sonsuza kadar yaşar — ters çevirme koşumu makinede
+    // saatlerce bir yetim bıraktı. Sonuç ne olursa olsun kapatılıyor.
+    if (!gone) await killTree(worker.pid)
+    expect(gone).toBe(true)
   }, 60_000)
 })
 

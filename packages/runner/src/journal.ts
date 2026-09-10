@@ -51,6 +51,16 @@ export interface JournalHeader {
   concurrency?: number
   layers?: readonly RunLayer[]
   skipped?: readonly SkippedCase[]
+  /**
+   * Koşulması planlanan vakalar, suite sırasında (0.3.1-b).
+   *
+   * Kurtarma, ulaşamadığı vakaları buradan buluyor. Bu liste olmadan koşumun
+   * hiç gelmediği vakalar kayıtta ne `cases`'te ne `skipped`'da görünüyordu:
+   * negatifleri sonda olan bir suite yarıda kesilince yalnız pozitiflerle
+   * kurtarılıyor ve eksiğini söylemiyordu. 0.3.1 öncesi journal'larda yok; o
+   * zaman ulaşılamayan vakalar adlandırılamaz ama kayıt yine `pass` veremez.
+   */
+  planned?: readonly string[]
 }
 
 /** Tek bir tamamlanmış deneme. */
@@ -224,6 +234,20 @@ export async function recoverJournal(
   const { header, attempts, droppedLines } = contents
   const last = attempts[attempts.length - 1]?.attempt
 
+  // Planlanıp hiç başlamamış vakalar, adıyla. Yarım koşmuş bir vaka burada
+  // değil `cases`'te durur: N'i küçüktür ve değişmez #4 onu zaten gösterir.
+  const reached = new Set(attempts.map((entry) => entry.caseId))
+  const skipped: SkippedCase[] = [
+    ...(header.skipped ?? []),
+    ...(header.planned ?? [])
+      .filter((caseId) => !reached.has(caseId))
+      .map((caseId) => ({
+        caseId,
+        reason: 'the run was interrupted before this case started',
+        cause: 'interrupted' as const,
+      })),
+  ]
+
   const run = assembleRun({
     id: header.id,
     startedAt: header.startedAt,
@@ -237,7 +261,7 @@ export async function recoverJournal(
     pins: header.pins,
     ...(header.concurrency === undefined ? {} : { concurrency: header.concurrency }),
     ...(header.layers === undefined ? {} : { layers: header.layers }),
-    ...(header.skipped === undefined ? {} : { skipped: header.skipped }),
+    ...(skipped.length === 0 ? {} : { skipped }),
     attempts,
     partial: {
       reason:

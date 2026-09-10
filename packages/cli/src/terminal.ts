@@ -145,6 +145,15 @@ export function renderRun(run: Run, summary: RunSummary): string {
         ),
       )
     }
+    const unreached = run.skipped.filter((item) => item.cause === 'interrupted').length
+    if (unreached > 0) {
+      out.push(
+        style.grey(
+          `  The run was interrupted before ${unreached} of them started, so this record\n` +
+            '  cannot pass: a case it never reached may be every negative in the set.',
+        ),
+      )
+    }
     for (const item of run.skipped) {
       out.push(`    ${pad(item.caseId, width)} ${style.grey(item.reason)}`)
     }
@@ -156,7 +165,8 @@ export function renderRun(run: Run, summary: RunSummary): string {
     out.push(
       style.grey(
         `  Recovered ${run.partial.recoveredAt}. The counts below are the attempts that\n` +
-          '  completed, not the declared repeat count — read N on each case.' +
+          '  completed, not the declared repeat count — read N on each case.\n' +
+          '  An incomplete record cannot pass; at best it is unknown.' +
           (run.partial.droppedLines === undefined
             ? ''
             : `\n  ${run.partial.droppedLines} journal line(s) were unreadable and were dropped.`),

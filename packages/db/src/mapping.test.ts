@@ -593,6 +593,23 @@ describe('0.2.0 alanları — eşleme', () => {
     expect(fromRunRow(row, []).skipped).toEqual(run.skipped)
   })
 
+  it('yarim kaydin gerekcesi kesilmeyi ve ulasilamayan vakalari soyluyor', () => {
+    // Yarım kayıt hiçbir denemeyi `unknown` yapmadan `unknown`: gerekçe
+    // denemelerden türetilseydi yedek cümleye düşerdi.
+    const run = bareRun({
+      verdict: 'unknown',
+      partial: { reason: 'the run was interrupted', recoveredAt: '2026-09-10T00:00:00.000Z' },
+      skipped: [
+        { caseId: 'trigger.negative.x', reason: 'the run was interrupted before this case started', cause: 'interrupted' },
+      ],
+    })
+    const row = toRunRow(run)
+    expect(row.unknownReason).toContain('interrupted before 1 case(s) started')
+    expect(row.unknownReason).toContain('the record is incomplete, so it cannot pass')
+    expect(row.unknownReason).not.toContain('no attempt explained why')
+    expect(fromRunRow(row, []).skipped).toEqual(run.skipped)
+  })
+
   it('ortam kaydi kosum satirinda durur ve geri okunur', () => {
     const environment = {
       model: 'claude-haiku-4-5-20251001',

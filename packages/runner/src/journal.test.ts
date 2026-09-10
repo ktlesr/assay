@@ -22,6 +22,7 @@ import {
   RunJournal,
   JOURNAL_SUFFIX,
 } from './journal.js'
+import { verdictOf } from './assemble.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '../../..')
@@ -115,6 +116,22 @@ describe('koşum ortasında öldürülen süreç', () => {
     expect(run?.pins.suiteHash).toMatch(/^sha256:/)
     expect(run?.pins.environmentHash).toBe('sha256:env')
     expect(run?.permissionMode).toBe('acceptEdits')
+
+    // 6. (0.3.1-b) Koşumun hiç ulaşmadığı negatif vaka ADIYLA kayıtta. 0.3.0'da
+    //    ölçüldü: bu vaka ne `cases`'te ne `skipped`'da görünüyordu.
+    expect(run?.cases.map((c) => c.caseId)).toEqual(['trigger.positive.explicit'])
+    expect(run?.skipped).toEqual([
+      {
+        caseId: 'trigger.negative.near_neighbor.readme',
+        reason: 'the run was interrupted before this case started',
+        cause: 'interrupted',
+      },
+    ])
+
+    // 7. (0.3.1-b) Ve kayıt `pass` vermiyor. Pozitif kontrol önce: ölçülen her
+    //    deneme geçti — verdict'i düşüren bir `fail`/`unknown` deneme yok.
+    expect(run?.cases.flatMap((c) => c.attempts).every((a) => a.verdict === 'pass')).toBe(true)
+    expect(run?.verdict).toBe('unknown')
   }, 120_000)
 })
 
@@ -208,6 +225,77 @@ describe('journal', () => {
     // Pozitif kontrol: tek deneme geçti; düşüren kesme.
     expect(recovered?.run.cases[0]?.passed).toBe(1)
     expect(recovered?.run.verdict).toBe('unknown')
+  })
+
+  /*
+   * 0.3.1-b — iki kural, ayrı ayrı sınanıyor: (a) yarım kayıt `pass` veremez,
+   * (b) kurtarma ulaşamadığı vakaları adıyla yazar. İkisi aynı testte olsaydı
+   * birini kaldıran mutasyon ötekinin arkasına saklanabilirdi.
+   */
+  it('yarim kayit, hicbir vakayi tamamen kacirmasa bile PASS vermez', async () => {
+    // Plandaki tek vakaya ulaşılmış: `skipped` boş. Eksik olan denemeler —
+    // kural bunu da kapsamalı, yalnızca atlanan vakayı değil.
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const journal = await RunJournal.open(dir, {
+      ...header,
+      id: 'run-partial-only',
+      planned: ['trigger.positive.explicit'],
+    })
+    journal.append(attempt(0, 'pass'))
+
+    const recovered = await recoverJournal(journal.path)
+    expect(recovered?.run.skipped).toBeUndefined()
+    expect(recovered?.run.cases[0]?.passed).toBe(1)
+    expect(recovered?.run.verdict).toBe('unknown')
+  })
+
+  it('olculmus bir fail yarim kayitta da fail kalir', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const journal = await RunJournal.open(dir, { ...header, id: 'run-partial-fail' })
+    journal.append(attempt(0, 'fail'))
+    expect((await recoverJournal(journal.path))?.run.verdict).toBe('fail')
+  })
+
+  it('ulasilamayan vakalar plandan adiyla kayda giriyor, ulasilan girmiyor', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const journal = await RunJournal.open(dir, {
+      ...header,
+      id: 'run-unreached',
+      planned: ['trigger.positive.explicit', 'trigger.negative.a', 'trigger.negative.b'],
+    })
+    journal.append(attempt(0, 'pass'))
+
+    const run = (await recoverJournal(journal.path))?.run
+    expect(run?.skipped?.map((s) => [s.caseId, s.cause])).toEqual([
+      ['trigger.negative.a', 'interrupted'],
+      ['trigger.negative.b', 'interrupted'],
+    ])
+  })
+
+  it('katman disi her atlama, yarim kayit kuralindan bagimsiz olarak da PASS i engeller', () => {
+    // Kurtarma `interrupted`i hep `partial` ile birlikte koyuyor, yani bu kol
+    // kurtarma yolundan gözlenemez — doğrudan sınanıyor. İleride eklenecek bir
+    // sebep varsayılan olarak "ölçülmedi" sayılsın; yalnız `layer` beyan edilmiş
+    // kapsam.
+    const passed = [attempt(0, 'pass').attempt]
+    const skip = (cause: 'layer' | 'budget' | 'interrupted') => [
+      { caseId: 'c', reason: 'r', cause },
+    ]
+    expect(verdictOf(passed, skip('interrupted'))).toBe('unknown')
+    expect(verdictOf(passed, skip('budget'))).toBe('unknown')
+    // Pozitif kontrol: katman elemesi ve hiç atlama olmaması `pass`.
+    expect(verdictOf(passed, skip('layer'))).toBe('pass')
+    expect(verdictOf(passed)).toBe('pass')
+  })
+
+  it('plansiz eski journal ulasilamayani adlandiramaz ama PASS da vermez', async () => {
+    // 0.3.1 öncesi başlıklarda `planned` yok: dürüst cevap "bilmiyorum".
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const journal = await RunJournal.open(dir, { ...header, id: 'run-old-header' })
+    journal.append(attempt(0, 'pass'))
+    const run = (await recoverJournal(journal.path))?.run
+    expect(run?.skipped).toBeUndefined()
+    expect(run?.verdict).toBe('unknown')
   })
 
   it('tanimadigi journal surumu sessizce yorumlanmaz', async () => {

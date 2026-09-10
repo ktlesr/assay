@@ -106,6 +106,7 @@ export function assembleRun(input: {
     verdict: verdictOf(
       input.attempts.map((entry) => entry.attempt),
       input.skipped,
+      input.partial !== undefined,
     ),
     ...(input.partial === undefined ? {} : { partial: input.partial }),
   }
@@ -146,10 +147,21 @@ export function summarizeCase(
 export function verdictOf(
   attempts: readonly Attempt[],
   skipped: readonly SkippedCase[] = [],
+  partial = false,
 ): Verdict {
   const verdicts = attempts.map((a) => a.verdict)
   if (verdicts.includes('fail')) return 'fail'
   if (verdicts.includes('unknown') || verdicts.length === 0) return 'unknown'
-  if (skipped.some((s) => s.cause === 'budget')) return 'unknown'
+  /*
+   * Yarım kayıt `pass` veremez (0.3.1-b). Kurtarılan bir koşumun ölçmediği
+   * denemeler var; ölçülmeyen şey geçmiş sayılmaz. Ölçüldü (0.3.0): üç
+   * denemeden sonra öldürülen koşum yalnız pozitiflerle `pass` diye kurtarıldı.
+   * Bu kural, son vakanın ortasında kesilip hiçbir vakayı tamamen kaçırmamış
+   * bir koşumu da kapsıyor — orada `skipped` boş, eksik yine var.
+   */
+  if (partial) return 'unknown'
+  // Bütçenin kestiği ya da koşumun hiç ulaşamadığı vaka: kullanıcının beyan
+  // ettiği kapsam değil, ölçülmemiş bir vaka.
+  if (skipped.some((s) => s.cause !== 'layer')) return 'unknown'
   return 'pass'
 }
