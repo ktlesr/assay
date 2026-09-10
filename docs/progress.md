@@ -53,6 +53,21 @@ hosted şemada kazanan sütunları. Kanıt: marketingskills kaydı yeniden puanl
 aynı süzgeçte 17/17 hücre aynı (docs/measurements.md, 0.4.0-f). 63 ters çevirme,
 63'ü derleme temizken kırmızı. Sırada: 0.4.1 (web'de matris) ve 0.3.1-a (kalibrasyon, para harcar).
 
+**0.4.1 yayımlandı (2026-09-10): ilk gerçek `assay push`ın bulguları.** Registry'de
+dört paket (`latest=0.4.1`, npm 12.0.2/OIDC, provenance; yayın koşumu
+`34518475687`, birleştirme `bb2f192`, PR #7). Eylem v1.3.1: `v1` ve
+`action-v1.3.1` → `bb2f192`; dış depoda koşum yapılmadı (bu turda istenmedi,
+para harcıyor) — `ls-remote` ve `v1`'deki `action.yml` pini (0.4.1) okundu.
+İçerik: kullanıcı adının üç biçimi ve hesap adı maskeleniyor, `push` kalıntıda
+yüklemiyor; 0.2.0 öncesi kayıt "aktivasyon doğrulanmadı" olarak saklanıyor ve
+bozuk kayıt yerini söylüyor; `/compare` yayın modunda açık; `/suites` dizini.
+Production Dokploy'la push'tan kendiliğinden dağıtıldı; migration 0.2.0 öncesi
+satırlarda `triggerRefused`'ı NULL yaptı (frontend-design "activation not
+verified" gösteriyor). Üç eski ölçüm (animate 57205e2b, better-typography
+ac10d159, ui-ux-pro-max 2a900c03) 0.4.1 ile yüklendi — maskelenmemiş asıllardan;
+push 1 ve 7 yeri maskeledi, yüklenen yolda ad sıfır. Üçü de gizli (yayımlama
+kullanıcı kararı). Sırada: küçük kusurlar (0.4.1-e…n) ve web matrisi (0.4.1-1).
+
 **Geliştirme ortamı notu:** bu makinede 3000 ve 5433 başka projelerin
 konteynerlerinde. Assay: `ASSAY_DEV_PG_PORT=5434 node tools/dev-postgres.mjs`
 ve `apps/web` içinde `DATABASE_URL=postgres://postgres@127.0.0.1:5434/postgres
