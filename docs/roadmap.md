@@ -368,6 +368,11 @@ girmeli.
 **Tasarım.** `--fast` = `--repeat 3` + yalnızca tetiklenme katmanı + bütçe
 tavanı. Amacı kanıt değil erken uyarı; tam mod nightly ve sürüm öncesi kalır.
 
+> **Sapma (2026-09-10).** Gizli bütçe tavanı kaldırıldı; tavan yalnızca
+> `--max-attempts` ile geliyor ve bütçenin kestiği koşum `pass` veremiyor.
+> Gerçek hostta tavan bütün negatifleri kesip PASS verdi. Gerekçe
+> [decisions.md](decisions.md)'de.
+
 **Dürüstlük kısıtları.**
 
 - Değişmez #3 sağlanıyor: 3 > 1.

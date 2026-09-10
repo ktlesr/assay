@@ -2456,3 +2456,42 @@ Not: bot'un açtığı sürüm PR'ında CI koşmuyor (`GITHUB_TOKEN` ile açıla
 akışı tetiklemez). PR içeriği main + sürüm yükseltmesi olduğu için pin testi PR
 dalının dosyalarıyla yerelde koşuldu: 10/10.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Bütçenin kestiği koşum `pass` veremez; hızlı modun gizli tavanı kaldırıldı
+
+Bağlam: 0.3.0-e'nin roadmap tasarımı `--fast = --repeat 3 + yalnız tetiklenme
+katmanı + bütçe tavanı` idi ve tavan 60 deneme olarak uygulandı. Gerçek hostta
+ölçüldü (impeccable, claude-haiku-4-5): `--max-attempts 3` hiçbir negatif vakayı
+koşturmadan doldu ve koşum yalnız pozitiflerle **PASS** dedi, precision %100.
+`assay ci` bunu exit 0 ile geçirirdi. Şema değişmez #5'i doğruluyor ama bütçe
+negatifleri koşum anında kesebiliyordu; aynı durum değişmez #1 açısından
+sessiz bir `pass`.
+Seçenekler: (a) olduğu gibi bırakmak · (b) bütçeyi vakalar yerine tekrarlara
+dağıtmak · (c) yalnız bir sınıf (bütün negatifler ya da bütün pozitifler)
+kesilince `unknown` · (d) herhangi bir bütçe kesmesinde koşum en iyi ihtimalle
+`unknown`
+Karar: (d), ve hızlı modun gizli tavanı kaldırıldı. `--fast` artık 3 tekrar +
+yalnız tetiklenme katmanı; tavan yalnızca kullanıcının `--max-attempts`inden
+geliyor. Ölçülmüş bir `fail` yine `fail`. Katman elemesi verdict'i etkilemiyor.
+`SkippedCase.cause` (`layer` | `budget`) bu ayrımı taşıyor.
+Gerekçe: (b) tekrar sayısını 3'ün altına iterdi ve değişmez #3 tabanını
+zorlardı. (c) yarım bir cevap: yedi negatiften birini ölçüp altısını kesen bir
+koşum yine geçerdi, oysa kesilen altı negatif hakkında hiçbir şey bilinmiyor.
+(d) kuralı basit tutuyor: kesilen vaka ölçülmedi, ölçülmeyen şey geçmiş sayılmaz.
+Katman elemesi farklı, çünkü onu kullanıcı beyan etti; bütçe elemesinde hangi
+vakanın kesileceğini suite sırası seçiyor.
+**Roadmap'ten sapma.** 0.3.0-e tasarımı tavanı hızlı modun parçası sayıyordu.
+(d) ile birlikte gizli bir 60'lık tavan, 20 vakadan büyük her suite'i hızlı
+modda sessizce `unknown`a mahkûm ederdi — kullanıcı bir kısayol ister, bir kapı
+duvarı alırdı. Maliyet tavanı kullanıcının bilerek verdiği bir karar olmalı;
+gizli bir varsayılan, ölçümün kapsamını kullanıcı fark etmeden daraltırdı.
+Aynı yamada iki kusur daha kapandı. (1) Journal başlığı kapsamı taşımıyordu:
+öldürülüp kurtarılan bir hızlı mod koşumu tam ölçüm gibi okunuyor, bütçe
+kesmesi de kayboluyordu. Plan artık journal'dan önce kuruluyor ve başlıkta
+duruyor. (2) Veritabanına yazılan `unknownReason` yedek cümleye düşerdi ("hiçbir
+deneme açıklamadı"); artık kesmeyi adıyla söylüyor.
+Doğrulama: on ters çevirme, her biri kendi testinde kırmızı. Kuralın kendisini
+silen ilk mutasyon yanlış sebeple kırmızıydı (derleme kırıldı, 24 test atlandı);
+tip-geçerli mutasyonla tam iki testte `expected 'pass' to be 'unknown'`. Gerçek
+hostta: 3 deneme geçti, 0 unknown, koşum UNKNOWN, `ci` exit 3.
+Geri dönüş maliyeti: düşük (opsiyonel davranış; hiçbir varsayılan değişmedi)

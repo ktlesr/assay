@@ -94,9 +94,10 @@ vakası), `claude-haiku-4-5-20251001`, `--concurrency 4`.
 36 + 3 deneme, $2.43 + $0.37. `--concurrency 4` ile duvar saati 6.2 dk, ajan
 zamanı 23.0 dk (3.7x) — 0.3.0-d'nin gerçek hosttaki ilk ölçümü.
 
-**Açık — 0.3.0 yayını bunu bekliyor:** bütçenin kestiği koşum `pass` verebiliyor.
-Tavan hiçbir negatifi koşturmadan dolabiliyor ve koşum yalnız pozitiflerle
-"geçti" diyor; değişmez #1 ve #5 ile çelişki. Karar kullanıcıda.
+**Kapandı (2026-09-10):** bütçenin kestiği koşum artık `pass` veremiyor, hızlı
+modun gizli tavanı kalktı, HTML vaka bazında "not evaluated" gösteriyor, journal
+başlığı kapsamı taşıyor. Gerçek hostta: 3/3 geçti, koşum UNKNOWN, `ci` exit 3.
+Sırada 0.3.0 yayını (PR #3).
 
 Yan iş: bu makinedeki Git Bash `add_item` çökmesi ölü domain kaydından
 geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
