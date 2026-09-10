@@ -2826,3 +2826,23 @@ Doğrulama: dizin kapsamı `{ kind: 'all' }` yapılınca gizli `xlsx` görünüy
 tanıtım bağlantısı kaldırılınca 0 — ikisi de elle, derleme kapılı, kırmızı.
 Açık/koyu × 1280/375'te taşma yok.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Üst çubukta dizin bağlantısının adı "Measurements" (0.4.1-o)
+
+Bağlam: `/suites` yalnızca tanıtım sayfasından bağlantılı; bir koşum sayfasına
+doğrudan gelen ziyaretçi (issue'lardan gelen herkes) diğer ölçümlere
+ulaşamıyor. Kullanıcı bağlantıyı üst çubukta "Method"un yanına istedi ve adı
+bana bıraktı: "Measurements" ya da "Suites".
+Seçenekler: "Measurements" · "Suites"
+Karar: "Measurements"; adres `/suites` kalıyor. Toplu küçük kusur turunda
+uygulanacak; 404 sayfasının "linked from the front page" cümlesi de aynı
+bağlantıya dönecek.
+Gerekçe: Sitenin kendi dili bu — tanıtım sayfasındaki bağlantı "Every published
+measurement", 404 sayfası "The measurements published here". Ziyaretçi bir
+ölçüm arıyor; "suite" bir iç terim (vaka seti) ve ziyaretçiye bir şey söylemiyor.
+Etiketin adresle aynı olması gerekmiyor, adresi değiştirmek ise yayımlanmış
+bağlantıları kırardı.
+Tavan: etiket uzun; 375 px'te "Method", "Sign in" ve tema düğmesiyle birlikte
+sığmazsa mobilde kısaltma ya da taşıma uygulama sırasında ekran görüntüsüyle
+seçilecek.
+Geri dönüş maliyeti: düşük
