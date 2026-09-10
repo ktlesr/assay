@@ -214,3 +214,88 @@ describe('evaluateTrigger — reddedilen aktivasyon', () => {
     expect(result?.verdict).toBe('fail')
   })
 })
+
+/**
+ * 0.4.0 — çakışma: kazanan = ilk doğrulanmış aktivasyon.
+ *
+ * marketingskills koşumunda 100 pozitif deneme, hiçbir skill tetiklenmediği
+ * hâlde `pass` sayıldı: vakalar yalnız `not_triggered` ile yazılabiliyordu.
+ * Buradaki ilk iki test o farkı yan yana gösteriyor.
+ */
+describe('evaluateTrigger — winner (0.4.0)', () => {
+  const fired = (skills: string[]) => seen(false, skills)
+
+  it('hicbir sey tetiklenmediginde: not_triggered PASS der, winner FAIL der', () => {
+    // Eski yol: kaybedenler sessiz kaldı — bu, kazananın kazandığı demek değil.
+    expect(evaluateTrigger(fired([]), { notTriggered: ['cro', 'popups'] })?.verdict).toBe('pass')
+    const result = evaluateTrigger(fired([]), { winner: ['signup'], notTriggered: ['cro', 'popups'] })
+    expect(result?.verdict).toBe('fail')
+    expect(result?.reason).toContain('no skill triggered, but this case expects signup to win')
+  })
+
+  it('beklenen ilk tetiklenirse pass', () => {
+    const result = evaluateTrigger(fired(['signup']), { winner: ['signup'] })
+    expect(result?.verdict).toBe('pass')
+    expect(result?.reason).toContain('signup triggered first, as expected')
+  })
+
+  it('tartismali vakada ikisinden biri ilk olursa pass', () => {
+    expect(evaluateTrigger(fired(['copy-editing']), { winner: ['copywriting', 'copy-editing'] })?.verdict).toBe('pass')
+    expect(evaluateTrigger(fired(['copywriting']), { winner: ['copywriting', 'copy-editing'] })?.verdict).toBe('pass')
+  })
+
+  it('yanlis skill ilk tetiklenirse fail, ve gerekce hangisinin kazandigini soyler', () => {
+    const result = evaluateTrigger(fired(['cro']), { winner: ['signup'] })
+    expect(result?.verdict).toBe('fail')
+    expect(result?.reason).toContain('cro triggered first, but this case expects signup to win')
+  })
+
+  it('beklenen ikinci tetiklenirse fail: kazanmak ilk olmaktir', () => {
+    expect(evaluateTrigger(fired(['cro', 'signup']), { winner: ['signup'] })?.verdict).toBe('fail')
+  })
+
+  it('beklenenden sonra baska bir skill tetiklenirse pass: also fired verdicti bozmaz', () => {
+    expect(evaluateTrigger(fired(['signup', 'cro']), { winner: ['signup'] })?.verdict).toBe('pass')
+  })
+
+  it('tekillik isteyen not_triggered ekler: sonradan tetiklenen yasakli skill fail', () => {
+    const result = evaluateTrigger(fired(['signup', 'cro']), { winner: ['signup'], notTriggered: ['cro'] })
+    expect(result?.verdict).toBe('fail')
+    expect(result?.reason).toContain('cro triggered but should not have')
+  })
+
+  it('winner: none — hicbiri tetiklenmezse pass, biri tetiklenirse fail', () => {
+    expect(evaluateTrigger(fired([]), { winner: [] })?.verdict).toBe('pass')
+    const result = evaluateTrigger(fired(['pricing']), { winner: [] })
+    expect(result?.verdict).toBe('fail')
+    expect(result?.reason).toContain('pricing triggered, but this case expects no skill to trigger')
+  })
+
+  it('liste eksikse (complete: false) ilk tetikleneni bilemeyiz: unknown', () => {
+    expect(evaluateTrigger(seen(false, [], false), { winner: ['signup'] })?.verdict).toBe('unknown')
+    expect(evaluateTrigger(seen(false, [], false), { winner: [] })?.verdict).toBe('unknown')
+  })
+
+  it('beklenen secilip aktivasyonu reddedildiyse unknown, fail degil', () => {
+    const obs = refused([{ skill: 'signup', reason: 'denied' }], ['cro'])
+    const result = evaluateTrigger(obs, { winner: ['signup'] })
+    expect(result?.verdict).toBe('unknown')
+    expect(result?.reason).toContain('signup was selected but its activation was not confirmed')
+  })
+
+  it('hicbir aktivasyon dogrulanmayip bir red varsa unknown: kimin kazanacagi bilinmiyor', () => {
+    const obs = refused([{ skill: 'cro', reason: 'denied' }], [])
+    expect(evaluateTrigger(obs, { winner: ['signup'] })?.verdict).toBe('unknown')
+    expect(evaluateTrigger(obs, { winner: [] })?.verdict).toBe('unknown')
+  })
+
+  it('sinyal okunamazsa unknown', () => {
+    expect(evaluateTrigger(blind(), { winner: ['signup'] })?.verdict).toBe('unknown')
+  })
+
+  it('kazanan iddiasi olmayan vaka etkilenmiyor: eski gerekce cumlesi ayni', () => {
+    expect(evaluateTrigger(seen(true), { triggered: true })?.reason).toBe(
+      'the skill triggered, as expected (via transcript)',
+    )
+  })
+})

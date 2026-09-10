@@ -201,6 +201,28 @@ const skillStream = (
   },
 ]
 
+describe('aktivasyon sirasi (0.4.0)', () => {
+  it('dogrulanmis aktivasyonlar akistaki cagri sirasiyla listeleniyor', () => {
+    const call = (id: string, skill: string) => ({
+      type: 'assistant',
+      message: { content: [{ type: 'tool_use', id, name: 'Skill', input: { skill } }] },
+    })
+    const body = (id: string) => ({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: id, content: '# body' }] },
+    })
+    const parsed = parseSession([
+      { type: 'system', subtype: 'init', session_id: 's1', model: 'm', skills: ['cro', 'signup'] },
+      call('t1', 'signup'),
+      body('t1'),
+      call('t2', 'cro'),
+      body('t2'),
+      { type: 'result', subtype: 'success', is_error: false, num_turns: 3, usage: { output_tokens: 5 } },
+    ])
+    expect(parsed.triggeredSkills).toEqual(['signup', 'cro'])
+  })
+})
+
 describe('tetiklenme = doğrulanmış aktivasyon, çağrının varlığı değil', () => {
   it('gövde taşıyan hatasız sonuç tetiklenmedir', () => {
     const parsed = parseSession(skillStream({ content: '# docx\n\nUse this skill to…' }))

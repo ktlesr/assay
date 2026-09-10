@@ -113,6 +113,14 @@ describe('readTriggerSignal — sağlam oturum', () => {
     expect(observation).toMatchObject({ available: true, triggered: false, skills: [] })
   })
 
+  it('skills ilk aktivasyon sirasinda ve tekrarsiz: ilk eleman ilk tetiklenen (0.4.0)', async () => {
+    // Çakışma değerlendirmesi kazananı skills[0] olarak okuyor; sıra bir sözleşme.
+    const observation = await adapter.readTriggerSignal(
+      session({ parsed: { triggeredSkills: ['cro', 'signup', 'cro', 'popups'] } }),
+    )
+    expect(observation).toMatchObject({ skills: ['cro', 'signup', 'popups'] })
+  })
+
   it('başka bir skill tetiklendiyse listede görünür ama triggered false', async () => {
     const observation = await adapter.readTriggerSignal(
       session({ parsed: { triggeredSkills: ['pdf'] } }),

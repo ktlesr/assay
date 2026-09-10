@@ -56,7 +56,10 @@ export function assembleRun(input: {
   const environments = new Map<string, Environment>()
 
   // Vaka sırası journal'daki ilk görülme sırası — o da suite sırası.
-  const byCase = new Map<string, { expectedTrigger?: boolean; attempts: Attempt[] }>()
+  const byCase = new Map<
+    string,
+    { expectedTrigger?: boolean; expectedWinner?: readonly string[]; attempts: Attempt[] }
+  >()
 
   for (const entry of input.attempts) {
     if (entry.environmentHash !== undefined) environmentHashes.add(entry.environmentHash)
@@ -68,6 +71,7 @@ export function assembleRun(input: {
       ...(entry.expectedTrigger === undefined
         ? {}
         : { expectedTrigger: entry.expectedTrigger }),
+      ...(entry.expectedWinner === undefined ? {} : { expectedWinner: entry.expectedWinner }),
       attempts: [],
     }
     bucket.attempts.push(entry.attempt)
@@ -75,7 +79,7 @@ export function assembleRun(input: {
   }
 
   const cases = [...byCase.entries()].map(([caseId, bucket]) =>
-    summarizeCase(caseId, bucket.attempts, bucket.expectedTrigger),
+    summarizeCase(caseId, bucket.attempts, bucket.expectedTrigger, bucket.expectedWinner),
   )
   const environmentHash =
     environmentHashes.size === 1 ? [...environmentHashes][0] : undefined
@@ -120,6 +124,7 @@ export function summarizeCase(
   caseId: string,
   attempts: readonly Attempt[],
   expectedTrigger: boolean | undefined,
+  expectedWinner?: readonly string[],
 ): CaseResult {
   const passed = attempts.filter((a) => a.verdict === 'pass').length
   const failed = attempts.filter((a) => a.verdict === 'fail').length
@@ -127,6 +132,7 @@ export function summarizeCase(
   return {
     caseId,
     ...(expectedTrigger === undefined ? {} : { expectedTrigger }),
+    ...(expectedWinner === undefined ? {} : { expectedWinner }),
     attempts,
     // Değişmez #4: unknown'lar paydadan çıkar, ayrıca sayılır.
     passRate: proportion(passed, passed + failed),

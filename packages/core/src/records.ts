@@ -279,7 +279,15 @@ export type TriggerObservation =
        * ölçtüğünü iddia ettiği tek şeyi sahte kılar.
        */
       triggered: boolean
-      /** Bu koşumda aktive olduğu gözlenen skill'ler. */
+      /**
+       * Bu koşumda aktive olduğu gözlenen skill'ler, **ilk aktivasyon
+       * sırasında** ve tekrarsız: ilk eleman ilk tetiklenen skill.
+       *
+       * Sıra bir sözleşme (0.4.0): çakışma değerlendirmesi kazananı `skills[0]`
+       * olarak okuyor ve matrisin sütunları da ondan geliyor. Adaptör bu sırayı
+       * korumak zorunda; Claude Code adaptörü akıştaki çağrı sırasını koruyor
+       * (adapter.test.ts, stream.test.ts).
+       */
       skills: readonly string[]
       /**
        * Hedef skill seçildi ama aktivasyonu doğrulanamadı ve hiç aktive
@@ -428,6 +436,13 @@ export interface CaseResult {
    * görecek. İddia yoksa alan da yok.
    */
   expectedTrigger?: boolean
+  /**
+   * Çakışma vakasının beklenen kazananı (0.4.0): ilk tetiklenmesi kabul edilen
+   * skill'ler; birden fazlaysa biri yeter. `[]` = hiçbir skill tetiklenmemeli
+   * (`winner: none`). İddia yoksa alan da yok. `expectedTrigger` ile aynı
+   * gerekçe: matris suite dosyası olmadan kayıttan kurulabilmeli.
+   */
+  expectedWinner?: readonly string[]
   attempts: readonly Attempt[]
   /** Değişmez #4: oran asla çıplak gösterilmez, bkz. Proportion. */
   passRate: Proportion

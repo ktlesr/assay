@@ -75,6 +75,8 @@ export interface JournalAttempt {
   kind: 'attempt'
   caseId: string
   expectedTrigger?: boolean
+  /** Çakışma vakasının beklenen kazananı; `[]` = none (0.4.0). */
+  expectedWinner?: readonly string[]
   attempt: Attempt
   environmentHash?: string
   permissionMode?: string

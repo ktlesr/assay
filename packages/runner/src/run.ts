@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   combineVerdicts,
+  expectedWinnerOf,
   evaluateAssertions,
   evaluateTrigger,
   redact,
@@ -47,6 +48,9 @@ import {
 import { assembleRun } from './assemble.js'
 import { RunJournal, type JournalAttempt } from './journal.js'
 import { superviseAttempt } from './supervisor.js'
+
+/** Vakanın beklenen kazananı, normalize (0.4.0). */
+const winnerOf = (testCase: SuiteCase) => expectedWinnerOf(testCase.expect)
 import { ASSAY_VERSION } from './version.js'
 import type { AdapterSpec } from './worker.js'
 
@@ -235,6 +239,9 @@ export async function runSuite<S extends AgentSession>(
         ...(item.testCase.expect.triggered === undefined
           ? {}
           : { expectedTrigger: item.testCase.expect.triggered }),
+        ...(winnerOf(item.testCase) === undefined
+          ? {}
+          : { expectedWinner: winnerOf(item.testCase) as readonly string[] }),
         attempt,
         ...(environmentHash === undefined ? {} : { environmentHash }),
         ...(permissionMode === undefined ? {} : { permissionMode }),
@@ -654,6 +661,7 @@ export async function runAttempt<S extends AgentSession>(
   const triggerVerdict = evaluateTrigger(trigger, {
     triggered: testCase.expect.triggered,
     notTriggered: testCase.expect.not_triggered,
+    winner: winnerOf(testCase),
   })
 
   const parts: VerdictDetail[] = [

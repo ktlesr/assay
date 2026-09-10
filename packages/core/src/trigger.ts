@@ -13,6 +13,12 @@ export interface TriggerExpectation {
   triggered?: boolean | undefined
   /** Tetiklenmemesi gereken diğer skill'ler (coexistence). */
   notTriggered?: readonly string[] | undefined
+  /**
+   * İlk tetiklenmesi gereken skill'ler; biri yeter. `[]` = hiçbir skill
+   * tetiklenmemeli (`winner: none`). `expectedWinnerOf` ile normalize edilmiş
+   * değer (0.4.0).
+   */
+  winner?: readonly string[] | undefined
 }
 
 /**
@@ -28,7 +34,8 @@ export function evaluateTrigger(
 ): VerdictDetail | null {
   const wantsTriggered = expectation.triggered !== undefined
   const notTriggered = expectation.notTriggered ?? []
-  if (!wantsTriggered && notTriggered.length === 0) return null
+  const winner = expectation.winner
+  if (!wantsTriggered && notTriggered.length === 0 && winner === undefined) return null
 
   if (!observation.available) {
     return {
@@ -92,6 +99,59 @@ export function evaluateTrigger(
     }
   }
 
+  /*
+   * Çakışma: kazanan = ilk doğrulanmış aktivasyon (0.4.0).
+   *
+   * `skills` aktivasyon sırasında (adaptör sözleşmesi, records.ts); ilk eleman
+   * ilk tetiklenen. Beklenen skill hiç tetiklenmediyse bu `fail`: sinyal okundu,
+   * liste tam, ölçüm yapıldı. `unknown` yalnızca gerçekten ölçemediğimizde —
+   * aksi hâlde "7/13 skill hiç tetiklenmedi" bulgusu exit 3'ün arkasına saklanır
+   * (decisions.md, 2026-09-10).
+   *
+   * Tavan: reddedilen çağrılarla doğrulanmış aktivasyonlar arasındaki sıra
+   * gözlemde yok; "kazanandan önce reddedilmiş başka bir seçim" görünmez.
+   */
+  let winnerPass: string | undefined
+  if (winner !== undefined) {
+    const first = observation.skills[0]
+    const refusedNames = observation.refusals.map((r) => r.skill)
+    if (!observation.complete) {
+      unmeasurable.push(
+        'the host reports only the target skill, not the full set of triggered skills, so which skill fired first cannot be checked',
+      )
+    } else if (winner.length === 0) {
+      if (first !== undefined) {
+        problems.push(
+          `${first} triggered, but this case expects no skill to trigger (observed via ${observation.via})`,
+        )
+      } else if (refusedNames.length > 0) {
+        unmeasurable.push(
+          `${[...new Set(refusedNames)].join(', ')} was selected but its activation was not confirmed, so whether no skill triggers cannot be checked`,
+        )
+      } else {
+        winnerPass = 'no skill triggered, as expected'
+      }
+    } else if (first !== undefined && winner.includes(first)) {
+      winnerPass = `${first} triggered first, as expected`
+    } else if (winner.some((skill) => refusedNames.includes(skill))) {
+      unmeasurable.push(
+        `${winner.filter((skill) => refusedNames.includes(skill)).join(', ')} was selected but its activation was not confirmed, so which skill wins cannot be measured`,
+      )
+    } else if (first === undefined && refusedNames.length > 0) {
+      unmeasurable.push(
+        `${[...new Set(refusedNames)].join(', ')} was selected but its activation was not confirmed, so which skill wins cannot be measured`,
+      )
+    } else if (first === undefined) {
+      problems.push(
+        `no skill triggered, but this case expects ${winner.join(' or ')} to win (observed via ${observation.via})`,
+      )
+    } else {
+      problems.push(
+        `${first} triggered first, but this case expects ${winner.join(' or ')} to win (observed via ${observation.via})`,
+      )
+    }
+  }
+
   // Kesin bir başarısızlık, ölçülemeyen bir parçadan önce gelir: fail > unknown.
   if (problems.length > 0) {
     return {
@@ -113,11 +173,19 @@ export function evaluateTrigger(
     }
   }
 
+  // Eski vakalar için cümle birebir aynı; kazanan iddiası varsa o da eklenir.
+  const parts = [
+    ...(wantsTriggered
+      ? [`the skill ${observation.triggered ? 'triggered' : 'did not trigger'}, as expected`]
+      : []),
+    ...(winnerPass === undefined ? [] : [winnerPass]),
+    ...(!wantsTriggered && winnerPass === undefined
+      ? [`none of ${notTriggered.join(', ')} triggered, as expected`]
+      : []),
+  ]
   return {
     verdict: 'pass',
-    reason: wantsTriggered
-      ? `the skill ${observation.triggered ? 'triggered' : 'did not trigger'}, as expected (via ${observation.via})`
-      : `none of ${notTriggered.join(', ')} triggered, as expected (via ${observation.via})`,
+    reason: `${parts.join('; ')} (via ${observation.via})`,
     detail: { observedSkills: observation.skills, via: observation.via },
   }
 }
