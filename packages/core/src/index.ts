@@ -9,6 +9,8 @@ export {
   parseSuite,
   validateSuite,
   suiteSchema,
+  expectedWinnerOf,
+  WINNER_NONE,
   FILE_FORMATS,
   TRACE_RULES,
   type Suite,

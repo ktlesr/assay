@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSuite, type SuiteIssue } from './suite.js'
+import { expectedWinnerOf, parseSuite, type SuiteIssue } from './suite.js'
 
 /** Geçerli bir taban suite. Testler bunun üzerine tek bir bozukluk bindirir. */
 const VALID = `
@@ -214,6 +214,100 @@ describe('parseSuite — vaka kimlikleri', () => {
     )
     expect(result.ok).toBe(false)
     expect(messagesOf(result.issues)).toContain('measures nothing')
+  })
+})
+
+/**
+ * 0.4.0 — `expect.winner`.
+ *
+ * Taban suite `docx, pdf, xlsx` kurulu. Pozitif vaka `winner` ile yeniden
+ * yazılıyor; negatifler olduğu gibi kalıyor.
+ */
+describe('parseSuite — winner (0.4.0)', () => {
+  const withWinner = (expectLine: string, active = '  active_skills: [docx, pdf, xlsx]') =>
+    withReplacement('  active_skills: [docx, pdf, xlsx]', active).replace(
+      '    expect: { triggered: true }',
+      `    expect: ${expectLine}`,
+    )
+
+  it('tek kazanan, tartismali kazanan ve none gecerli', () => {
+    for (const line of ['{ winner: pdf }', '{ winner: [pdf, xlsx] }', '{ winner: none }']) {
+      const result = parse(withWinner(line))
+      expect(errorsOf(result.issues)).toEqual([])
+      expect(result.ok).toBe(true)
+    }
+  })
+
+  it('expectedWinnerOf: tek skill, liste ve none normalize ediliyor', () => {
+    expect(expectedWinnerOf({ winner: 'pdf' })).toEqual(['pdf'])
+    expect(expectedWinnerOf({ winner: ['pdf', 'xlsx'] })).toEqual(['pdf', 'xlsx'])
+    expect(expectedWinnerOf({ winner: 'none' })).toEqual([])
+    expect(expectedWinnerOf({})).toBeUndefined()
+  })
+
+  it('kazanan active_skills disindaysa hata', () => {
+    const result = parse(withWinner('{ winner: pptx }'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('expects "pptx" to win, but it is not listed')
+  })
+
+  it('active_skills bosken kazanan hata', () => {
+    const result = parse(withWinner('{ winner: pdf }', '  active_skills: []'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('names a winner, but environment.active_skills is empty')
+  })
+
+  it('none baska kazananla birlesemez', () => {
+    const result = parse(withWinner('{ winner: [none, pdf] }'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('"none" cannot be combined')
+  })
+
+  it('none adinda kurulu bir skill hata', () => {
+    const result = parse(withWinner('{ winner: pdf }', '  active_skills: [docx, pdf, none]'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('"none" is reserved')
+  })
+
+  it('kazanan not_triggered listesinde de olamaz', () => {
+    const result = parse(withWinner('{ winner: pdf, not_triggered: [pdf] }'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('expects pdf to win and also lists it in not_triggered')
+  })
+
+  it('hedef kazanmali ama tetiklenmemeli: celiski', () => {
+    const result = parse(withWinner('{ triggered: false, winner: docx }'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('expects "docx" to win but also expects it not to trigger')
+  })
+
+  it('hedef tetiklenmeli ama hicbiri tetiklenmemeli: celiski', () => {
+    const result = parse(withWinner('{ triggered: true, winner: none }'))
+    expect(result.ok).toBe(false)
+    expect(messagesOf(result.issues)).toContain('also expects no skill to trigger')
+  })
+
+  it('winner: none degismez #5 icin negatif sayiliyor', () => {
+    // Bütün `triggered: false` vakaları `winner: none`a çevrilince suite hâlâ
+    // negatif taşıyor sayılmalı.
+    const onlyNone = VALID.replaceAll('    expect: { triggered: false }', '    expect: { winner: none }')
+    const result = parse(onlyNone)
+    expect(messagesOf(result.issues)).not.toContain('no negative case')
+    expect(messagesOf(result.issues)).not.toContain('no near-neighbour case')
+    expect(result.ok).toBe(true)
+  })
+
+  it('yalniz not_triggered tasiyan vaka uyari aliyor, hata degil', () => {
+    // 100 sahte `pass`in kaynağı: hiçbir şey tetiklenmediğinde de geçer.
+    const result = parse(withWinner('{ not_triggered: [pdf] }'))
+    expect(result.ok).toBe(true)
+    const warnings = result.issues.filter((i) => i.level === 'warning')
+    expect(warnings.map((w) => w.message).join('\n')).toContain('also passes when no skill triggers at all')
+  })
+
+  it('winner ya da triggered ile birlikte not_triggered uyari almiyor', () => {
+    const result = parse(withWinner('{ winner: pdf, not_triggered: [xlsx] }'))
+    expect(messagesOf(result.issues)).not.toContain('also passes when no skill triggers')
   })
 })
 
