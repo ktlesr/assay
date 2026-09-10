@@ -557,6 +557,60 @@ yeni kurtarmalara uygulanır. Sürüm notunda yazılacak.
 
 ---
 
+## 0.4.0 — Çakışma ölçümü şeması
+
+**Amaç:** Birden çok skill'in birlikte kurulu olduğu bir suite'te "bu vakada X
+kazanmalı" diyebilmek, ve hiçbir skill tetiklenmediğinde bunun geçti
+sayılmaması.
+
+**Kanıt.** `marketingskills` çakışma koşumu (ölçüm deposu,
+`run-2026-09-10T11-01-34-914Z-0bec859e`, assay 0.3.2, 200 deneme;
+`reports/marketingskills.collide.md` bölüm 5; not:
+`issues/assay-0.4.0-collision-schema.md`). Assay koşumu **179 pass / 21 fail**
+diye puanladı; oysa 13 skill'in 7'si kendi vakasında hiç tetiklenmedi.
+**Hiçbir skill'in tetiklenmediği 100 pozitif deneme `pass` sayıldı**, çünkü
+çakışma vakası yalnızca `not_triggered` ile yazılabiliyordu ve hiçbir şey
+tetiklenmediğinde o koşul sağlanıyor. Kazananlar ve matris Assay'den değil, elle
+yazılmış `tools/collide.py`'den geldi; beklenen kazanan vaka id'sine gömülmüştü.
+Id'lere skill adı da yazılamadı: desen tireyi reddediyordu (`copy-editing`).
+
+| Adım | Çıktı | Durum |
+|---|---|---|
+| 0.4.0-a Vaka kimliği | Tire her segmentte serbest; hata mesajı sorunlu karakteri adıyla söyler | bekliyor |
+| 0.4.0-b `expect.winner` şeması | `winner: <skill>`, `winner: [a, b]` (tartışmalı), `winner: none`; doğrulayıcı kuralları; yalnız-`not_triggered` vakasına uyarı | bekliyor |
+| 0.4.0-c Değerlendirme | Kazanmak = ilk doğrulanmış aktivasyon; hiçbiri tetiklenmediyse `fail`; kayda `expectedWinner` | bekliyor |
+| 0.4.0-d Çakışma matrisi | `RunSummary.collision`; terminal ve HTML'de hedef-yalnız precision/recall'ın üstünde | bekliyor |
+| 0.4.0-e Hosted şema | `CaseResult.expectedWinner` sütunu, migration, eşleme | bekliyor |
+| 0.4.0-f Gerçek veriyle kanıt | marketingskills kaydı yeni şemayla yeniden puanlanır; matris `collide.py` tablosuyla hücre hücre aynı, "100 sahte pass" yok | bekliyor |
+| 0.4.0-g Ters çevirme | Her adımda derleme kapılı | bekliyor |
+
+**Kararlar** (gerekçeleri decisions.md, 2026-09-10):
+
+- **Kazanmak = ilk doğrulanmış aktivasyon** (`skills[0]`). Kazanandan sonra
+  tetiklenen skill "also fired" olarak kayda girer, verdict'i bozmaz; tekillik
+  isteyen `not_triggered` ekler.
+- **Negatif `winner: none`.** `none` ayrılmış sözcük; değişmez #5 için negatif
+  sayılır.
+- **Hiçbiri tetiklenmediyse `fail`, `unknown` değil.** Ölçüm yapıldı; `unknown`
+  asıl bulguyu gizler ve kullanıcıyı yanlış adrese gönderirdi. "Hiçbiri" ile
+  "yanlış skill" gerekçe cümlesinde ve matriste ayrı durur.
+- **Web'deki matris ekranı 0.4.1'de.** Şema ve veritabanı 0.4.0'da; ekran ayrı.
+
+**Tavan.** Gözlem, reddedilen çağrılarla doğrulanmış aktivasyonlar arasındaki
+sırayı taşımıyor: "kazanandan önce reddedilmiş başka bir seçim" görünmez.
+Yükseltme yolu, gözleme sıralı bir seçim listesi eklemek.
+
+**Geriye dönük uyum.** Alanlar opsiyonel; `triggered` ve `not_triggered`'ın
+anlamı değişmiyor; id deseni eskisinin üst kümesi. Mevcut suite'lerde tek fark,
+yalnız `not_triggered` taşıyan vakalara düşen uyarı.
+
+## 0.4.1 — Çakışma matrisi web'de
+
+Hosted koşum sayfasında `RunSummary.collision`. 0.4.0'ın veritabanı sütunu
+hazır olduğu için yalnızca ekran işi.
+
+---
+
 ## Sonraki dalga
 
 Faz 3'ten sonra değerlendirilecek. **Şimdi yapılmayacak.**

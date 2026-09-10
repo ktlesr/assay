@@ -2565,3 +2565,53 @@ taşıyordu (0.3.0-a); `grep` dosyayı ikili sanıp aramıyordu. Anlamı aynı o
 Ortam notu: bu makinede 3000 ve 5433 başka projelerin Docker konteynerlerinde.
 Assay web 3100'de, geliştirme veritabanı 5434'te açıldı (`ASSAY_DEV_PG_PORT`).
 Geri dönüş maliyeti: düşük (opsiyonel alan + nullable sütun)
+
+## 2026-09-10 — Çakışma vakasında beklenen kazanan: `expect.winner`, "ilk tetiklenen" (0.4.0)
+
+Bağlam: marketingskills çakışma koşumunda (200 deneme) Assay 179 pass / 21 fail
+dedi; oysa 13 skill'in 7'si kendi vakasında hiç tetiklenmedi. Suite'in tek bir
+`target.skill`'i var; hedef dışı bir skill için pozitif bir alan yok. Çakışma
+vakaları yalnızca `not_triggered` ile yazılabildi, ve hiçbir şey
+tetiklenmediğinde o koşul sağlandı: 100 pozitif deneme sahte `pass`.
+Seçenekler: (a) kazanan = listede herhangi bir yerde tetiklenen · (b) kazanan =
+ilk doğrulanmış aktivasyon · (c) kazanan = tek tetiklenen
+Karar: (b), kullanıcı onayıyla. `winner: <skill>`, tartışmalı vaka için
+`winner: [a, b]` (biri kazanırsa geçer), negatif için `winner: none`.
+Gerekçe: Çakışmanın sorusu "model önce hangisine uzandı". (a), yanlış skill'e
+uzanıp sonra düzelten modeli başarılı sayardı. (c), meşru bir ikinci aktivasyonu
+(ör. copywriting'in ardından copy-editing) cezalandırırdı; tekillik isteyen
+`not_triggered` ekleyebiliyor. Matrisin sütunları da ilk tetiklenen. `none` ayrı
+bir alan yerine bir sözcük, çünkü matrisin "none" satırı ve sütunuyla bire bir
+örtüşüyor; `active_skills`'te `none` adlı bir skill varsa doğrulayıcı hata
+veriyor.
+Geri dönüş maliyeti: orta (yayımlandıktan sonra alanın anlamı değiştirilemez)
+
+## 2026-09-10 — Beklenen kazanan hiç tetiklenmediyse `fail`, `unknown` değil (0.4.0)
+
+Bağlam: Çakışma suite'lerinde en sık başarısızlık yanlış skill değil, hiçbir
+skill'in tetiklenmemesi. Bunun `fail` mi `unknown` mu olacağı belirsizdi.
+Seçenekler: `fail` · `unknown`
+Karar: `fail`. `unknown` yalnızca sinyal okunamadığında, liste eksikken
+(`complete: false`), kazanan seçilip aktivasyonu reddedildiğinde, ya da hiçbir
+aktivasyon doğrulanmayıp bir red olduğunda.
+Gerekçe: Sinyal okundu, liste tam, beklenen skill tetiklenmedi — bu bir ölçüm.
+Hedef skill için `triggered: true` iken aynı durum bugün zaten `fail`; hedef
+dışı skill için farklı verdict tutarsız olurdu. `unknown`, marketingskills'in
+manşet bulgusunu (7/13 skill hiç tetiklenmedi) exit 3'ün arkasına saklar ve
+kullanıcıyı olmayan bir host sorununu aramaya gönderirdi — 0.3.0-a'daki yanlış
+adresin aynısı. "Hiçbiri tetiklenmedi" ile "yanlış skill kazandı" farklı gerekçe
+cümlesi alıyor ve matriste ayrı sütunda duruyor.
+Geri dönüş maliyeti: orta
+
+## 2026-09-10 — Çakışma matrisi web'de 0.4.1'de (0.4.0 şema ve veritabanıyla sınırlı)
+
+Bağlam: Matris terminal, HTML ve hosted tarafta gösterilmeli; 0.4.0'ın kapsamı
+belirsizdi.
+Seçenekler: hepsi 0.4.0'da · şema + CLI raporları + veritabanı 0.4.0'da, web
+ekranı 0.4.1'de
+Karar: İkincisi, kullanıcı onayıyla.
+Gerekçe: Yerel ve hosted şema ayrışmamalı, bu yüzden `CaseResult.expectedWinner`
+sütunu 0.4.0'da geliyor; ekran bu sütunun üstünde ayrı bir iş ve kendi ekran
+görüntüsü doğrulamasını istiyor. Şemanın doğruluğu gerçek veriyle yeniden
+puanlamada kanıtlanıyor, ekranda değil.
+Geri dönüş maliyeti: düşük
