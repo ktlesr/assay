@@ -24,8 +24,14 @@ GitHub Release "Latest". Dışarıdan doğrulandı (`ktlesr/assay-example`, koş
 artefakttaki kayıt yalnızca 0.3.0'ın yazdığı `environment` alanını taşıyor.
 Yol docs/marketplace.md'de.
 
-Sırada **0.3.1**: uyarlanabilir durdurma ve kurtarılan yarım kaydın `pass`
-verebilmesi (roadmap.md).
+**0.3.1-b tamam (2026-09-10), yayımlanmadı.** Kurtarılan yarım kayıt artık
+`pass` veremiyor; ulaşılamayan vakalar `skipped`da `cause: 'interrupted'` ile
+adıyla. Gerçek hostta: bir deneme sonra öldürülen koşum UNKNOWN kurtarıldı,
+11 ulaşılamayan vaka adıyla kayıtta. Changeset `honest-recoveries-name` (patch →
+0.3.1) bekliyor.
+
+Sırada **0.3.1-a** (uyarlanabilir durdurma): kalibrasyon koşumu ~$10–20, tetiği
+kullanıcı çeker.
 
 ## Tamamlananlar
 

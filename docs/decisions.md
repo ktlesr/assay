@@ -2495,3 +2495,37 @@ silen ilk mutasyon yanlış sebeple kırmızıydı (derleme kırıldı, 24 test 
 tip-geçerli mutasyonla tam iki testte `expected 'pass' to be 'unknown'`. Gerçek
 hostta: 3 deneme geçti, 0 unknown, koşum UNKNOWN, `ci` exit 3.
 Geri dönüş maliyeti: düşük (opsiyonel davranış; hiçbir varsayılan değişmedi)
+
+## 2026-09-10 — Kurtarılan yarım kayıt `pass` veremez; ulaşılamayan vaka adıyla yazılır (0.3.1-b)
+
+Bağlam: 0.3.0'da ölçüldü: üç denemeden sonra öldürülen koşum `pass` olarak
+kurtarıldı ve yalnız pozitif vakayı taşıdı. Koşumun hiç ulaşmadığı negatif vaka
+kaydın hiçbir yerinde yoktu. Bütçe kesmesiyle aynı sınıf bir kusur, üstelik iz
+bırakmıyordu.
+Seçenekler: `partial` künyesini yeterli saymak · yarım kaydı hiç kaydetmemek ·
+bütçe kuralının aynısı + ulaşılamayan vakaları adlandırmak
+Karar: Üçüncüsü. Journal başlığı planlanan vaka listesini (`planned`) taşıyor;
+kurtarma, başlamamış her vakayı `skipped`a `cause: 'interrupted'` ile yazıyor.
+Verdict'te iki ayrı kural: (a) yarım kayıt `pass` veremez; (b) katman dışı her
+atlama `pass`i engeller.
+Gerekçe: Künye yetmiyor, çünkü verdict alanı künyeden bağımsız okunuyor
+(`assay push` sonrası dashboard, `compare` taban çizgisi). Kaydetmemek 0.3.0-b'nin
+kurtardığı ölçümü geri atar. (a) ayrıca gerekli: son vakanın ortasında kesilen
+bir koşum hiçbir vakayı tamamen kaçırmaz, `skipped` boş kalır, ama denemeleri
+eksiktir. (b) kurtarma yolunda (a)'nın arkasında kalıyor ve oradan gözlenemiyor;
+yine de duruyor, çünkü ileride eklenecek bir sebep varsayılan olarak "ölçülmedi"
+sayılmalı. Yalnız `layer` beyan edilmiş bir kapsamdır. (b) `verdictOf` üzerinden
+doğrudan sınanıyor.
+0.3.0 journal'larında `planned` yok: ulaşılamayan vakalar adlandırılamıyor ama
+kayıt yine `pass` vermiyor.
+Doğrulama: 12 ters çevirme; ters çevirme betiği bu kez her mutasyondan sonra
+önce derliyor ve derlemesi bozuk mutasyonu geçersiz sayıyor. On ikisi de
+derleme temizken bir assertion'da, tam kendi testinde kırmızı. Gerçek hostta:
+bir deneme sonra öldürülen hızlı mod koşumu `UNKNOWN` kurtarıldı ve ulaşılamayan
+11 vaka adıyla kayıtta.
+Yan bulgu: ebeveyn ölümünü sınayan test, düştüğünde worker'ı sonsuza kadar
+yaşatıyordu. Bir ters çevirme koşumu makinede ~2.5 saat bir yetim bıraktı. Test
+artık sonuç ne olursa olsun worker'ı kapatıyor; aynı mutasyonla sınandı, geride
+worker kalmadı.
+Geri dönüş maliyeti: düşük (davranış değişikliği: bugün `pass` kurtarılan kayıt
+`unknown` olur; sürüm notunda)

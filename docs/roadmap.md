@@ -461,7 +461,7 @@ yapılmayacak.
 | Adım | Çıktı | Durum |
 |---|---|---|
 | 0.3.1-a Uyarlanabilir durdurma | Sabit bakış çizelgesi + Bonferroni; kalibrasyon koşumu | bekliyor |
-| 0.3.1-b Kurtarılan yarım kayıt `pass` veremez | Yarım kaydın verdict'i en iyi ihtimalle `unknown`; hiç koşulmamış vakalar kayıtta adıyla | bekliyor |
+| 0.3.1-b Kurtarılan yarım kayıt `pass` veremez | Yarım kaydın verdict'i en iyi ihtimalle `unknown`; hiç koşulmamış vakalar kayıtta adıyla | **tamam** |
 
 ### 0.3.1-a — Uyarlanabilir durdurma
 
