@@ -2615,3 +2615,25 @@ sütunu 0.4.0'da geliyor; ekran bu sütunun üstünde ayrı bir iş ve kendi ekr
 görüntüsü doğrulamasını istiyor. Şemanın doğruluğu gerçek veriyle yeniden
 puanlamada kanıtlanıyor, ekranda değil.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Host'la gelen bir skill de "ilk tetiklenen" sayılır (0.4.0-f)
+
+Bağlam: marketingskills kaydı yeniden puanlanırken, `collide.py` ile Assay'in
+matrisi tek bir denemede ayrıştı. `collide.cro.lead_form` #7'de yalnızca Claude
+Code'un kendi skill'lerinden biri (`run`) tetiklendi. `collide.py` yalnız
+`marketing-skills:` önekli aktivasyonları sayıyor ve bu denemeyi "none"a yazıyor;
+Assay'in onaylanan tanımı ("ilk doğrulanmış aktivasyon") `run` sütununa.
+Seçenekler: (a) ilk tetiklenen = `active_skills` içindeki ilk aktivasyon
+(`collide.py` ile birebir) · (b) ilk tetiklenen = herhangi bir doğrulanmış
+aktivasyon (onaylanan tanım)
+Karar: (b). Aynı Assay kodunun (a)'nın süzgeciyle `collide.py` ile 17 hücrenin
+17'sinde aynı sonucu verdiği ayrıca gösterildi; fark yalnızca tanımda.
+Gerekçe: (a) o deneme için "hiçbir skill tetiklenmedi" der, oysa bir skill
+tetiklendi — "none" sütununun anlamını bozar. Host skill'inin isteği kapması da
+bir çakışma: plugin yazarının bilmek isteyeceği şey tam olarak bu. Verdict iki
+tanımda da aynı (cro kazanmadı). İki tanımın verdict'te ayrıştığı tek durum
+"host skill önce, beklenen sonra" ve onaylanan gerekçe ("model önce hangisine
+uzandı") orada da `fail` diyor. (a) ayrıca kaydın `active_skills`'i taşımasını
+gerektirirdi; matris kayıttan kurulamazdı.
+Geri dönüş maliyeti: düşük (yalnızca matris sütunu; ikinci bir süzgeçli görünüm
+istenirse eklenebilir)

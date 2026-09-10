@@ -13,6 +13,7 @@ import {
   collisionPrefix,
   formatProportion,
   NO_SKILL,
+  outsidePrefix,
   redact,
   type CollisionMatrix,
   type Run,
@@ -72,7 +73,7 @@ function renderCollisionHtml(matrix: CollisionMatrix): string {
     .join('\n')
   return `  <section>
     <h2>Collision matrix</h2>
-    <p class="note">Rows are the expected winner, columns the first skill to fire. Winning means firing first; a skill that fired later is counted under "also fired".${prefix === '' ? '' : ` Names are shown without the common prefix <span class="mono">${escape(prefix)}</span>.`}${matrix.unmeasured === 0 ? '' : ` ${matrix.unmeasured} attempt(s) could not be measured and are not in the matrix.`}</p>
+    <p class="note">Rows are the expected winner, columns the first skill to fire. Winning means firing first; a skill that fired later is counted under "also fired".${prefix === '' ? '' : ` Names are shown without the common prefix <span class="mono">${escape(prefix)}</span>${outsidePrefix(matrix, prefix).length === 0 ? '' : `; not under it: <span class="mono">${escape(outsidePrefix(matrix, prefix).join(', '))}</span>`}.`}${matrix.unmeasured === 0 ? '' : ` ${matrix.unmeasured} attempt(s) could not be measured and are not in the matrix.`}</p>
     <div class="matrix">
     <table>
       <thead><tr><th>expected \\ fired</th>${head}<th>Won</th></tr></thead>
@@ -278,12 +279,16 @@ ${skipped
   th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
   td.num, th.num { text-align: right; width: 4rem; }
   td.rate { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .matrix { overflow-x: auto; }
+  /* Geniş tablo kendi kabında kayar; sayfa yana taşmaz. Vaka tablosu 420 px'de
+     sayfayı taşırıyordu (0.4.0'dan önce de) — matris eklenirken ölçüldü. */
+  .matrix, .scroll { overflow-x: auto; }
   .matrix table { width: auto; }
   .matrix td.c { text-align: right; font-variant-numeric: tabular-nums; min-width: 2.5rem; }
   .matrix td.hit { color: var(--pass); font-weight: 600; }
   .matrix td.miss { color: var(--fail); font-weight: 600; }
   .matrix td.zero { color: var(--muted); }
+  /* Satır etiketi yapışkan: dar ekranda yana kaydırınca hangi satırda olduğun kaybolmasın. */
+  .matrix tr > :first-child { position: sticky; left: 0; background: var(--bg); }
   .warn { color: var(--unknown); font-weight: 600; }
   /* Kart yok, yan sekme yok (docs/design.md #1): veri kutularda değil
      çizgilerde durur. Bölümü ayıran şey basılı bir tablonun cetvel çizgisi. */
@@ -308,7 +313,8 @@ ${skipped
   footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; }
   .pins { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; }
   .pins dt { color: var(--muted); font-size: .8rem; }
-  .pins dd { margin: 0; }
+  /* Hash ve kaynak dizeleri boşluksuz; kırılmasalar dar ekranda sayfayı taşırıyor. */
+  .pins dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -328,6 +334,7 @@ ${collisionSection}
   </div>
 
   <h2>Cases</h2>
+  <div class="scroll">
   <table>
     <thead>
       <tr><th>Verdict</th><th>Case</th><th>Pass rate</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Unknown</th></tr>
@@ -336,6 +343,7 @@ ${collisionSection}
 ${rows}
     </tbody>
   </table>
+  </div>
   <p class="note">Every rate carries its observation count and 95% Wilson confidence
   interval. A rate without them would hide how little three runs can tell you.</p>
 

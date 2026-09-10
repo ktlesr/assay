@@ -78,6 +78,7 @@ export {
   summarizeRun,
   collisionMatrix,
   collisionPrefix,
+  outsidePrefix,
   NO_SKILL,
   type CollisionMatrix,
   type CollisionRow,

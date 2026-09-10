@@ -12,6 +12,7 @@ import {
   collisionPrefix,
   formatProportion,
   NO_SKILL,
+  outsidePrefix,
   type CaseComparison,
   type CollisionMatrix,
   type Proportion,
@@ -94,7 +95,15 @@ export function renderCollision(matrix: CollisionMatrix): string[] {
 
   const out: string[] = ['']
   out.push(style.bold('  collision matrix') + style.grey('  rows: expected winner · columns: first skill to fire'))
-  if (prefix !== '') out.push(style.grey(`  names shown without the common prefix "${prefix}"`))
+  if (prefix !== '') {
+    const outside = outsidePrefix(matrix, prefix)
+    out.push(
+      style.grey(
+        `  names shown without the common prefix "${prefix}"` +
+          (outside.length === 0 ? '' : `; not under it: ${outside.join(', ')}`),
+      ),
+    )
+  }
   out.push(
     `    ${pad('expected \\ fired', rowWidth)}  ${matrix.columns.map((c, i) => cell(short(c), i)).join('  ')}  won`,
   )

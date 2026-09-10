@@ -4,6 +4,7 @@ import {
   collisionMatrix,
   collisionPrefix,
   countVerdicts,
+  outsidePrefix,
   decidedRate,
   flakiness,
   summarize,
@@ -524,7 +525,13 @@ describe('collisionMatrix (0.4.0)', () => {
       runOf([caseOf('c.a', [attempt(['p:cro'])], ['p:cro']), caseOf('c.b', [attempt([])], ['p:signup'])]),
     )
     expect(matrix === undefined ? '' : collisionPrefix(matrix)).toBe('p:')
-    const mixed = collisionMatrix(runOf([caseOf('c.a', [attempt(['cro'])], ['p:cro'])]))
-    expect(mixed === undefined ? 'x' : collisionPrefix(mixed)).toBe('')
+    // Öneki atmak `p:cro` ile öneksiz `cro`yu çakıştırırdı: önek atılmaz.
+    const clash = collisionMatrix(runOf([caseOf('c.a', [attempt(['cro'])], ['p:cro'])]))
+    expect(clash === undefined ? 'x' : collisionPrefix(clash)).toBe('')
+    // Öneksiz ama çakışmayan bir ad (host'la gelen `run`) öneki engellemez,
+    // ve ayrıca söylenir. Gerçek kayıtta ilk hâli 300 karakterlik satır üretti.
+    const host = collisionMatrix(runOf([caseOf('c.a', [attempt(['run'])], ['p:cro'])]))
+    expect(host === undefined ? '' : collisionPrefix(host)).toBe('p:')
+    expect(host === undefined ? [] : outsidePrefix(host, 'p:')).toEqual(['run'])
   })
 })

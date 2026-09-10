@@ -326,14 +326,29 @@ export const NO_SKILL = 'none'
  * Matristeki bütün skill adlarının ortak `plugin:` öneki, yoksa `''`.
  *
  * `marketing-skills:copy-editing` gibi on dört sütun terminale sığmıyor; önek
- * bir kez başlıkta söylenip hücrelerden atılıyor. Tek bir ad öneksizse önek
- * yok sayılır — atılırsa iki farklı skill aynı adla görünebilirdi.
+ * bir kez başlıkta söylenip hücrelerden atılıyor.
+ *
+ * Önekli adların hepsi aynı öneki taşımalı, ve atılması iki adı
+ * çakıştırmamalı: `p:run` ile öneksiz `run` birlikteyse önek atılmaz. İlk hâli
+ * tek bir öneksiz ad (host'la gelen `run`) görünce hiç atmıyordu ve gerçek
+ * kayıtta 300 karakterlik satır üretti. Önek altında olmayan adlar
+ * `outsidePrefix` ile ayrıca söylenir ki `run`, `marketing-skills:run` diye
+ * okunmasın.
  */
 export function collisionPrefix(matrix: CollisionMatrix): string {
   const names = matrix.columns.filter((c) => c !== NO_SKILL)
-  const prefixes = new Set(names.map((n) => (n.includes(':') ? n.slice(0, n.indexOf(':') + 1) : '')))
+  const prefixed = names.filter((n) => n.includes(':'))
+  const prefixes = new Set(prefixed.map((n) => n.slice(0, n.indexOf(':') + 1)))
   const [only] = [...prefixes]
-  return prefixes.size === 1 && only !== undefined ? only : ''
+  if (prefixes.size !== 1 || only === undefined) return ''
+  const shortened = names.map((n) => (n.startsWith(only) ? n.slice(only.length) : n))
+  return new Set(shortened).size === shortened.length ? only : ''
+}
+
+/** Matristeki, ortak önek altında OLMAYAN skill adları (ör. host'la gelen `run`). */
+export function outsidePrefix(matrix: CollisionMatrix, prefix: string): string[] {
+  if (prefix === '') return []
+  return matrix.columns.filter((c) => c !== NO_SKILL && !c.startsWith(prefix))
 }
 
 /**

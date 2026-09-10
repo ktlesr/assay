@@ -737,3 +737,74 @@ Bugün bilinen: bir hız sınırı yanıtı adaptör tarafında sıradan bir hos
 olarak görünür ve deneme `unknown` olur (değişmez #1). Yani hız sınırı ölçümü
 **bozmuyor**, yalnızca ölçülemeyen deneme sayısını artırıyor — ve bu, raporda
 ayrı bir kova olarak görünüyor.
+
+---
+
+# 0.4.0-f — marketingskills çakışma koşumu, yeni şemayla yeniden puanlandı
+
+**Soru.** `expect.winner` şeması doğru mu? Kanıt olarak yeni bir koşum değil,
+var olan gerçek bir koşum kullanıldı: aynı kanıt her zaman aynı verdict'i verir,
+ve kayıt her denemenin tetiklenme gözlemini taşıyor. Maliyeti $0.
+
+**Girdiler** (ölçüm deposu `skill-trigger-measurements`, yalnızca okundu):
+
+- kayıt `run-2026-09-10T11-01-34-914Z-0bec859e` — assay 0.3.2, 20 vaka × 10, 200 deneme
+- suite `suites/marketingskills.collide.suite.yaml` v2 — yalnız `not_triggered`
+- analizci `tools/collide.py` — beklenen kazananı vaka id'sinden okuyor
+- rapor `reports/marketingskills.collide.md` — bölüm 5: "179 pass, 21 fail; that is not the finding"
+
+**Türetilmiş suite:** `examples/measurements/marketingskills.collide.winner.suite.yaml`.
+Id'ye gömülü kazanan, `collide.py`'nin `expected()` kuralıyla `expect.winner`a
+taşındı. Vaka id'leri bayt bayt aynı. Tek anlamsal düzeltme tartışmalı vakada:
+özgün suite `not_triggered: [copy-editing]` diyordu, oysa kendi yorumu tartışmalı
+vakayı "iki açıklamanın da istediği" diye tanımlıyor; çelişen satır düşürüldü.
+
+Özgün suite yeni doğrulayıcıdan 15 uyarıyla geçiyor ("this case also passes when
+no skill triggers at all"); türetilmiş suite uyarısız.
+
+## Sonuç
+
+| | pass | fail | unknown |
+|---|---|---|---|
+| Kayıttaki (0.3.2, eski şema) | 179 | 21 | 0 |
+| Yeniden puanlanmış (0.4.0, `winner`) | **79** | **121** | 0 |
+
+- `pass` → `fail` dönen deneme: **100**. Bunlar, hiçbir `marketing-skills:`
+  skill'inin tetiklenmediği ve eskiden `pass` sayılan pozitif denemelerin
+  **tam kümesi** (küme eşitliği doğrulandı). `fail` → `pass` dönen: 0.
+- Matris, `collide.py`'nin matrisiyle karşılaştırıldı (13 satır):
+
+| Tanım | Karşılaştırılan dolu hücre | Fark |
+|---|---|---|
+| `collide.py`'nin süzgeci (yalnız `marketing-skills:` aktivasyonları), aynı Assay kodu | 17 | **0** |
+| Assay'in tanımı (ilk doğrulanmış aktivasyon, herhangi bir skill) | 18 | 2 hücre, tek deneme |
+
+Tek fark: `collide.cro.lead_form` #7'de yalnızca host'la gelen `run` skill'i
+tetiklendi. `collide.py` pazarlama dışı skill'leri saymadığı için onu "none"a
+yazıyor (cro × none = 15); Assay `run` sütununa (cro × none = 14, cro × run = 1).
+Verdict ikisinde de `fail`. Assay'in "none" sütunu gerçekten hiçbir skill'in
+tetiklenmediği anlamına geliyor; bir host skill'inin isteği kapması da bir
+çakışma bulgusu (karar: decisions.md, 2026-09-10).
+
+`collide.py` matrisinde olmayan iki satır, onun tablo 1'iyle tutarlı:
+tartışmalı `copywriting / copy-editing` → none × 10, `none` (negatifler) → none × 30.
+
+## Yeniden üretmek
+
+```
+npx tsc -b
+node tools/rescore.mjs <kayit.json> examples/measurements/marketingskills.collide.winner.suite.yaml
+node tools/rescore.mjs <kayit.json> examples/measurements/marketingskills.collide.winner.suite.yaml --json
+```
+
+Hücre hücre karşılaştırma `collide.py`'nin kendi fonksiyonlarını içe aktarıyor
+ve aynı Assay kodunu süzülmüş bir kayıtla ikinci kez koşuyor.
+
+## Görsel doğrulamada bulunanlar
+
+HTML raporu bu gerçek kayıttan çizildi. 420 px'de sayfa yana taşıyordu; matris
+değil, 0.4.0'dan önce de var olan iki şey yüzünden: vaka tablosu ve kırılmayan
+pin değerleri (hash'ler). İkisi düzeltildi. Matrisin ilk sütunu yapışkan yapıldı:
+15 sütun yana kaydırılınca satır etiketleri kayboluyordu. Terminal çıktısında
+ortak önek, host'la gelen tek bir öneksiz ad (`run`) yüzünden hiç atılmıyordu ve
+300 karakterlik satır üretiyordu; kural daraltıldı.
