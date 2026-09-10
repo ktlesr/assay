@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseSuite, type Suite } from '@ktlsr/assay-core'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { runSuite, suiteHash } from './run.js'
 import { RunStore } from './store.js'
 import {
@@ -546,5 +546,40 @@ describe('ortam kaydi kayda girer', () => {
       ],
     })
     expect((await run(adapter)).environment).toBeUndefined()
+  })
+})
+
+/**
+ * Bu makinenin hesap adı (0.4.1-b). Desenler adı yolun biçiminden tahmin
+ * ediyor; noktalı bir ad Claude Code'un proje dizininde tireye dönüşüyor ve
+ * desen yalnızca ilk parçasını görüyor. Bilinen ad o tavanı kapatıyor.
+ */
+describe('hesap adı maskeleme', () => {
+  const leak = 'memory at cc/projects/C--Users-zey-nep/memory'
+  const withLeak: MockScenario = {
+    ...triggered(),
+    trace: [{ seq: 1, kind: 'assistant_message', text: leak }],
+  }
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('kaydı yazmadan önce izde maskeler', async () => {
+    vi.stubEnv('USERNAME', 'zey.nep')
+    const result = await run(new MockAdapter({ scenarios: [withLeak] }))
+    const text = result.cases[0]?.attempts[0]?.trace?.[0]?.text
+    expect(text).toBe('memory at cc/projects/C--Users-<user>/memory')
+  })
+
+  it('diskteki eski kaydı okurken maskeler', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'assay-store-'))
+    const store = new RunStore({ root })
+    const result = await run(new MockAdapter({ scenarios: [withLeak] }))
+    // Maskeleme öncesi yazılmış bir kayıt: izi elle geri koy.
+    const [first] = result.cases
+    if (first === undefined) throw new Error('no case')
+    const attempts = first.attempts.map((a) => ({ ...a, trace: withLeak.trace ?? [] }))
+    await store.save({ ...result, cases: [{ ...first, attempts }] })
+    vi.stubEnv('USERNAME', 'zey.nep')
+    const loaded = await store.load(result.id)
+    expect(JSON.stringify(loaded)).not.toContain('nep')
   })
 })

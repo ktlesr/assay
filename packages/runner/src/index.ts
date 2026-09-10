@@ -37,6 +37,7 @@ export {
 } from './store.js'
 
 export { assembleRun, verdictOf } from './assemble.js'
+export { localNames } from './identity.js'
 
 export { killTree, killChildTree, type KillTreeResult } from './process.js'
 export {

@@ -27,11 +27,13 @@ import {
 import {
   findJournals,
   recoverJournal,
+  localNames,
   RunStore,
   runSuite,
   suiteHash,
 } from '@ktlsr/assay-runner'
 import { renderHtmlReport } from './html.js'
+import { findPersonalData, maskedCount } from './scan.js'
 import {
   renderComparison,
   renderIssues,
@@ -107,6 +109,8 @@ Options
   --suite <file>      the case set the run was measured with (push)
   --url <base>        hosted instance base URL (push, or ASSAY_URL)
   --token <token>     API token (push, or ASSAY_TOKEN — prefer the variable)
+  --allow-unmasked    upload even though push found your username or a secret
+                      left in the record after masking (push)
   -h, --help          show this text
 
 Exit codes
@@ -130,6 +134,7 @@ export async function main(argv: readonly string[]): Promise<number> {
         'permission-mode': { type: 'string' },
         'allow-bypass-permissions': { type: 'boolean' },
         'allow-unknown': { type: 'boolean' },
+        'allow-unmasked': { type: 'boolean' },
         'no-isolation': { type: 'boolean' },
         concurrency: { type: 'string' },
         fast: { type: 'boolean' },
@@ -716,6 +721,26 @@ async function push(runId: string | undefined, options: Options): Promise<number
     return EXIT.usage
   }
 
+  // Yükleme public bir siteye gidebilir ve orada yayımlanan bir sayfa geri
+  // alınamaz; maskenin bıraktığı kişisel veri varsa gönderilmez (0.4.1-c).
+  const findings = findPersonalData(record, localNames())
+  if (findings.length > 0 && options['allow-unmasked'] !== true) {
+    process.stderr.write(
+      `${style.red('error')} the record still carries personal data in ${findings.length} place(s); nothing was uploaded\n` +
+        findings
+          .slice(0, 5)
+          .map((finding) => `  ${finding.kind.padEnd(9)}  ${finding.path}\n`)
+          .join('') +
+        (findings.length > 5 ? `  … and ${findings.length - 5} more\n` : '') +
+        `  Check those places. If they are not personal, pass --allow-unmasked.\n`,
+    )
+    return EXIT.usage
+  }
+  const onDisk = await readFile(join(store.directory, `${record.id}.json`), 'utf8')
+    .then((text) => (JSON.parse(text) as { run?: unknown }).run)
+    .catch(() => undefined)
+  const masked = onDisk === undefined ? 0 : maskedCount(onDisk, record)
+
   let response: Response
   try {
     response = await fetch(new URL('/api/runs', base), {
@@ -743,6 +768,11 @@ async function push(runId: string | undefined, options: Options): Promise<number
   ${new URL(`/runs/${record.id}`, base).href}
 `,
     )
+    if (masked > 0) {
+      process.stdout.write(
+        `  ${style.yellow('masked')} ${masked} username(s) or secret(s) in the uploaded copy; the file on disk still has them — assay scrub masks it\n`,
+      )
+    }
     return EXIT.ok
   }
   if (response.status === 409) {
@@ -780,11 +810,13 @@ async function scrub(dir: string | undefined, options: Options): Promise<number>
     return EXIT.usage
   }
 
+  // Bu makinenin hesap adı: desenlerin tahmin edemediği biçimleri de kapatıyor.
+  const accounts = localNames()
   let changed = 0
   for (const name of names) {
     const path = join(target, name)
     const raw = await readFile(path, 'utf8')
-    const clean = `${JSON.stringify(redactDeep(JSON.parse(raw) as unknown), null, 2)}\n`
+    const clean = `${JSON.stringify(redactDeep(JSON.parse(raw) as unknown, { names: accounts }), null, 2)}\n`
     if (clean === raw) continue
     await writeFile(path, clean, 'utf8')
     changed += 1

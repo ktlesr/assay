@@ -2721,3 +2721,30 @@ ona ulaşacak bir yolu yoksa yayımlama yarım bir eylem. Veri katmanı hazır
 (`listSuites({ kind: 'public' })` tanıtım sayfasında zaten çağrılıyor); eksik
 olan yalnızca ekran.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — `push` kişisel veri kalıntısında yüklemez; bilinen ad maskeye girer (0.4.1-b, c)
+
+Bağlam: İlk gerçek yüklemede 0.4.0 `scrub` sekiz kayıtta kullanıcı adını 71
+yerde bıraktı (üç biçim: ters bölüsü yenmiş yol, Claude Code proje adı, çift
+kaçışlı yol). Kullanıcı "push öncesi tarama yapıp uyarsın" istedi.
+Seçenekler: (a) yalnızca uyarı basıp yüklemek · (b) kalıntıda yüklememek,
+bilinçli geçiş için bayrak · (c) sessizce maskeleyip yüklemek
+Karar: Desenler üç biçimi kapsıyor; ayrıca bu makinenin hesap adı (`localNames`)
+kayıt yazılırken, okunurken, `scrub`da ve `push`ta maskeye veriliyor. `push`
+maskeden sonra sır, ev dizini ya da hesap adı bulursa yüklemiyor, yerlerini
+JSON yoluyla sayıyor; `--allow-unmasked` kontrolden sonra geçiriyor. Maske
+yüklenen kopyayı değiştirdiyse kaç yer olduğunu söylüyor.
+Gerekçe: (a) bir CI kütüğünde kaybolur ve veri yine gider; public bir sayfa ve
+önbellekleri geri alınamaz. Uyarının kaçırılamayan hâli yüklememek. (c) zaten
+store okumasında yapılıyor, ama yol dışında geçen ad (ör. commit yazar satırı)
+maskelenemez: orada adın kimlik mi sözcük mü olduğu bilinemez, bu yüzden
+kullanıcıya soruluyor. Bilinen ad core'a parametre olarak geliyor; core
+işletim sistemine bakamıyor.
+Ölçüm: sekiz kayıtta 71 → 0, yalnızca desenlerle (ad bilinmeden) de 0. Tavan:
+liste dışı bir profil klasöründe düzleşmiş yolun maskesi yolun sonuna kadar
+uzuyor (fazla maskelemek güvenli yön); başka bir makinenin tireli adı Claude
+proje adında yalnızca ilk parçasından maskeleniyor.
+Doğrulama: 13 ters çevirme, derleme kapılı; on üçü de kendi testinde kırmızı.
+Kapı bir kez tabanı yakaladı: eklenen bir test tip hatası taşıyordu ve 13
+mutasyonun hepsi "geçersiz" çıktı — kırmızı sayılmadı.
+Geri dönüş maliyeti: düşük (push'a bir ret yolu ve bir bayrak)

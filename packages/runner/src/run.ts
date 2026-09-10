@@ -46,6 +46,7 @@ import {
   snapshot,
 } from './sandbox.js'
 import { assembleRun } from './assemble.js'
+import { localNames } from './identity.js'
 import { RunJournal, type JournalAttempt } from './journal.js'
 import { superviseAttempt } from './supervisor.js'
 
@@ -693,8 +694,8 @@ export async function runAttempt<S extends AgentSession>(
     latencyMs: latencyMs ?? Date.now() - began,
     ...(cost === undefined ? {} : { cost }),
     // Kayıt CI artefaktı olarak yükleniyor; iz maskelenmeden saklanmaz.
-    ...(trace === undefined ? {} : { trace: redactDeep(trace) }),
-    ...(evidence.env === undefined ? {} : { env: redactDeep(evidence.env) }),
+    ...(trace === undefined ? {} : { trace: redactDeep(trace, { names: localNames() }) }),
+    ...(evidence.env === undefined ? {} : { env: redactDeep(evidence.env, { names: localNames() }) }),
   }
 
   return {

@@ -3,7 +3,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { proportion, summarizeRun, type Attempt, type Pins, type Run } from '@ktlsr/assay-core'
-import { findJournals, RunJournal, RunStore } from '@ktlsr/assay-runner'
+import { findJournals, RunJournal, RunStore, suiteHash } from '@ktlsr/assay-runner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EXIT, main } from './cli.js'
 import { renderHtmlReport } from './html.js'
@@ -636,5 +636,106 @@ describe('hızlı mod raporu', () => {
     const text = renderRun(full, summarizeRun(full))
     expect(text).not.toContain('fast mode')
     expect(renderHtmlReport(full, summarizeRun(full))).not.toContain('Fast mode')
+  })
+})
+
+/**
+ * Yüklemeden önce kişisel veri taraması (0.4.1-c). Yükleme public bir siteye
+ * gidebilir; ilk gerçek kullanımda kayıtlar maskelenmemiş kullanıcı adıyla
+ * gitmek üzereydi.
+ */
+describe('push: kişisel veri', () => {
+  const suiteSource = 'version: 1\n'
+  let fetchMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    vi.stubEnv('USERNAME', 'zeynep')
+    fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ runId: 'run-p' }), { status: 201 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  async function stored(text: string): Promise<string[]> {
+    const root = await scratch()
+    const suitePath = join(root, 'widget.suite.yaml')
+    await writeFile(suitePath, suiteSource)
+    const base = makeRun('run-p', [['a', 1, 0, 0]], { suiteHash: suiteHash(suiteSource) })
+    const [first] = base.cases
+    if (first === undefined) throw new Error('makeRun returned no case')
+    const traced = {
+      ...first.attempts[0]!,
+      trace: [{ seq: 0, kind: 'assistant_message' as const, text }],
+    }
+    await new RunStore({ root }).save({
+      ...base,
+      cases: [{ ...first, attempts: [traced] }],
+    })
+    return [
+      'push',
+      'run-p',
+      '--store',
+      root,
+      '--suite',
+      suitePath,
+      '--url',
+      'http://assay.test',
+      '--token',
+      'assay_x',
+    ]
+  }
+
+  it('yol dışında kalan kullanıcı adıyla yüklemez ve yerini söyler', async () => {
+    const argv = await stored('Co-Authored-By: zeynep <z@example.com>')
+    expect(await main(argv)).toBe(EXIT.usage)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(err).toContain('personal data in 1 place')
+    expect(err).toContain('run.cases[0].attempts[0].trace[0].text')
+  })
+
+  it('--allow-unmasked ile yükler', async () => {
+    const argv = await stored('Co-Authored-By: zeynep <z@example.com>')
+    expect(await main([...argv, '--allow-unmasked'])).toBe(EXIT.ok)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('yoldaki adı yüklenen kopyada maskeler ve kaç yer olduğunu söyler', async () => {
+    const argv = await stored('memory at cc/projects/C--Users-zeynep/memory')
+    expect(await main(argv)).toBe(EXIT.ok)
+    const [, init] = fetchMock.mock.calls[0] as [unknown, RequestInit]
+    const body = String(init.body)
+    expect(body).toContain('C--Users-<user>')
+    expect(body).not.toContain('zeynep')
+    expect(out).toContain('masked 1 username(s)')
+  })
+})
+
+describe('scrub', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('diskteki kaydı üç biçimde ve bu makinenin hesap adıyla maskeler', async () => {
+    const root = await scratch()
+    const base = makeRun('run-s', [['a', 1, 0, 0]])
+    const [first] = base.cases
+    if (first === undefined) throw new Error('makeRun returned no case')
+    const text = "ls 'C:UsersadaAppDataLocal' cc/projects/C--Users-zey-nep/memory"
+    const traced = {
+      ...first.attempts[0]!,
+      trace: [{ seq: 0, kind: 'assistant_message' as const, text }],
+    }
+    await new RunStore({ root }).save({
+      ...base,
+      cases: [{ ...first, attempts: [traced] }],
+    })
+    vi.stubEnv('USERNAME', 'zey.nep')
+    expect(await main(['scrub', join(root, 'runs')])).toBe(EXIT.ok)
+    const written = await readFile(join(root, 'runs', 'run-s.json'), 'utf8')
+    expect(written).toContain('C:Users<user>AppDataLocal')
+    expect(written).toContain('C--Users-<user>/memory')
+    expect(written).not.toMatch(/\bada|nep/)
   })
 })
