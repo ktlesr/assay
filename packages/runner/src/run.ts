@@ -169,6 +169,11 @@ export async function runSuite<S extends AgentSession>(
    * journal bir güvence, ön koşul değil — yazılamıyor diye ölçümü iptal etmek
    * kullanıcıya daha pahalıya patlardı. Ama sessiz kalmıyor.
    */
+  // Plan journal'dan ÖNCE: kurtarılan bir koşum da neyin bilerek koşulmadığını
+  // ve hangi katmanın ölçüldüğünü bilmeli. Başlıkta olmasaydı öldürülüp
+  // kurtarılan bir hızlı mod koşumu tam ölçüm gibi okunur, bütçe kesmesi de
+  // kaybolurdu.
+  const { work, skipped } = planWork(suite, repeat, options)
   const journal = await openJournal(options, {
     id,
     startedAt,
@@ -176,6 +181,9 @@ export async function runSuite<S extends AgentSession>(
     skill: suite.target.skill,
     runs: repeat,
     pins: basePins,
+    ...(concurrency === 1 ? {} : { concurrency }),
+    ...(options.layers === undefined ? {} : { layers: options.layers }),
+    ...(skipped.length === 0 ? {} : { skipped }),
   })
 
   // Ajana kullanıcının canlı skill dizini değil, bir kopyası verilir. Aksi
@@ -192,7 +200,6 @@ export async function runSuite<S extends AgentSession>(
    * değişirse iki kaydı yan yana okumak zorlaşır. Bitiş sırası değil, beyan
    * sırası yazılıyor.
    */
-  const { work, skipped } = planWork(suite, repeat, options)
   const ordered = new Array<JournalAttempt | undefined>(work.length)
 
   let cursor = 0
@@ -356,6 +363,7 @@ function planWork(
         caseId: testCase.id,
         reason:
           'the case only declares assertions, and this run measured the trigger layer only',
+        cause: 'layer',
       })
       return
     }
@@ -363,6 +371,7 @@ function planWork(
       skipped.push({
         caseId: testCase.id,
         reason: `the attempt budget of ${budget} was reached before this case`,
+        cause: 'budget',
       })
       return
     }

@@ -87,14 +87,16 @@ Options
                       a mitigation, not a guarantee: a server with a hardcoded
                       port ignores them. The value is written to the run record
                       because latency and cost are not comparable across it.
-  --fast              early warning, not evidence: 3 attempts per case, the
-                      trigger layer only, and an attempt budget. Cases that
-                      only declare assertions are not run; in cases that do
-                      run, declared assertions are listed as not evaluated
-                      rather than counted as unknown. The record says which
-                      layers were measured. Use the full run before a release.
+  --fast              early warning, not evidence: 3 attempts per case and the
+                      trigger layer only. Cases that only declare assertions
+                      are not run; in cases that do run, declared assertions
+                      are listed as not evaluated rather than counted as
+                      unknown. The record says which layers were measured.
+                      Use the full run before a release.
   --max-attempts <n>  cap the total attempts. Cases past the cap are not run
-                      and are named in the record with the reason.
+                      and are named in the record with the reason. A run the
+                      cap cut short cannot pass: at best it is unknown, since
+                      the cut cases may be every negative in the suite.
   --allow-unknown     do not fail CI when attempts could not be measured
   --no-isolation      run attempts in this process instead of one process each.
                       Isolation is on by default: the measured agent can kill
@@ -415,7 +417,14 @@ async function run(
     process.stderr.write(`${style.red('error')} --max-attempts must be a positive integer\n`)
     return EXIT.usage
   }
-  const budget = maxAttempts ?? (fast ? FAST_BUDGET : undefined)
+  /*
+   * Hızlı modun gizli bir tavanı YOK — yalnızca kullanıcının `--max-attempts`i.
+   * İlk hâli 60'lık bir tavan koyuyordu; bütçenin kestiği koşum artık `pass`
+   * veremediği için o tavan 20 vakadan büyük her suite'i hızlı modda sessizce
+   * `unknown`a mahkûm ederdi. Maliyet tavanı kullanıcının bilerek verdiği bir
+   * karar olmalı (decisions.md, 2026-09-10).
+   */
+  const budget = maxAttempts
 
   const concurrency = parseConcurrency(options['concurrency'])
   if (concurrency === 'invalid') {
@@ -787,15 +796,6 @@ async function scrub(dir: string | undefined, options: Options): Promise<number>
   )
   return EXIT.ok
 }
-
-/**
- * Hızlı modun deneme tavanı.
- *
- * Yirmi vaka x uc tekrar. Tavan dolduğunda kalan vakalar koşulmuyor ve
- * kayıtta sebebiyle görünüyor — sessizce kırpmak, ölçülmemiş bir vakayı
- * ölçülmüş gibi göstermek olurdu.
- */
-const FAST_BUDGET = 60
 
 /**
  * Hızlı modun tekrar sayısı.

@@ -234,7 +234,7 @@ it('katmanlar ve atlanan vakalar gidis-donusten sagam cikar', async () => {
       ...makeRun('run-roundtrip-fast'),
       layers: ['trigger'] as const,
       skipped: [
-        { caseId: 'complete.only_artifact', reason: 'the case only declares assertions' },
+        { caseId: 'complete.only_artifact', reason: 'the case only declares assertions', cause: 'layer' as const },
       ],
     }
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })

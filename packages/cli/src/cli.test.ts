@@ -496,7 +496,7 @@ describe('hızlı mod raporu', () => {
       runs: 3,
       layers: ['trigger'],
       skipped: [
-        { caseId: 'complete.only_artifact', reason: 'the case only declares assertions' },
+        { caseId: 'complete.only_artifact', reason: 'the case only declares assertions', cause: 'layer' },
       ],
       cases: base.cases.map((c) => ({
         ...c,
@@ -523,6 +523,47 @@ describe('hızlı mod raporu', () => {
     const html = renderHtmlReport(fastRun(), summarizeRun(fastRun()))
     expect(html).toContain('Fast mode — an early warning, not evidence')
     expect(html).toContain('complete.only_artifact')
+  })
+
+  it('HTML raporu degerlendirilmeyen assertion lari vakanin altinda adiyla gosteriyor', () => {
+    // Gerçek hosttaki koşum gösterdi: manşet "bakılmadı" diyordu ama hangi
+    // iddianın sınanmadığını yalnızca terminal söylüyordu.
+    const html = renderHtmlReport(fastRun(), summarizeRun(fastRun()))
+    const row = html.slice(html.indexOf('trigger.positive.explicit'), html.indexOf('</tr>', html.indexOf('trigger.positive.explicit')))
+    expect(row).toContain('not evaluated in this mode: file_exists')
+  })
+
+  it('butce kesmesi HTML ve terminalde neden gecemedigini soyluyor, katman elemesi soylemiyor', () => {
+    const cut: Run = {
+      ...fastRun(),
+      verdict: 'unknown',
+      skipped: [
+        { caseId: 'trigger.negative.near_neighbor.readme', reason: 'the attempt budget of 3 was reached before this case', cause: 'budget' },
+      ],
+    }
+    const html = renderHtmlReport(cut, summarizeRun(cut))
+    expect(html).toContain('The attempt budget cut 1 case(s) — this run cannot pass')
+    expect(html).toContain('trigger.negative.near_neighbor.readme')
+    expect(renderRun(cut, summarizeRun(cut))).toContain('The attempt budget cut 1 of them, so this run cannot pass')
+
+    // Pozitif kontrol: yalnız katman elemesi olan koşumda bu cümle yok.
+    const layerOnly = renderHtmlReport(fastRun(), summarizeRun(fastRun()))
+    expect(layerOnly).toContain('1 case(s) were not run')
+    expect(layerOnly).not.toContain('cannot pass')
+  })
+
+  it('hizli mod olmadan butceyle kesilen kosumun HTML raporu da kesilen vakalari listeliyor', () => {
+    // İlk hâli atlanan vakaları yalnızca hızlı mod notunun içinde anıyordu.
+    const base = makeRun('run-budget-full', [['trigger.positive.explicit', 3, 0, 0]])
+    const cut: Run = {
+      ...base,
+      verdict: 'unknown',
+      skipped: [{ caseId: 'trigger.negative.x', reason: 'the attempt budget of 3 was reached before this case', cause: 'budget' }],
+    }
+    const html = renderHtmlReport(cut, summarizeRun(cut))
+    expect(html).not.toContain('Fast mode')
+    expect(html).toContain('trigger.negative.x')
+    expect(html).toContain('this run cannot pass')
   })
 
   it('tam modda hicbir hizli mod metni yok', () => {

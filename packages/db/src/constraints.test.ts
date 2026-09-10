@@ -298,7 +298,7 @@ it('Run: atlanan vaka sebepsiz olamaz', async () => {
            "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
            "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","skipped")
          VALUES ($1,$2,now(),now(),'h','docx','a','b','c','d',1,'e',10,'PASS'::"Verdict",$3::jsonb)`,
-        [next(), suiteId, JSON.stringify([{ caseId: 'c1', reason: 'trigger layer only' }])],
+        [next(), suiteId, JSON.stringify([{ caseId: 'c1', reason: 'trigger layer only', cause: 'layer' }])],
       ),
     ).resolves.toBeDefined()
   })

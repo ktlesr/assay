@@ -23,7 +23,7 @@
 import { appendFileSync, closeSync, existsSync, openSync, writeSync } from 'node:fs'
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Attempt, Environment, Pins, Run } from '@ktlsr/assay-core'
+import type { Attempt, Environment, Pins, Run, RunLayer, SkippedCase } from '@ktlsr/assay-core'
 import { assembleRun } from './assemble.js'
 
 /** Journal dosya biçimi sürümü. Tanınmayan sürüm sessizce yorumlanmaz. */
@@ -43,6 +43,14 @@ export interface JournalHeader {
   runs: number
   /** Koşum başında bilinen pinler; `environmentHash` denemelerden gelir. */
   pins: Pins
+  /*
+   * Planlanmış kapsam. Koşum başında biliniyor ve kurtarılan kayıt da taşımalı:
+   * yoksa öldürülüp kurtarılan bir hızlı mod koşumu tam ölçüm gibi okunur ve
+   * bütçenin kestiği vakalar kaybolup verdict `pass`e dönebilirdi.
+   */
+  concurrency?: number
+  layers?: readonly RunLayer[]
+  skipped?: readonly SkippedCase[]
 }
 
 /** Tek bir tamamlanmış deneme. */
@@ -227,6 +235,9 @@ export async function recoverJournal(
     skill: header.skill,
     runs: header.runs,
     pins: header.pins,
+    ...(header.concurrency === undefined ? {} : { concurrency: header.concurrency }),
+    ...(header.layers === undefined ? {} : { layers: header.layers }),
+    ...(header.skipped === undefined ? {} : { skipped: header.skipped }),
     attempts,
     partial: {
       reason:

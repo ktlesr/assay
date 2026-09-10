@@ -134,6 +134,17 @@ export function renderRun(run: Run, summary: RunSummary): string {
   if (run.skipped !== undefined && run.skipped.length > 0) {
     out.push('')
     out.push(style.yellow(`  ${run.skipped.length} case(s) were not run`))
+    // Bütçe kesmesinde verdict `unknown` ama tek bir `unknown` deneme yok;
+    // okuyucu sebebi başka yerde aramasın.
+    const budgetCut = run.skipped.filter((item) => item.cause === 'budget').length
+    if (budgetCut > 0) {
+      out.push(
+        style.grey(
+          `  The attempt budget cut ${budgetCut} of them, so this run cannot pass: a cut case\n` +
+            '  was never measured and may be every negative in the set.',
+        ),
+      )
+    }
     for (const item of run.skipped) {
       out.push(`    ${pad(item.caseId, width)} ${style.grey(item.reason)}`)
     }

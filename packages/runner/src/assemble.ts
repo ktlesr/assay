@@ -103,7 +103,10 @@ export function assembleRun(input: {
       ? {}
       : { skipped: input.skipped }),
     cases,
-    verdict: verdictOf(input.attempts.map((entry) => entry.attempt)),
+    verdict: verdictOf(
+      input.attempts.map((entry) => entry.attempt),
+      input.skipped,
+    ),
     ...(input.partial === undefined ? {} : { partial: input.partial }),
   }
 }
@@ -130,10 +133,23 @@ export function summarizeCase(
 }
 
 
-/** Attempt listesinden koşum verdict'i. Boş liste ölçüm yok demektir. */
-export function verdictOf(attempts: readonly Attempt[]): Verdict {
+/**
+ * Attempt listesinden koşum verdict'i. Boş liste ölçüm yok demektir.
+ *
+ * Bütçenin kestiği bir koşum `pass` veremez. Gerçek bir hostta ölçüldü:
+ * `--max-attempts 3` hiçbir negatif vakayı koşturmadan doldu ve koşum yalnız
+ * pozitiflerle PASS dedi — değişmez #5'in engellediği durum, şemadan geçip koşum
+ * anında yeniden üretiliyordu. Ölçülmüş bir `fail` yine kazanır: kesilen vakalar
+ * gerçek bir kırılmayı geri almaz. Katman elemesi (`cause: 'layer'`) kullanıcının
+ * beyan ettiği kapsam; verdict'i değiştirmez.
+ */
+export function verdictOf(
+  attempts: readonly Attempt[],
+  skipped: readonly SkippedCase[] = [],
+): Verdict {
   const verdicts = attempts.map((a) => a.verdict)
   if (verdicts.includes('fail')) return 'fail'
   if (verdicts.includes('unknown') || verdicts.length === 0) return 'unknown'
+  if (skipped.some((s) => s.cause === 'budget')) return 'unknown'
   return 'pass'
 }

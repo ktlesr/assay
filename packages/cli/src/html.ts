@@ -40,9 +40,23 @@ export function renderHtmlReport(run: Run, summary: RunSummary): string {
   const rows = run.cases
     .map((caseResult) => {
       const verdict = caseVerdict(caseResult.failed, caseResult.unknown)
+      /*
+       * Değerlendirilmemiş assertion'lar vakanın altında, adlarıyla.
+       *
+       * Manşetteki "assertion'lara bakılmadı" cümlesi hangi iddianın
+       * sınanmadığını söylemiyor; terminal söylüyordu, HTML söylemiyordu —
+       * gerçek hosttaki hızlı mod koşumu gösterdi.
+       */
+      const notEvaluated = caseResult.attempts[0]?.notEvaluated ?? []
+      const notEvaluatedNote =
+        notEvaluated.length === 0
+          ? ''
+          : `<br><span class="note">not evaluated in this mode: ${escape(
+              notEvaluated.map((assertion) => assertion.type).join(', '),
+            )}</span>`
       return `        <tr>
           <td><span class="pill ${verdict}">${verdict}</span></td>
-          <td class="mono">${escape(caseResult.caseId)}</td>
+          <td class="mono">${escape(caseResult.caseId)}${notEvaluatedNote}</td>
           <td class="rate">${escape(formatProportion(caseResult.passRate))}</td>
           <td class="num">${caseResult.passed}</td>
           <td class="num">${caseResult.failed}</td>
@@ -92,13 +106,44 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
     as unknown.</p>
     <p class="note">At ${run.runs} attempts per case the intervals are wide by
     construction. Run without <code>--fast</code> before trusting a green
-    result.${
-      run.skipped === undefined || run.skipped.length === 0
+    result.</p>
+  </section>`
+
+  /*
+   * Koşulmayan vakalar manşette, hızlı moddan bağımsız.
+   *
+   * İlk hâli onları yalnızca hızlı mod notunun içinde anıyordu: `--fast`
+   * olmadan `--max-attempts` ile kesilmiş bir koşumun raporu kesilen vakalardan
+   * hiç söz etmiyordu. Bütçe kesmesi varsa başlık koşumun neden geçemediğini
+   * söylüyor — verdict `unknown` ama tek bir `unknown` deneme yok ve okuyucu
+   * sebebi başka yerde aramasın.
+   */
+  const skipped = run.skipped ?? []
+  const budgetCut = skipped.filter((item) => item.cause === 'budget').length
+  const skippedNote =
+    skipped.length === 0
+      ? ''
+      : `  <section class="callout">
+    <h2>${
+      budgetCut === 0
+        ? `${skipped.length} case(s) were not run`
+        : `The attempt budget cut ${budgetCut} case(s) — this run cannot pass`
+    }</h2>${
+      budgetCut === 0
         ? ''
-        : ` ${run.skipped.length} case(s) were not run: ${escape(
-            run.skipped.map((s) => s.caseId).join(', '),
-          )}.`
-    }</p>
+        : `
+    <p>A case the budget cut was never measured, and it may be every negative in
+    the set: a run of positives alone would look perfect. At best the run is
+    unknown; a failure it did measure still counts.</p>`
+    }
+    <ul class="reasons">
+${skipped
+  .map(
+    (item) =>
+      `      <li><span class="mono">${escape(item.caseId)}</span><br><span class="note">${escape(item.reason)}</span></li>`,
+  )
+  .join('\n')}
+    </ul>
   </section>`
 
   const partialNote =
@@ -183,7 +228,7 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
   .pill.pass { color: var(--pass); }
   .pill.fail { color: var(--fail); }
   .pill.unknown { color: var(--unknown); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem; margin-top: 2rem; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1rem; }
   .card .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .card .value { font-size: .95rem; margin-top: .3rem; font-variant-numeric: tabular-nums; }
@@ -201,6 +246,7 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
   <h1>Assay <span class="pill ${run.verdict}">${run.verdict}</span></h1>
   <p class="sub mono">${escape(run.id)}</p>
 ${fastNote}
+${skippedNote}
 ${partialNote}
 
   <div class="grid">

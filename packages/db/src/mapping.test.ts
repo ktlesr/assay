@@ -580,6 +580,19 @@ describe('0.2.0 alanları — eşleme', () => {
     expect(back.pins.environmentHash).toBe('sha256:env')
   })
 
+  it('butce kesmesiyle unknown olan kosumun gerekcesi kesmeyi soyluyor', () => {
+    // Bütçe kesmesi hiçbir denemeyi `unknown` yapmıyor; gerekçe denemelerden
+    // türetilseydi yedek cümleye düşer ve "hiçbir deneme açıklamadı" derdi.
+    const run = bareRun({
+      verdict: 'unknown',
+      skipped: [{ caseId: 'trigger.negative.x', reason: 'the attempt budget of 3 was reached', cause: 'budget' }],
+    })
+    const row = toRunRow(run)
+    expect(row.unknownReason).toContain('the attempt budget cut 1 case(s)')
+    expect(row.unknownReason).not.toContain('no attempt explained why')
+    expect(fromRunRow(row, []).skipped).toEqual(run.skipped)
+  })
+
   it('ortam kaydi kosum satirinda durur ve geri okunur', () => {
     const environment = {
       model: 'claude-haiku-4-5-20251001',

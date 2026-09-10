@@ -188,6 +188,28 @@ describe('journal', () => {
     expect(recovered?.run.partial?.droppedLines).toBe(1)
   })
 
+  it('kurtarilan kosum planlanan kapsami tasiyor ve butce kesmesiyle PASS vermiyor', async () => {
+    // Başlık kapsamı taşımasaydı öldürülüp kurtarılan bir hızlı mod koşumu tam
+    // ölçüm gibi okunur, bütçe kesmesi kaybolur ve verdict `pass`e dönerdi.
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const journal = await RunJournal.open(dir, {
+      ...header,
+      id: 'run-scope',
+      layers: ['trigger'],
+      skipped: [
+        { caseId: 'trigger.negative.x', reason: 'the attempt budget of 1 was reached', cause: 'budget' },
+      ],
+    })
+    journal.append(attempt(0, 'pass'))
+
+    const recovered = await recoverJournal(journal.path)
+    expect(recovered?.run.layers).toEqual(['trigger'])
+    expect(recovered?.run.skipped?.map((s) => s.cause)).toEqual(['budget'])
+    // Pozitif kontrol: tek deneme geçti; düşüren kesme.
+    expect(recovered?.run.cases[0]?.passed).toBe(1)
+    expect(recovered?.run.verdict).toBe('unknown')
+  })
+
   it('tanimadigi journal surumu sessizce yorumlanmaz', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
     const path = join(dir, `run-y${JOURNAL_SUFFIX}`)

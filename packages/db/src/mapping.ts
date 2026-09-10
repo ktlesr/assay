@@ -260,6 +260,13 @@ function unknownReasonOf(run: Run): string {
     .flatMap((c) => c.attempts)
     .filter((a) => a.verdict === 'unknown')
     .map((a) => a.reason)
+  // Bütçe kesmesi koşumu `unknown` yapıyor ama hiçbir denemeyi yapmıyor; sebep
+  // denemelerde değil `skipped`da. Yedek cümleye düşseydi doğru karar yanlış
+  // gerekçeyle yazılırdı ("hiçbir deneme açıklamadı" — oysa açıklama belli).
+  const cut = (run.skipped ?? []).filter((s) => s.cause === 'budget').length
+  if (cut > 0) {
+    reasons.push(`the attempt budget cut ${cut} case(s), so the run cannot pass`)
+  }
   const unique = [...new Set(reasons)]
   return unique.length > 0
     ? unique.join(' | ').slice(0, 2000)
@@ -572,7 +579,10 @@ function isSkipped(value: unknown): value is SkippedCase[] {
         item !== null &&
         typeof (item as Record<string, unknown>)['caseId'] === 'string' &&
         typeof (item as Record<string, unknown>)['reason'] === 'string' &&
-        ((item as Record<string, unknown>)['reason'] as string).length > 0,
+        ((item as Record<string, unknown>)['reason'] as string).length > 0 &&
+        // `cause` verdict'in dayandığı alan: eksikse kayıt "neden koşulmadı"yı
+        // biliyor ama "bu verdict'i etkiler mi"yi bilmiyor.
+        ['layer', 'budget'].includes((item as Record<string, unknown>)['cause'] as string),
     )
   )
 }

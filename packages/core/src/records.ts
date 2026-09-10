@@ -532,6 +532,16 @@ export interface SkippedCase {
   caseId: string
   /** Neden koşulmadı — okuyucu eksiği görüp sebebini de görsün. */
   reason: string
+  /**
+   * Eleme türü. Koşum verdict'i buna bakıyor, `reason` metnine değil.
+   *
+   * `layer` — kullanıcı dar bir ölçüm beyan etti (`--fast`) ve vakada o
+   *   katmanda ölçülecek bir şey yok. Kapsam kararı; verdict'i etkilemez.
+   * `budget` — deneme tavanı doldu. Hangi vakanın kesileceğini kullanıcı değil
+   *   suite sırası seçti; kesilen vaka negatifse ayrım gücü hiç ölçülmemiş
+   *   olabilir. Koşum bu yüzden `pass` veremez (değişmez #1 ve #5).
+   */
+  cause: 'layer' | 'budget'
 }
 
 /** Yarım kalmış bir koşumun künyesi. */

@@ -14,6 +14,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
+import { readdirSync, readFileSync } from 'node:fs'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -127,6 +128,7 @@ describe('yalnızca artefakt ölçen vaka koşulmuyor', () => {
         caseId: 'complete.only_artifact',
         reason:
           'the case only declares assertions, and this run measured the trigger layer only',
+        cause: 'layer',
       },
     ])
   })
@@ -212,7 +214,89 @@ describe('bütçe tavanı', () => {
   it('tavan genisse hicbir vaka bu sebeple atlanmiyor', async () => {
     // Pozitif kontrol: tavan gerçekten sınır, sabit bir davranış değil.
     const record = await fastRun({ maxAttempts: 100 })
-    expect(record.skipped?.every((s) => !s.reason.includes('budget'))).toBe(true)
+    expect(record.skipped?.every((s) => s.cause !== 'budget')).toBe(true)
+  })
+})
+
+/**
+ * Bütçenin kestiği koşum `pass` veremez.
+ *
+ * Gerçek hostta ölçüldü (2026-09-10): `--max-attempts 3` hiçbir negatif vakayı
+ * koşturmadan doldu ve koşum yalnız pozitiflerle PASS dedi. Buradaki ilk test
+ * tam o durumu kuruyor: tavan yalnız pozitife yetiyor, negatif hiç koşmuyor.
+ */
+describe('bütçe kesmesi ve verdict', () => {
+  const notTriggered = (): MockScenario => ({
+    trigger: {
+      available: true,
+      triggered: false,
+      skills: [],
+      refused: false,
+      refusals: [],
+      complete: true,
+      via: 'mock',
+    },
+    trace: [{ seq: 1, kind: 'session_end', outcome: 'completed' }],
+  })
+
+  it('negatifleri kesen tavanla, olculen her deneme gecse bile kosum PASS DEGIL', async () => {
+    const record = await fastRun({ maxAttempts: 3 })
+    // Pozitif kontrol: ölçülen denemelerin hepsi geçti — verdict'i düşüren
+    // bir `unknown` ya da `fail` deneme yok, düşüren tek şey bütçe kesmesi.
+    const attempts = record.cases.flatMap((c) => c.attempts)
+    expect(attempts).toHaveLength(3)
+    expect(attempts.every((a) => a.verdict === 'pass')).toBe(true)
+    expect(record.skipped?.some((s) => s.cause === 'budget')).toBe(true)
+
+    expect(record.verdict).toBe('unknown')
+  })
+
+  it('olculmus bir fail bütçe kesmesine ragmen fail kalir', async () => {
+    // Ajan hiç tetiklenmiyor: pozitif ölçülüp düşüyor, tavan (3) negatifi kesiyor.
+    const record = await runSuite(suite, new MockAdapter({ scenarios: [notTriggered()] }), {
+      source: SUITE_SOURCE,
+      skillPath,
+      repeat: 3,
+      layers: ['trigger'],
+      maxAttempts: 3,
+    })
+    expect(record.skipped?.some((s) => s.cause === 'budget')).toBe(true)
+    expect(record.cases[0]?.failed).toBe(3)
+    expect(record.verdict).toBe('fail')
+  })
+
+  it('katman elemesi tek basina verdict i dusurmez', async () => {
+    // Pozitif tetikleniyor, negatif tetiklenmiyor: ölçülen her şey geçiyor.
+    // Tek atlanan vaka yalnız-artefakt vakası — kullanıcının beyan ettiği kapsam.
+    const record = await runSuite(
+      suite,
+      new MockAdapter({ scenarios: [triggered(), notTriggered()] }),
+      { source: SUITE_SOURCE, skillPath, repeat: 1, layers: ['trigger'] },
+    )
+    expect(record.skipped?.map((s) => s.cause)).toEqual(['layer'])
+    expect(record.cases.flatMap((c) => c.attempts).every((a) => a.verdict === 'pass')).toBe(true)
+    expect(record.verdict).toBe('pass')
+  })
+
+  it('journal basligi planlanan kapsami tasiyor — kurtarilan kosum da bilsin', async () => {
+    // Koşum bitince journal siliniyor; başlık, ilk deneme bittiği anda okunuyor.
+    const journalDir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    let header: Record<string, unknown> | undefined
+    await fastRun({
+      maxAttempts: 3,
+      journalDir,
+      onProgress: () => {
+        if (header !== undefined) return
+        const file = readdirSync(journalDir).find((name) => name.endsWith('.partial.jsonl'))
+        if (file === undefined) return
+        header = JSON.parse(readFileSync(join(journalDir, file), 'utf8').split('\n')[0] as string)
+      },
+    })
+    expect(header?.['layers']).toEqual(['trigger'])
+    expect((header?.['skipped'] as { cause: string }[]).map((s) => s.cause)).toEqual([
+      'budget',
+      'layer',
+    ])
   })
 })
 
