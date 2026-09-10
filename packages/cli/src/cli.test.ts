@@ -644,7 +644,7 @@ describe('hızlı mod raporu', () => {
  * gidebilir; ilk gerçek kullanımda kayıtlar maskelenmemiş kullanıcı adıyla
  * gitmek üzereydi.
  */
-describe('push: kişisel veri', () => {
+describe('push: kişisel veri ve sunucunun cevabı', () => {
   const suiteSource = 'version: 1\n'
   let fetchMock: ReturnType<typeof vi.fn>
 
@@ -712,6 +712,40 @@ describe('push: kişisel veri', () => {
     expect(body).not.toContain('zeynep')
     expect(out).toContain('masked 1 username(s)')
   })
+
+  // 0.4.1-e: yükleme gerçekleşmediyse kullanım hatası değil, ayrı bir kod.
+  it('sunucu reddederse çıkış kodu upload ve sunucunun mesajı', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'the run record is malformed at case "a"' }), {
+        status: 400,
+      }),
+    )
+    const argv = await stored('clean text')
+    expect(await main(argv)).toBe(EXIT.upload)
+    expect(err).toContain('400 the run record is malformed at case "a"')
+  })
+
+  it('sunucuya ulaşılamazsa çıkış kodu upload', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('connect ECONNREFUSED'))
+    expect(await main(await stored('clean text'))).toBe(EXIT.upload)
+    expect(err).toContain('cannot reach')
+  })
+
+  // 0.4.1-f: yeni vaka seti gizli başlar; bastığı bağlantı başkasına 404 verir.
+  it('vaka seti gizliyse bunu söyler, açıksa susar', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ runId: 'run-p', public: false }), { status: 201 }),
+    )
+    expect(await main(await stored('clean text'))).toBe(EXIT.ok)
+    expect(out).toContain('only you can open this link')
+
+    out = ''
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ runId: 'run-p', public: true }), { status: 201 }),
+    )
+    expect(await main(await stored('clean text'))).toBe(EXIT.ok)
+    expect(out).not.toContain('only you can open this link')
+  })
 })
 
 describe('scrub', () => {
@@ -737,5 +771,15 @@ describe('scrub', () => {
     expect(written).toContain('C:Users<user>AppDataLocal')
     expect(written).toContain('C--Users-<user>/memory')
     expect(written).not.toMatch(/\bada|nep/)
+  })
+})
+
+describe('--version', () => {
+  it('runner paketinin sürümünü basar (0.4.1-h)', async () => {
+    const manifest = JSON.parse(
+      await readFile(new URL('../../runner/package.json', import.meta.url), 'utf8'),
+    ) as { version: string }
+    expect(await main(['--version'])).toBe(EXIT.ok)
+    expect(out.trim()).toBe(manifest.version)
   })
 })

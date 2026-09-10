@@ -25,6 +25,7 @@ import {
   type Suite,
 } from '@ktlsr/assay-core'
 import {
+  ASSAY_VERSION,
   findJournals,
   recoverJournal,
   localNames,
@@ -51,6 +52,12 @@ export const EXIT = {
   usage: 2,
   /** Ölçüm yapılamadı. Başarısızlıktan ayrı tutulur (değişmez #1). */
   unknown: 3,
+  /**
+   * `push`: yükleme gerçekleşmedi — sunucuya ulaşılamadı ya da sunucu reddetti
+   * (0.4.1-e). Kullanım hatası değil: komut doğru yazıldı, sorun karşı tarafta
+   * ya da kayıtta; CI'ın "komutu düzelt" ile "sunucuya bak"ı ayırabilmesi için.
+   */
+  upload: 4,
 } as const
 
 const USAGE = `assay — a CI test runner for Agent Skills
@@ -111,10 +118,12 @@ Options
   --token <token>     API token (push, or ASSAY_TOKEN — prefer the variable)
   --allow-unmasked    upload even though push found your username or a secret
                       left in the record after masking (push)
+  --version           print the Assay version
   -h, --help          show this text
 
 Exit codes
   0 ok · 1 a case failed · 2 usage error · 3 nothing could be measured
+  4 the upload did not happen (push): the server was unreachable or refused it
 `
 
 type Options = Record<string, unknown>
@@ -144,6 +153,7 @@ export async function main(argv: readonly string[]): Promise<number> {
         url: { type: 'string' },
         token: { type: 'string' },
         help: { type: 'boolean', short: 'h' },
+        version: { type: 'boolean' },
       },
     })
   } catch (cause) {
@@ -152,6 +162,12 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
 
   const [command, ...positionals] = parsed.positionals
+  // Hangi sürümün koştuğu (0.4.1-h); kayıt da aynı değeri `assayVersion`da taşıyor.
+  if (parsed.values.version === true) {
+    process.stdout.write(`${ASSAY_VERSION}
+`)
+    return EXIT.ok
+  }
   if (parsed.values.help === true || command === undefined) {
     process.stdout.write(USAGE)
     return command === undefined && parsed.values.help !== true ? EXIT.usage : EXIT.ok
@@ -754,12 +770,14 @@ async function push(runId: string | undefined, options: Options): Promise<number
   } catch (cause) {
     process.stderr.write(`${style.red('error')} cannot reach ${base}: ${message(cause)}
 `)
-    return EXIT.usage
+    return EXIT.upload
   }
 
   const body = (await response.json().catch(() => ({}))) as {
     error?: string
     runId?: string
+    /** Koşumun vaka seti herkese açık mı (0.4.1-f); eski sunucular göndermez. */
+    public?: boolean
   }
 
   if (response.status === 201) {
@@ -773,6 +791,12 @@ async function push(runId: string | undefined, options: Options): Promise<number
         `  ${style.yellow('masked')} ${masked} username(s) or secret(s) in the uploaded copy; the file on disk still has them — assay scrub masks it\n`,
       )
     }
+    // Yeni bir vaka seti gizli başlar; bağlantı başkasına 404 verir (0.4.1-f).
+    if (body.public === false) {
+      process.stdout.write(
+        `  ${style.yellow('private')} only you can open this link until an administrator publishes its case set (admin → case sets)\n`,
+      )
+    }
     return EXIT.ok
   }
   if (response.status === 409) {
@@ -784,7 +808,7 @@ async function push(runId: string | undefined, options: Options): Promise<number
     `${style.red('error')} ${response.status} ${body.error ?? 'the upload was rejected'}
 `,
   )
-  return EXIT.usage
+  return EXIT.upload
 }
 
 /**

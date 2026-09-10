@@ -457,3 +457,15 @@ describe('0.2.0 öncesi kayıt', () => {
     expect(await loadRun(db, run.id, ALL)).toBeNull()
   })
 })
+
+/** 0.4.1-f: yükleyen, koşumunun ziyaretçiye açık olup olmadığını bilmeli. */
+describe('storeRun görünürlüğü söyler', () => {
+  it('yeni vaka seti gizli, yayımlanmış olana yazılan koşum açık döner', async () => {
+    const suite = { ...SUITE, version: 7 }
+    const first = await storeRun(db, { suite, suiteHash: 'sha256:vis', run: makeRun('run-vis-1') })
+    expect(first.suitePublic).toBe(false)
+    await db.suite.update({ where: { id: first.suiteId }, data: { public: true } })
+    const second = await storeRun(db, { suite, suiteHash: 'sha256:vis', run: makeRun('run-vis-2') })
+    expect(second.suitePublic).toBe(true)
+  })
+})

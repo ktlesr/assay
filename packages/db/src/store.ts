@@ -90,7 +90,7 @@ function assertShape(run: Run): void {
 export async function storeRun(
   db: PrismaClient,
   input: { suite: Suite; suiteHash: string; run: Run; ownerId?: string | undefined },
-): Promise<{ runId: string; suiteId: string }> {
+): Promise<{ runId: string; suiteId: string; suitePublic: boolean }> {
   assertSuiteStorable(input.suite)
   assertShape(input.run)
 
@@ -227,7 +227,7 @@ export async function storeRun(
       }
     }
 
-    return { runId: input.run.id, suiteId: suite.id }
+    return { runId: input.run.id, suiteId: suite.id, suitePublic: suite.public }
   })
 }
 
