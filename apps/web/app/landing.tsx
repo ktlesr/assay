@@ -68,9 +68,11 @@ export async function Landing() {
           <>
             <RunTerminal run={failing.latest.run} />
             <p className="term-gloss">
-              A recorded run, replayed. Nine cases, ten attempts each. Assay does not
-              round the failure up, and it does not hide how wide the interval still is at
-              ten attempts.
+              {/* Sayılar koşumdan: öne çıkan suite yayımlananlara göre değişiyor. */}
+              A recorded run, replayed: {failing.latest.run.cases.length} cases,{' '}
+              {failing.latest.run.runs} attempts each. Assay does not round the failure up,
+              and it does not hide how wide the interval still is at{' '}
+              {failing.latest.run.runs} attempts.
             </p>
           </>
         )}
@@ -85,7 +87,8 @@ export async function Landing() {
               Sign in
             </Link>
           )}
-          <code className="code">npx assay run ./my-skill.suite.yaml</code>
+          {/* Kapsamsız `assay` npm'de ilgisiz bir paket; kapsamlı ad şart. */}
+          <code className="code">npx @ktlsr/assay run ./my-skill.suite.yaml</code>
         </div>
       </section>
 
@@ -100,7 +103,7 @@ export async function Landing() {
         </section>
       ) : (
         <section className="section-major">
-          <h2 className="section-title">One case, measured ten times</h2>
+          <h2 className="section-title">One case, measured {worst.attempts.length} times</h2>
           <div className="specimen mt-10">
             <div className="specimen-head">
               <Badge verdict={worst.failed > 0 ? 'fail' : 'pass'} size={16} />
@@ -127,9 +130,13 @@ export async function Landing() {
               <span>{failing.latest.run.startedAt.slice(0, 10)}</span>
             </p>
           </div>
-          <p className="mt-8">
+          <p className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
             <Link href={`/runs/${failing.latest.slug}`} className="link text-sm">
               Open the full scorecard
+            </Link>
+            {/* Tek öne çıkan suite ziyaretçinin ulaşabildiği tek ölçümdü (0.4.1). */}
+            <Link href="/suites" className="link text-sm">
+              Every published measurement
             </Link>
           </p>
         </section>

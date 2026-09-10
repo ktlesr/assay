@@ -609,7 +609,10 @@ yalnız `not_triggered` taşıyan vakalara düşen uyarı.
 | Adım | Çıktı | Durum |
 |---|---|---|
 | 0.4.1-1 Çakışma matrisi | Hosted koşum sayfasında `RunSummary.collision`; 0.4.0'ın veritabanı sütunu hazır, yalnızca ekran işi | bekliyor |
-| 0.4.1-2 Yayımlanmış ölçümlerin dizini | Oturumsuz ziyaretçi de yayımlanmış suite'lerin listesini görür — `/suites` adresi ya da tanıtım sayfasının altı; `listSuites({ kind: 'public' })` zaten var (kusur 0.4.1-m) | bekliyor |
+| 0.4.1-2 Yayımlanmış ölçümlerin dizini | Oturumsuz ziyaretçi de yayımlanmış suite'lerin listesini görür — `/suites`, tanıtım sayfasından bağlantılı (kusur 0.4.1-m) | **tamam** |
+| 0.4.1-3 Kişisel veri | `redact` üç biçimi ve bu makinenin hesap adını maskeler; `push` kalıntıda yüklemez (0.4.1-b, c) | **tamam** |
+| 0.4.1-4 0.2.0 öncesi kayıt | Aktivasyon kontrolü "yapılmadı" olarak saklanır ve gösterilir; bozuk kayıt yerini söyler (0.4.1-a, d) | **tamam** |
+| 0.4.1-5 `/compare` yayın modunda | Açık; kapsam koşumu sızdırmıyor (0.4.1-i) | **tamam** |
 
 Aşağıdaki kusur tablosu bu sürüme girecek düzeltmelerin havuzu; hangilerinin
 0.4.1'e alınacağı ayrıca kararlaştırılacak.

@@ -2782,3 +2782,47 @@ yaptı, sonrası 218 satıra dokunmadı; üç eski gerçek kayıt yazıldı (297
 ve sayfasında satır göründü.
 Geri dönüş maliyeti: orta (alan anlamı ve kısıt değişti; migration veriyi
 dönüştürüyor, ama dönüşüm geri çevrilebilir)
+
+## 2026-09-10 — `/compare` yayın modunda açık (0.4.1-i)
+
+Bağlam: 2026-09-02'de `/compare` yayın modunda kapatılmıştı: "kimlik doğrulama
+istemiyor ve koşum kimliği olmadan boş bir form". İlk gerçek yüklemede koşum ve
+suite sayfalarının "vs previous" bağlantısı ziyaretçiyi 404'e gönderdi ve
+karşılaştırma — hosted tarafın varlık sebebi — sitede hiç yapılamadı.
+Seçenekler: kapalı tutup bağlantıları gizlemek · açmak
+Karar: Açık. Kapalı rotalar yalnızca `/dev` ve `/api/bootstrap`; liste
+`apps/web/lib/public-mode.ts`te ve sınanıyor. `robots.ts` `/compare`'ı taramaya
+kapalı tutuyor: sorgu parametreli ve sonsuz kombinasyonlu adresler dizine
+girmemeli; bu erişimi değil yalnızca taramayı etkiliyor.
+Gerekçe: Açmak bir şey sızdırmıyor — sayfa koşumları görünürlük kapsamıyla
+okuyor ve yayımlanmamış bir koşum için "One of those runs is missing" diyor
+(yayından önce yerelde ölçüldü). Parametresiz hâli bir `EmptyState`; "yarım
+uygulama" gerekçesi bir bağlantıyı 404'e çevirmeye değmezdi.
+Doğrulama: 3 birim ters çevirme + middleware bağlantısının elle ters çevrilmesi
+(kural yok sayılınca `/dev` 200), dördü de kırmızı. Yayın modunda yerel: çift
+için 200 ve "no regression across 12 case(s)".
+Geri dönüş maliyeti: düşük
+
+## 2026-09-10 — Yayımlanmış ölçümlerin dizini `/suites`te (0.4.1-m)
+
+Bağlam: Ziyaretçi yalnızca tanıtım sayfasının öne çıkardığı tek suite'e
+ulaşabiliyordu; "Measured skills" listesi yalnızca oturum açmış kullanıcıya
+açıktı. Kullanıcı `/suites` ya da tanıtım sayfasının altını önerdi.
+Seçenekler: tanıtım sayfasına tam listeyi gömmek · `/suites` dizini + tanıtım
+sayfasından bağlantı
+Karar: `/suites`, oturum açmış ana sayfayla aynı bileşeni (`SuiteList`)
+kullanıyor; kapsamı `listSuites`in varsayılanı (ziyaretçiye yalnızca public).
+Tanıtım sayfasında "Every published measurement" bağlantısı. 0.2.0 öncesi bir
+kaydın satırı "activation not verified" notunu taşıyor.
+Gerekçe: Tanıtım sayfası bir hikâye anlatıyor (tek bir gerçek koşum); listeyi
+oraya gömmek onu bir kataloğa çevirirdi. Tek bileşen, iki listenin ayrışmasını
+engelliyor.
+Aynı sayfada iki kusur daha kapandı. Hero ve Getting started `npx assay …`
+diyordu; kapsamsız `assay` npm'de ilgisiz bir paket, yani ziyaretçi başkasının
+kodunu çalıştıracaktı. Ve "Nine cases, ten attempts each" / "measured ten
+times" sabit yazılmıştı; öne çıkan koşum değişince (hallmark: 5 vaka × 10)
+sayfa yanlış sayı söylüyordu — sözleşme 3. Sayılar artık koşumdan.
+Doğrulama: dizin kapsamı `{ kind: 'all' }` yapılınca gizli `xlsx` görünüyor,
+tanıtım bağlantısı kaldırılınca 0 — ikisi de elle, derleme kapılı, kırmızı.
+Açık/koyu × 1280/375'te taşma yok.
+Geri dönüş maliyeti: düşük
