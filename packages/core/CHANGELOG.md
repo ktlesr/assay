@@ -1,5 +1,37 @@
 # @ktlsr/assay-core
 
+## 0.4.1
+
+### Patch Changes
+
+- 74fa395: A trigger observation recorded before 0.2.0 no longer has to pretend it was
+  checked. Such records carry no `refused` or `refusals`: that version counted
+  every selected skill as triggered without confirming it loaded. Both fields
+  are now optional, and their absence means the check was never made — not
+  that nothing was refused.
+  
+  - `evaluateTrigger` returns `unknown` for an old observation in which a skill
+    was selected, and says why; one in which nothing was selected is still
+    complete and is judged as before. This only matters when an old record is
+    re-scored.
+  - `activationUnverified(run)` and `ACTIVATION_UNVERIFIED` let a report say
+    so; the hosted run page shows it as an "Activation check" row.
+- e2c39b5: Masking now catches the username in the three forms real records carried
+  past `assay scrub`, and `push` checks a record before it leaves the machine.
+  
+  - A path whose backslashes a shell swallowed (`C:UsersadaAppData…`), the
+    Claude Code project directory name (`C--Users-ada`) and a path escaped twice
+    inside code the agent wrote (`C:\\Users\\ada`) are masked. On the eight
+    records from the first real upload, 0.4.0 left the username in 71 places;
+    this release leaves none, with or without knowing the name.
+  - The account running Assay is also masked by name, wherever a path carries
+    it, when a record is written, read, scrubbed or pushed. This closes the
+    cases a pattern cannot see, such as a name with a dot.
+  - `push` refuses to upload a record that still carries a secret, a home path
+    or this account's name after masking, and names where. `--allow-unmasked`
+    uploads anyway, once you have checked. When masking changed the uploaded
+    copy, `push` says how many places and that the file on disk is unchanged.
+
 ## 0.4.0
 
 ### Minor Changes
