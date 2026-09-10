@@ -576,13 +576,13 @@ Id'lere skill adı da yazılamadı: desen tireyi reddediyordu (`copy-editing`).
 
 | Adım | Çıktı | Durum |
 |---|---|---|
-| 0.4.0-a Vaka kimliği | Tire her segmentte serbest; hata mesajı sorunlu karakteri adıyla söyler | bekliyor |
-| 0.4.0-b `expect.winner` şeması | `winner: <skill>`, `winner: [a, b]` (tartışmalı), `winner: none`; doğrulayıcı kuralları; yalnız-`not_triggered` vakasına uyarı | bekliyor |
-| 0.4.0-c Değerlendirme | Kazanmak = ilk doğrulanmış aktivasyon; hiçbiri tetiklenmediyse `fail`; kayda `expectedWinner` | bekliyor |
-| 0.4.0-d Çakışma matrisi | `RunSummary.collision`; terminal ve HTML'de hedef-yalnız precision/recall'ın üstünde | bekliyor |
-| 0.4.0-e Hosted şema | `CaseResult.expectedWinner` sütunu, migration, eşleme | bekliyor |
-| 0.4.0-f Gerçek veriyle kanıt | marketingskills kaydı yeni şemayla yeniden puanlanır; matris `collide.py` tablosuyla hücre hücre aynı, "100 sahte pass" yok | bekliyor |
-| 0.4.0-g Ters çevirme | Her adımda derleme kapılı | bekliyor |
+| 0.4.0-a Vaka kimliği | Tire her segmentte serbest; hata mesajı sorunlu karakteri adıyla söyler | **tamam** |
+| 0.4.0-b `expect.winner` şeması | `winner: <skill>`, `winner: [a, b]` (tartışmalı), `winner: none`; doğrulayıcı kuralları; yalnız-`not_triggered` vakasına uyarı | **tamam** |
+| 0.4.0-c Değerlendirme | Kazanmak = ilk doğrulanmış aktivasyon; hiçbiri tetiklenmediyse `fail`; kayda `expectedWinner` | **tamam** |
+| 0.4.0-d Çakışma matrisi | `RunSummary.collision`; terminal ve HTML'de hedef-yalnız precision/recall'ın üstünde | **tamam** |
+| 0.4.0-e Hosted şema | `CaseResult.expectedWinner` sütunu, migration, eşleme | **tamam** |
+| 0.4.0-f Gerçek veriyle kanıt | marketingskills kaydı yeni şemayla yeniden puanlanır; matris `collide.py` tablosuyla hücre hücre aynı, "100 sahte pass" yok | **tamam** |
+| 0.4.0-g Ters çevirme | Her adımda derleme kapılı | **tamam** |
 
 **Kararlar** (gerekçeleri decisions.md, 2026-09-10):
 
