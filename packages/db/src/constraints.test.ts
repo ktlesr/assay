@@ -303,6 +303,17 @@ it('Run: atlanan vaka sebepsiz olamaz', async () => {
     ).resolves.toBeDefined()
   })
 
+  it('Run: bos Assay surumu reddedilir, NULL ve dolu kabul edilir (0.3.2)', async () => {
+    const suiteId = await makeSuite()
+    const sql = `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
+         "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
+         "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","assayVersion")
+       VALUES ($1,$2,now(),now(),'h','docx','a','b','c','d',1,'e',10,'PASS'::"Verdict",$3)`
+    await violates('run_assay_version_not_blank', sql, [next(), suiteId, '  '])
+    await expect(run(sql, [next(), suiteId, null])).resolves.toBeDefined()
+    await expect(run(sql, [next(), suiteId, '0.3.2'])).resolves.toBeDefined()
+  })
+
   it('Run: normal biten koşumda partial NULL kalabilir', async () => {
     const suiteId = await makeSuite()
     const [sql, params] = partialSql(suiteId, null)

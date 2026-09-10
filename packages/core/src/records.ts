@@ -517,6 +517,38 @@ export interface Run {
    * `runs: 10` görüp vaka başına 10 deneme sanmamalı.
    */
   partial?: PartialRun
+  /**
+   * Kaydı üreten Assay sürümü (runner paketinin sürümü; dört paket tek sürümle
+   * yayımlanıyor). 0.3.2'de geldi.
+   *
+   * Verdict'in anlamı sürümler arasında değişti: 0.2.0 reddedilen aktivasyonu
+   * tetiklenme sayıyordu, 0.3.0 yarım kaydı `pass` sayabiliyordu. Sürümü
+   * taşımayan bir kayıt, hangi kurallarla yargılandığını söyleyemez.
+   *
+   * Yoksa kayıt 0.3.1 ya da öncesinden: okurken `assayVersionLabel` kullan,
+   * alanı doğrudan basma — boş kalmasın, bildiğini söylesin.
+   */
+  assayVersion?: string
+}
+
+/**
+ * Sürüm alanı olmayan kayıtlar için okuma etiketi.
+ *
+ * "0.3.1 öncesi" değil "0.3.1 ya da öncesi": alan 0.3.2'de geldi, yani 0.3.1'in
+ * kendi kayıtları da alansız.
+ */
+export const PRE_VERSION_STAMP = '0.3.1 or earlier'
+
+/**
+ * Kaydı üreten Assay sürümü, okunabilir biçimde.
+ *
+ * Alan yoksa boş dönmez: kaydın damgalamadan önce yazıldığını söyler. Terminal,
+ * HTML ve hosted taraf aynı cümleyi buradan alıyor.
+ */
+export function assayVersionLabel(run: Pick<Run, 'assayVersion'>): string {
+  return run.assayVersion === undefined || run.assayVersion.trim() === ''
+    ? `${PRE_VERSION_STAMP} (the record predates version stamping)`
+    : run.assayVersion
 }
 
 /**
@@ -609,7 +641,7 @@ export function diffEnvironments(
   for (const field of lists) {
     const before = [...a[field]].sort()
     const after = [...b[field]].sort()
-    if (before.join(' ') === after.join(' ')) continue
+    if (before.join('\u0000') === after.join('\u0000')) continue
     const added = after.filter((x) => !before.includes(x))
     const removed = before.filter((x) => !after.includes(x))
     changes.push({

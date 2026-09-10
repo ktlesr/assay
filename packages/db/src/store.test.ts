@@ -216,6 +216,18 @@ describe('storeRun', () => {
     expect(loaded?.concurrency).toBe(4)
   })
 
+  it('Assay surumu gercek bir veritabani gidis-donusunden sag cikar (0.3.2)', async () => {
+    const run = { ...makeRun('run-roundtrip-version'), assayVersion: '0.3.2' }
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })
+    expect((await loadRun(db, run.id, ALL))?.assayVersion).toBe('0.3.2')
+
+    // Sürümsüz kayıt sürümsüz döner — `null` değil, alan hiç yok.
+    const old = makeRun('run-roundtrip-noversion')
+    await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run: old })
+    const loaded = await loadRun(db, old.id, ALL)
+    expect(loaded !== null && 'assayVersion' in loaded).toBe(false)
+  })
+
   it('sirali kosumda es zamanlilik alani hic yazilmaz', async () => {
     const run = makeRun('run-roundtrip-serial')
     await storeRun(db, { suite: SUITE, suiteHash: 'sha256:bbb', run })

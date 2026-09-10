@@ -47,6 +47,7 @@ import {
 import { assembleRun } from './assemble.js'
 import { RunJournal, type JournalAttempt } from './journal.js'
 import { superviseAttempt } from './supervisor.js'
+import { ASSAY_VERSION } from './version.js'
 import type { AdapterSpec } from './worker.js'
 
 export interface RunOptions {
@@ -186,6 +187,8 @@ export async function runSuite<S extends AgentSession>(
     ...(skipped.length === 0 ? {} : { skipped }),
     // Kurtarma, koşumun hiç ulaşamadığı vakaları buradan adlandırıyor.
     planned: [...new Set(work.map((item) => item.testCase.id))],
+    // Kurtarılan kayıt, journal'ı YAZAN sürümü taşısın; kurtaranı değil.
+    assayVersion: ASSAY_VERSION,
   })
 
   // Ajana kullanıcının canlı skill dizini değil, bir kopyası verilir. Aksi
@@ -271,6 +274,7 @@ export async function runSuite<S extends AgentSession>(
     ...(skipped.length === 0 ? {} : { skipped }),
     pins: basePins,
     attempts: journalled,
+    assayVersion: ASSAY_VERSION,
   })
 
   // Kayıt kuruldu; journal'ın işi bitti.

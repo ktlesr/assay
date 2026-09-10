@@ -571,6 +571,16 @@ describe('hızlı mod raporu', () => {
     expect(text).toContain('An incomplete record cannot pass')
   })
 
+  it('raporlar Assay surumunu gosteriyor; surumsuz kayit icin bos birakmiyor (0.3.2)', () => {
+    const stamped: Run = { ...makeRun('run-stamped', [['trigger.positive.explicit', 3, 0, 0]]), assayVersion: '0.3.2' }
+    expect(renderRun(stamped, summarizeRun(stamped))).toContain('assay 0.3.2')
+    expect(renderHtmlReport(stamped, summarizeRun(stamped))).toContain('<dt>Assay version</dt><dd class="mono">0.3.2</dd>')
+
+    const old = makeRun('run-old', [['trigger.positive.explicit', 3, 0, 0]])
+    expect(renderRun(old, summarizeRun(old))).toContain('assay 0.3.1 or earlier')
+    expect(renderHtmlReport(old, summarizeRun(old))).toContain('<dt>Assay version</dt><dd class="mono">0.3.1 or earlier')
+  })
+
   it('hizli mod olmadan butceyle kesilen kosumun HTML raporu da kesilen vakalari listeliyor', () => {
     // İlk hâli atlanan vakaları yalnızca hızlı mod notunun içinde anıyordu.
     const base = makeRun('run-budget-full', [['trigger.positive.explicit', 3, 0, 0]])

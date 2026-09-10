@@ -43,6 +43,8 @@ export function assembleRun(input: {
   pins: Pins
   attempts: readonly JournalAttempt[]
   partial?: PartialRun
+  /** Kaydı üreten Assay sürümü; kurtarmada journal'ı yazan sürüm. */
+  assayVersion?: string
 }): Run {
   // Ortam hash'i koşum seviyesinde bir pin ama oturum seviyesinde okunuyor.
   // Attempt'ler farklı hash bildirirse ortam koşum ortasında kaymış demektir;
@@ -109,6 +111,7 @@ export function assembleRun(input: {
       input.partial !== undefined,
     ),
     ...(input.partial === undefined ? {} : { partial: input.partial }),
+    ...(input.assayVersion === undefined ? {} : { assayVersion: input.assayVersion }),
   }
 }
 

@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { comparePins, formatProportion, proportion, type Pins } from './records.js'
+import {
+  assayVersionLabel,
+  comparePins,
+  formatProportion,
+  proportion,
+  type Pins,
+} from './records.js'
+
+describe('assayVersionLabel — 0.3.2', () => {
+  it('surum varsa onu veriyor', () => {
+    expect(assayVersionLabel({ assayVersion: '0.3.2' })).toBe('0.3.2')
+  })
+
+  it('surum yoksa bos degil, damgadan once yazildigini soyluyor', () => {
+    // Alan 0.3.2'de geldi: 0.3.1'in kendi kayıtları da alansız, o yüzden
+    // "0.3.1 öncesi" değil "0.3.1 ya da öncesi".
+    const label = assayVersionLabel({})
+    expect(label).toContain('0.3.1 or earlier')
+    expect(label).toContain('predates version stamping')
+  })
+
+  it('bos string de surum sayilmiyor', () => {
+    expect(assayVersionLabel({ assayVersion: '  ' })).toContain('0.3.1 or earlier')
+  })
+})
 
 describe('proportion — değişmez #4', () => {
   it('gözlem yoksa oran da aralık da null', () => {

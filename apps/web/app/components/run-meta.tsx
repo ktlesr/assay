@@ -1,4 +1,4 @@
-import type { Run } from '@ktlsr/assay-core'
+import { assayVersionLabel, type Run } from '@ktlsr/assay-core'
 
 /**
  * Sertifikanın künyesi: dört pin ve iki denetçisi.
@@ -56,6 +56,8 @@ export function Pins({ run, drifted = [] }: { run: Run; drifted?: readonly strin
     },
     { key: 'suiteVersion', driftKey: 'suiteVersion', label: 'Case set version', value: String(run.pins.suiteVersion) },
     { key: 'suiteHash', driftKey: 'suiteHash', label: 'Case set hash', value: run.pins.suiteHash },
+    // Pin değil ama yargının koşulu: kaydı hangi Assay sürümü üretti (0.3.2).
+    { key: 'assayVersion', driftKey: 'assayVersion', label: 'Assay version', value: assayVersionLabel(run) },
   ]
   return (
     <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2">

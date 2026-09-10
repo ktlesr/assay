@@ -61,6 +61,13 @@ export interface JournalHeader {
    * zaman ulaşılamayan vakalar adlandırılamaz ama kayıt yine `pass` veremez.
    */
   planned?: readonly string[]
+  /**
+   * Journal'ı yazan Assay sürümü (0.3.2). Kurtarılan kayıt bunu taşır, kurtaran
+   * sürümü değil: denemeler bu sürümün kurallarıyla yargılandı. Eski
+   * journal'larda yok; o zaman kayıt da sürümsüz kalır ve "0.3.1 or earlier"
+   * olarak okunur.
+   */
+  assayVersion?: string
 }
 
 /** Tek bir tamamlanmış deneme. */
@@ -262,6 +269,7 @@ export async function recoverJournal(
     ...(header.concurrency === undefined ? {} : { concurrency: header.concurrency }),
     ...(header.layers === undefined ? {} : { layers: header.layers }),
     ...(skipped.length === 0 ? {} : { skipped }),
+    ...(header.assayVersion === undefined ? {} : { assayVersion: header.assayVersion }),
     attempts,
     partial: {
       reason:

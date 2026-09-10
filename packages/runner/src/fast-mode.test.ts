@@ -301,6 +301,26 @@ describe('bütçe kesmesi ve verdict', () => {
 })
 
 /**
+ * 0.3.2 — kayıt onu üreten Assay sürümünü taşır.
+ *
+ * Değer runner'ın kendi `package.json`'undan; test onu diskten ayrıca okuyup
+ * karşılaştırıyor. Elle yazılmış bir sabit, sürüm PR'ında unutulurdu.
+ */
+describe('Assay sürümü damgası', () => {
+  const version = (
+    JSON.parse(readFileSync(join(repoRoot, 'packages/runner/package.json'), 'utf8')) as {
+      version: string
+    }
+  ).version
+
+  it('kosum kaydi runner paketinin surumunu tasiyor', async () => {
+    const record = await fastRun()
+    expect(version).toMatch(/^\d+\.\d+\.\d+/)
+    expect(record.assayVersion).toBe(version)
+  })
+})
+
+/**
  * Süreç sınırını geçen hızlı mod.
  *
  * Bu testin varlık sebebi gerçek bir kusur: `layers` worker payload'ında yoktu

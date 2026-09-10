@@ -610,6 +610,18 @@ describe('0.2.0 alanları — eşleme', () => {
     expect(fromRunRow(row, []).skipped).toEqual(run.skipped)
   })
 
+  it('Assay surumu kosum satirinda durur; yoksa geri NULL degil alansiz gelir (0.3.2)', () => {
+    const stamped = bareRun({ assayVersion: '0.3.2' })
+    const row = toRunRow(stamped)
+    expect(row.assayVersion).toBe('0.3.2')
+    expect(fromRunRow(row, []).assayVersion).toBe('0.3.2')
+
+    // Eski satır: sütun NULL. Kayda `assayVersion: null` olarak sızmıyor;
+    // okuma tarafı etiketini `assayVersionLabel`dan alıyor.
+    const old = fromRunRow(toRunRow(bareRun()), [])
+    expect('assayVersion' in old).toBe(false)
+  })
+
   it('ortam kaydi kosum satirinda durur ve geri okunur', () => {
     const environment = {
       model: 'claude-haiku-4-5-20251001',

@@ -21,6 +21,8 @@ export {
 } from './suite.js'
 
 export {
+  assayVersionLabel,
+  PRE_VERSION_STAMP,
   comparePins,
   diffEnvironments,
   proportion,

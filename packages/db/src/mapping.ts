@@ -103,6 +103,8 @@ export interface RunRow {
    */
   pinEnvironmentHash: string | null
   permissionMode: string | null
+  /** Kaydı üreten Assay sürümü; null = 0.3.1 ya da öncesi (0.3.2). */
+  assayVersion: string | null
   /**
    * Hash'in girdisi olan ortam kaydı; host bildirmediyse null.
    *
@@ -242,6 +244,7 @@ export function toRunRow(run: Run): RunRow {
     pinSuiteHash: run.pins.suiteHash,
     pinEnvironmentHash: run.pins.environmentHash ?? null,
     permissionMode: run.permissionMode ?? null,
+    assayVersion: run.assayVersion ?? null,
     environment: run.environment ?? null,
     partial: run.partial ?? null,
     runsPerCase: run.runs,
@@ -482,6 +485,11 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
       ...(row.pinEnvironmentHash === null ? {} : { environmentHash: row.pinEnvironmentHash }),
     },
     ...(row.permissionMode === null ? {} : { permissionMode: row.permissionMode }),
+    // Null alan olarak geri gelmez; okuma `assayVersionLabel` ile "0.3.1 or
+    // earlier" der. Migration öncesi satırlarda sütun hiç olmayabilir.
+    ...(row.assayVersion === null || row.assayVersion === undefined
+      ? {}
+      : { assayVersion: row.assayVersion }),
     ...(isEnvironment(row.environment) ? { environment: row.environment } : {}),
     ...(isPartial(row.partial) ? { partial: row.partial } : {}),
     ...(row.concurrency === null ? {} : { concurrency: row.concurrency }),

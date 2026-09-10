@@ -132,6 +132,14 @@ describe('koşum ortasında öldürülen süreç', () => {
     //    deneme geçti — verdict'i düşüren bir `fail`/`unknown` deneme yok.
     expect(run?.cases.flatMap((c) => c.attempts).every((a) => a.verdict === 'pass')).toBe(true)
     expect(run?.verdict).toBe('unknown')
+
+    // 8. (0.3.2) Kurtarılan kayıt, journal'ı yazan runner'ın sürümünü taşıyor.
+    const version = (
+      JSON.parse(await readFile(join(repoRoot, 'packages/runner/package.json'), 'utf8')) as {
+        version: string
+      }
+    ).version
+    expect(run?.assayVersion).toBe(version)
   }, 120_000)
 })
 
@@ -286,6 +294,28 @@ describe('journal', () => {
     // Pozitif kontrol: katman elemesi ve hiç atlama olmaması `pass`.
     expect(verdictOf(passed, skip('layer'))).toBe('pass')
     expect(verdictOf(passed)).toBe('pass')
+  })
+
+  it('kurtarilan kayit journal i YAZAN surumu tasiyor, kurtarani degil (0.3.2)', async () => {
+    // Denemeler yazan sürümün kurallarıyla yargılandı. Kurtaran sürümü basmak,
+    // kaydı hiç koşmadığı bir sürümün ürünü gibi gösterirdi.
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const journal = await RunJournal.open(dir, {
+      ...header,
+      id: 'run-writer-version',
+      assayVersion: '0.0.1-writer',
+    })
+    journal.append(attempt(0, 'pass'))
+    expect((await recoverJournal(journal.path))?.run.assayVersion).toBe('0.0.1-writer')
+  })
+
+  it('surumsuz eski journal dan kurtarilan kayit da surumsuz kalir', async () => {
+    // Tahmin yok: bilinmeyen sürüm bilinmeyen kalır, okuma tarafı etiketler.
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const journal = await RunJournal.open(dir, { ...header, id: 'run-no-version' })
+    journal.append(attempt(0, 'pass'))
+    const run = (await recoverJournal(journal.path))?.run
+    expect(run !== undefined && 'assayVersion' in run).toBe(false)
   })
 
   it('plansiz eski journal ulasilamayani adlandiramaz ama PASS da vermez', async () => {

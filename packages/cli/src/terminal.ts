@@ -8,6 +8,7 @@
  */
 
 import {
+  assayVersionLabel,
   formatProportion,
   type CaseComparison,
   type Proportion,
@@ -90,6 +91,8 @@ export function renderRun(run: Run, summary: RunSummary): string {
       `permission mode ${run.permissionMode ?? 'not reported by the host'}`,
     ),
   )
+  // Kaydı hangi Assay sürümü yargıladı (0.3.2). Alan yoksa boş basılmıyor.
+  out.push(style.grey(`assay ${assayVersionLabel(run)}`))
   /*
    * Eş zamanlılık gecikmenin koşulu.
    *

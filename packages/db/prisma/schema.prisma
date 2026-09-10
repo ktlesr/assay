@@ -142,6 +142,10 @@ model Run {
   /// skill ile kısıtlanmamış olan aynı skill değil. Host bildirmediyse null.
   permissionMode String?
 
+  /// Kaydı üreten Assay sürümü (0.3.2). Null = 0.3.1 ya da öncesi; geriye
+  /// dönük doldurulmaz, çünkü bilinmiyor. Okuma tarafı null'ı adıyla söyler.
+  assayVersion String?
+
   /// `pinEnvironmentHash`in girdisi olan ortam kaydı — model, sürüm, araç ve
   /// skill listeleri, izin modu, output style. Hash "bir şey değişti"
   /// diyebiliyor; kayan alanı adıyla söyleyebilmek için bileşenler de
