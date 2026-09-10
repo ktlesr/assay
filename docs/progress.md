@@ -24,11 +24,17 @@ GitHub Release "Latest". Dışarıdan doğrulandı (`ktlesr/assay-example`, koş
 artefakttaki kayıt yalnızca 0.3.0'ın yazdığı `environment` alanını taşıyor.
 Yol docs/marketplace.md'de.
 
-**0.3.1-b tamam (2026-09-10), yayımlanmadı.** Kurtarılan yarım kayıt artık
-`pass` veremiyor; ulaşılamayan vakalar `skipped`da `cause: 'interrupted'` ile
-adıyla. Gerçek hostta: bir deneme sonra öldürülen koşum UNKNOWN kurtarıldı,
-11 ulaşılamayan vaka adıyla kayıtta. Changeset `honest-recoveries-name` (patch →
-0.3.1) bekliyor.
+**0.3.1 yayımlandı (2026-09-10).** 0.3.1-b: kurtarılan yarım kayıt `pass`
+veremiyor, ulaşılamayan vakalar `skipped`da `cause: 'interrupted'` ile adıyla.
+Dört paket registry'de (`latest=0.3.1`, npm 12.0.2/OIDC, provenance); yayın
+koşumu `34460207347`, birleştirme `ddf5014` (PR #4). Parmak izi: aynı yarım
+journal'ı npm 0.3.0 `pass`, npm 0.3.1 `unknown` diye kurtarıyor.
+Eylem v1.2.1: `v1` ve `action-v1.2.1` → `ddf5014`; dışarıdan doğrulandı
+(`ktlesr/assay-example`, koşum `34460704366`, `@v1` → `ddf5014`,
+`ASSAY_VERSION: 0.3.1`, npm dalı, 6/6 pass).
+
+**Açık:** koşum kaydı onu üreten Assay sürümünü taşımıyor; sürüm doğrulaması
+bu yüzden dolaylı kanıtlara dayanıyor (docs/marketplace.md).
 
 Sırada **0.3.1-a** (uyarlanabilir durdurma): kalibrasyon koşumu ~$10–20, tetiği
 kullanıcı çeker.

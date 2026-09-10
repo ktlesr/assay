@@ -127,6 +127,15 @@ gh workflow run assay.yml -R ktlesr/assay-example --ref main
 3. `assay-runs` artefaktındaki kayıtta yalnızca yeni sürümün yazdığı bir alan —
    gerçekten o sürümün *koştuğunun* kanıtı. 0.3.0 için: `run.environment`.
 
+Üçüncü kanıt her sürümde bulunmayabilir: 0.3.1 normal biten bir koşumun kaydına
+yeni alan eklemiyor (değişiklik yalnız kurtarma yolunda). O zaman zincir şöyle
+kuruluyor: kütükte "using the assay CLI built in this workspace" satırının
+**olmadığı** (npm dalı çalıştı) + tam sürüm kurulumunun başarılı olduğu (sürüm
+yoksa ETARGET) + registry'deki tarball'ın o sürümün davranışını taşıdığını
+gösteren bir parmak izi (0.3.1 için: aynı yarım journal'ı 0.3.0 `pass`, 0.3.1
+`unknown` diye kurtarıyor). Kök sebep kayıtta: koşum kaydı onu üreten Assay
+sürümünü taşımıyor.
+
 **Ad tuzağı.** Bu makinedeki `D:ssay-example` klasörü `ktlesr/assay-example`
 DEĞİL; uzağı `ktlesr/skill-trigger-measurements` (ölçüm deposu). Orada secret
 yok ve eylem oradan koşamaz. 0.3.0 doğrulamasında bir duman testi iş akışı
