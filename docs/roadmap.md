@@ -616,6 +616,7 @@ yalnız `not_triggered` taşıyan vakalara düşen uyarı.
 | 0.4.1-6 Küçük kusurlar turu | e, f, g, h, j, k, l, n, o (i ve m 0.4.1-5 ve 0.4.1-2'de kapandı) | **tamam** |
 | 0.4.3-a Hızlı mod kazanan beyanını ölçüyor | `--fast` yalnızca `winner` taşıyan vakayı "only declares assertions" diye atlıyordu; artık koşuyor (gerçek çakışma koşumunda bulundu, 2026-09-11) | **tamam**, 0.4.3'te yayımlandı (`a705483`, PR #9) |
 | 0.4.3-b Web koşum sayfası kapsamı söylemiyor | `layers` (hızlı mod), `skipped` ve `partial` hosted sayfada hiç gösterilmiyor: 3 denemelik bir erken uyarı tam ölçüm gibi görünür, atlanan vaka sessizce yok olur. CLI üçünü de manşette söylüyor (decisions.md 2026-09-08, 2026-09-09) | **tamam** — koşum sayfasında verdict'in altında, sayılardan önce üç uyarı; dizin ve suite sayfasında not; `unknown` hükmü kapsam sebebini söylüyor |
+| Ölçüm-1 v3 ile tam çakışma koşumu | Sitedeki matris 60 denemelik hızlı koşumdan (`912ad216`, v3, N=3, yalnız tetiklenme); ölçüm raporu ise 200 denemelik tam koşumdan (`0bec859e`, v2). Aynı resim, farklı çözünürlük. v3 suite'le tam koşum (N=10, ~200 deneme, ~$10, `--concurrency 4`), yayımlanmış son sürümle; `assay push` ile yüklenir ve sitede hızlı koşumun yerini alır. Hızlı koşumu production'dan silmek kullanıcının kararı (geri alınamaz). Ölçüm deposundaki raporun başındaki not (`633f4b3`) yeni koşum kimliğiyle güncellenir | **bekliyor — onay gerekir (para); şimdi yapılmayacak** |
 
 Aşağıdaki kusur tablosu bu sürüme girecek düzeltmelerin havuzu; hangilerinin
 0.4.1'e alınacağı ayrıca kararlaştırılacak.

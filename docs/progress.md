@@ -273,8 +273,11 @@ Sıra ve onay durumu (2026-09-11 akşam):
    koşumu (2bc985d5) kullanıcı tarafından silindi. Production'da matris
    core'un aynı kayıttan hesapladığıyla 240/240 hücrede ve 15/15 "won"
    sayımında aynı; hızlı mod uyarısı sayıların üstünde; dizin ve suite sayfası
-   "fast mode" diyor; iki tema × 1280/375'te taşma yok. Tam koşum (N=10,
-   ~$10) istenirse kanıt düzeyine çıkarır — onay gerekir.
+   "fast mode" diyor; iki tema × 1280/375'te taşma yok. Ölçüm deposundaki
+   rapor (`reports/marketingskills.collide.md`) başına iki koşumun farkını
+   söyleyen not eklendi (`633f4b3`).
+   **Sıradaki: v3 ile tam koşum (N=10, ~$10), sitedeki hızlı koşumun yerini
+   alacak — roadmap "Ölçüm-1". Onay bekliyor (para), henüz yapılmadı.**
 2. ~~Üç eski ölçümün yayımlanması~~ — **tamam**: animate, better-typography,
    ui-ux-pro-max public (anonim istekle doğrulandı, 2026-09-11). Yalnız
    marketing-skills v2 (0bec859e) gizli; bilinçli karar.
