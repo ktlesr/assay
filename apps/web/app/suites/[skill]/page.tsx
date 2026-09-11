@@ -32,7 +32,7 @@ export default async function SuitePage({
   const { latest, runs } = suite
 
   return (
-    <Shell breadcrumbs={[{ label: suite.skill }]}>
+    <Shell breadcrumbs={[{ label: 'measurements', href: '/suites' }, { label: suite.skill }]}>
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <h1 className="page-title">

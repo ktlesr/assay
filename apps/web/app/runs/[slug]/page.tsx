@@ -54,6 +54,7 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
   return (
     <Shell
       breadcrumbs={[
+        { label: 'measurements', href: '/suites' },
         { label: run.skill, href: `/suites/${encodeURIComponent(run.skill)}` },
         { label: 'run' },
       ]}

@@ -65,6 +65,7 @@ export default async function ComparePage({
   return (
     <Shell
       breadcrumbs={[
+        { label: 'measurements', href: '/suites' },
         {
           label: after.run.skill,
           href: `/suites/${encodeURIComponent(after.run.skill)}`,

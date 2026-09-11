@@ -34,6 +34,7 @@ export default async function AttemptPage({
   return (
     <Shell
       breadcrumbs={[
+        { label: 'measurements', href: '/suites' },
         { label: item.run.skill, href: `/suites/${encodeURIComponent(item.run.skill)}` },
         { label: 'run', href: `/runs/${slug}` },
         { label: `attempt ${attempt.index + 1}` },
@@ -119,7 +120,7 @@ export default async function AttemptPage({
                 </span>
                 <div className="min-w-0">
                   <p className="case-id">{label(result.assertion)}</p>
-                  <p className="case-count max-w-[70ch]">{result.reason}</p>
+                  <p className="case-count max-w-[70ch] [overflow-wrap:anywhere]">{result.reason}</p>
                 </div>
               </li>
             ))}

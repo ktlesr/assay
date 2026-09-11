@@ -3017,3 +3017,36 @@ bir koşumda (c4c1faa3) hiçbir uyarı yok; v2 kaydı gizli kaldı (404). İki t
 1280/375'te üç sayfada taşma yok. Kullanıcının açık onayıyla `v1` 0.4.3'e
 taşındı ve action-v1.3.3 açıldı (`a63120c`); dış depo doğrulaması yapılmadı
 (istenmedi).
+
+## 2026-09-11 — Konum bilgisi üst çubuktan sayfanın başlık alanına taşındı
+
+Bağlam: Üst çubuk hem gezinmeyi (Method, Measurements) hem konum izini
+taşıyordu. İkisi görsel olarak ayrılmıyordu ve derin sayfalarda iz "R…",
+"ATTE…" diye okunamayacak kadar kırpılıyordu; 48rem altında hiç görünmüyordu.
+Seçenekler: (a) üst çubukta tutup ayırıcıyla ayırmak · (b) üst çubuğun altına
+ikinci bir şerit · (c) izi sayfanın kendi başlık alanına almak
+Karar: (c). Üst çubukta yalnızca marka, Method, Measurements, Sign in ve tema
+düğmesi. İz `<main>`in ilk öğesi: başlık çubuğunun hairline'ının altında,
+sayfa başlığının (hüküm sayfalarında 2px'lik verdict çizgisinin) hemen
+üstünde; mono, `text-xs`, büyük harfe çevrilmiyor, `/` ayırıcı `--rule-strong`
+tonunda, son öğe `aria-current="page"`. Kırpılmıyor: dar ekranda satır sarılıyor,
+uzun kimlik gerekirse bölünüyor.
+İz yalnızca içinde bir bağlantı varsa çiziliyor (`lib/trail.ts`,
+`visibleTrail`): bağlantısız iz ("skills", "admin / users") başlığı tekrarlar ve
+gidilecek bir yer göstermez. Koşum, attempt, suite ve compare sayfalarının izine
+kök olarak `measurements → /suites` eklendi; böylece iz hep bir üst yere çıkıyor.
+Gerekçe: (a) sorunun kendisini korurdu — 375px'te marka, iki bağlantı, giriş ve
+tema düğmesinin yanında yer yok; kırpma kaçınılmazdı. (b) gölgesiz, hairline'lı
+bir dilde ikinci bir yapışkan şerit iki çizgi arasında bir bant daha demek ve
+kaydırırken içeriğin üstünde iki kat yer kaplardı. İz bir gezinme aracı değil,
+sayfanın künyesi; künye sayfanın başlığıyla birlikte okunur. Başlık çubuğunun
+40px altında, verdict çizgisinin 24px üstünde durduğu için alttaki başlığa
+bağlanıyor, üstteki gezinmeye değil.
+Aynı turda attempt sayfasında 375px'te iki eski taşma kapandı: hüküm cümlesi ve
+assertion gerekçesi boşluksuz regex taşıyabiliyordu (sayfa 800px'e
+genişliyordu); ikisine `overflow-wrap: anywhere`.
+Doğrulama: açık/koyu × 1280/375, attempt, koşum, suite ve /suites (izsiz)
+sayfalarında; hepsinde yatay kaydırma yok, iz tam metin. Üç birim ters çevirme
+(`visibleTrail` koşulu ters, hep çiz, hiç çizme) her biri kendi testinde
+kırmızı; shell'in izi çizmemesi canlı sayfada sıfır `Breadcrumb` ile görüldü.
+Geri dönüş maliyeti: düşük
