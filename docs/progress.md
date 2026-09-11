@@ -8,12 +8,14 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 ## Durum
 
 **Faz 0–3 tamam** · **kalibrasyon tamam** ·
-**npm'de 0.4.3** (eylem `v1` hâlâ v1.3.2 / 0.4.2 — taşınmadı)
+**npm'de 0.4.3** · **eylem v1.3.3** (`v1` → `a63120c`, pin 0.4.3)
 
 Son güncelleme: 2026-09-11. assayctl.dev'de public: animate, better-typography,
-ui-ux-pro-max, impeccable (3 koşum), hallmark, frontend-design. Gizli:
-marketing-skills v2 (0bec859e, bilinçli) ve v3 (ilk kazananlı çakışma koşumu,
-yayım kararı bekliyor). Devam için **"Sırada"**.
+ui-ux-pro-max, impeccable (3 koşum), hallmark, frontend-design,
+marketing-skills v3. Gizli:
+marketing-skills v2 (0bec859e, bilinçli). marketing-skills v3 (ilk kazananlı
+çakışma koşumu, 912ad216) **public**; matris production'da doğrulandı. Devam
+için **"Sırada"**.
 
 ## Oturum kaydı — 2026-09-10
 
@@ -233,17 +235,14 @@ geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 
 Sıra ve onay durumu (2026-09-11):
 
-1. **Kazananlı suite'le gerçek çakışma koşumu — koşuldu ve yüklendi.**
-   0.4.3 ile `run-2026-09-11T14-54-16-671Z-912ad216`: 20/20 vaka, 60 deneme,
-   $3.04, tartışmalı satır dahil. Önceki 0.4.2 koşumu (2bc985d5, 19 vaka,
-   tartışmalı vaka atlandı) de aynı suite'te. İkisi de ölçüm deposunda
-   (`.assay/runs/`), suite orada commit'li (`suites/
-   marketingskills.collide.v3.suite.yaml`, `05b820b`). Production'da ikisi de
-   **gizli**. **Bekleyen (kullanıcı):** v3 suite'ini `/admin/suites`'ten
-   yayımla; yayımlama suite düzeyinde olduğu için 2bc985d5 de açılır — sayfası
-   atlanan vakayı 0.4.2'nin yanlış gerekçesiyle gösterir; istenirse
-   `/admin/runs`'tan silinir. Yayımlanınca matris production'da iki temada ve
-   mobilde kontrol edilecek.
+1. ~~Kazananlı suite'le gerçek çakışma koşumu~~ — **tamam (2026-09-11).**
+   0.4.3 ile 912ad216: 20/20 vaka, 60 deneme, $3.04; kayıt ve suite ölçüm
+   deposunda (`05b820b`). v3 suite kullanıcı tarafından yayımlandı, 0.4.2
+   koşumu (2bc985d5) kullanıcı tarafından silindi. Production'da matris
+   core'un aynı kayıttan hesapladığıyla 240/240 hücrede ve 15/15 "won"
+   sayımında aynı; hızlı mod uyarısı sayıların üstünde; dizin ve suite sayfası
+   "fast mode" diyor; iki tema × 1280/375'te taşma yok. Tam koşum (N=10,
+   ~$10) istenirse kanıt düzeyine çıkarır — onay gerekir.
 2. ~~Üç eski ölçümün yayımlanması~~ — **tamam**: animate, better-typography,
    ui-ux-pro-max public (anonim istekle doğrulandı, 2026-09-11). Yalnız
    marketing-skills v2 (0bec859e) gizli; bilinçli karar.

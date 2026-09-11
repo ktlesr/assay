@@ -3006,3 +3006,14 @@ Kararlar:
   da açılır; sayfası atlanan vakayı 0.4.2'nin yanlış gerekçesiyle gösterir.
   Silmek geri alınamaz bir üretim verisi işlemi — kullanıcının.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-11 — İlk kazananlı çakışma koşumu production'da doğrulandı; eylem v1.3.3
+
+Kullanıcı 2bc985d5'i sildi ve v3 suite'i yayımladı. Production'da 912ad216:
+matris core'un aynı kayıttan hesapladığıyla 240/240 hücrede, "won" sayımları
+15/15 satırda aynı (sayfadan okunup karşılaştırıldı); hızlı mod uyarısı
+sayıların üstünde; atlanan vaka ve yarım kayıt yok, o uyarılar çıkmıyor; tam
+bir koşumda (c4c1faa3) hiçbir uyarı yok; v2 kaydı gizli kaldı (404). İki tema ×
+1280/375'te üç sayfada taşma yok. Kullanıcının açık onayıyla `v1` 0.4.3'e
+taşındı ve action-v1.3.3 açıldı (`a63120c`); dış depo doğrulaması yapılmadı
+(istenmedi).
