@@ -2917,3 +2917,52 @@ Ters çevirme: görünüm modelinde 5 (derleme kapılı, hepsi kırmızı), sayf
 (elle, web typecheck kapılı: matris çizilmiyor, ek yok, aralık yok, tablo kendi
 kabında kaymıyor — hepsi kırmızı).
 Geri dönüş maliyeti: düşük
+
+## 2026-09-11 — Çakışma koşumu için suite sürüm 3; ölçüm deposu salt okunur kaldı
+
+Bağlam: Kullanıcı kazananlı suite'le gerçek bir çakışma koşumunu onayladı.
+Elimdeki kazananlı suite (0.4.0-f) yalnızca yeniden puanlama için türetilmişti:
+başlığı öyle diyor, `version: 2`'yi kaynağından koruyor (id'ler eşleşsin diye) ve
+fixture yolu ölçüm deposuna göre göreli.
+Seçenekler: türetilmiş dosyayı olduğu gibi koşmak · ölçüm deposunun `suites/`
+dizinine koymak · sürümü artırılmış bir kopyayı ölçüm deposunun düzenini
+taklit eden bir çalışma dizininde koşmak
+Karar: Üçüncüsü. `examples/measurements/marketingskills.collide.v3.suite.yaml`:
+gövde türetilmiş dosyayla byte byte aynı (vakalar, istemler, kazananlar,
+fixture'lar, id'ler), yalnızca başlık ve `version: 3`. Koşum, `suites/` ve
+`fixtures/marketing-site` (ölçüm deposundan kopya) taşıyan bir scratch
+dizininde; skill ölçüm deposundaki `skills/marketing-skills-collide`'dan
+okunuyor. Kayıt scratch store'a yazılıyor.
+Gerekçe: Vakaların anlamı değişti (kazanan artık suite'te); aynı sürüm numarası
+iki farklı vaka setini adlandırırdı — sürüm alanının varlık sebebi bu ayrım
+(decisions.md, 2026-08-31). Türetilmiş dosyanın "for re-scoring only" başlığı
+gerçek bir koşumun pinine girseydi yanıltıcı olurdu. Ölçüm deposu kullanıcının;
+oraya dosya koymak onun kararı. Suite hash'i fixture içeriğinden değil suite
+dosyasından geldiği için kopya dizin ölçümü değiştirmiyor.
+Yapılacak (kullanıcı kararı): suite ve kayıt ölçüm deposuna taşınabilir.
+Geri dönüş maliyeti: düşük
+
+## 2026-09-11 — İlk kazananlı çakışma koşumu: hızlı mod bir vakayı atladı; kayıt gizli yüklendi
+
+Bağlam: v3 suite'le 0.4.2, `--fast --concurrency 4`: 20 vakadan 19'u koşuldu,
+57 deneme, $3.07, 7 dk 49 sn duvar saati (run-2026-09-11T14-11-49-883Z-2bc985d5).
+Tartışmalı vaka `contested.copywriting.headline_better` yalnızca `winner`
+taşıyor ve hızlı mod onu "the case only declares assertions" diye atladı.
+Sebep: `planWork`'ün tetiklenme iddiası testi 0.3.0'dan kalma ve `winner`'ı
+(0.4.0) bilmiyordu.
+Seçenekler: kaydı yüklememek · olduğu gibi yükleyip yayımlamak · olduğu gibi
+gizli yükleyip kusuru düzeltmek, yayını ve yeniden koşumu kullanıcıya bırakmak
+Karar: Üçüncüsü. Kayıt 0.4.2 ile yüklendi (maskelenecek bir şey kalmamıştı:
+runner hesap adını kayıt yazılırken maskeliyor) ve gizli. Kusur düzeltildi
+(0.4.3-a, changeset hazır), yayımlanmadı.
+Gerekçe: Ölçülen 19 vaka gerçek ve verdict `fail` — atlama bir geçişi
+gizlemedi. Ama yayımlanırsa sayfa atlanan vaka için yanlış bir cümle ("only
+declares assertions") gösterir ve matriste tartışmalı satır eksik kalır.
+Yayımlamak ya da 0.4.3 ile yeniden koşmak (~$3) kullanıcı kararı.
+Bulgu (19 vaka, vaka başına 3 deneme — erken uyarı, kanıt değil): 200
+denemelik v2 koşumunun resmiyle aynı. emails, seo-audit, ai-seo, schema
+kendi vakalarında 3/3 kazandı; cold-email 2/3; signup, cro, popups, paywalls,
+onboarding, copy-editing, programmatic-seo ve hedef product-marketing hiç
+tetiklenmedi; cro'da bir denemede host'la gelen `run` önce tetiklendi; üç
+`winner: none` negatifinde 9/9 hiçbir skill tetiklenmedi.
+Geri dönüş maliyeti: düşük

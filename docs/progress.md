@@ -8,10 +8,12 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 ## Durum
 
 **Faz 0–3 tamam** · **kalibrasyon tamam** · **npm'de 0.4.2** ·
-**eylem v1.3.2** · **assayctl.dev'de beş ölçüm (üçü public)**
+**eylem v1.3.2** · **0.4.3 kodda (hızlı mod + kazanan), yayımlanmadı**
 
-Son güncelleme: 2026-09-10 (oturum sonu). Yarın buradan: aşağıdaki
-**"Oturum kaydı — 2026-09-10"** ve **"Sırada"**.
+Son güncelleme: 2026-09-11. assayctl.dev'de public: animate, better-typography,
+ui-ux-pro-max, impeccable (3 koşum), hallmark, frontend-design. Gizli:
+marketing-skills v2 (0bec859e, bilinçli) ve v3 (ilk kazananlı çakışma koşumu,
+yayım kararı bekliyor). Devam için **"Sırada"**.
 
 ## Oturum kaydı — 2026-09-10
 
@@ -33,8 +35,8 @@ koşum yapılmadı (istenmedi, para harcıyor).
 seçildi, beşi yüklendi; üç eski ölçüm 0.4.1 hosted düzeltmesinden sonra
 yüklendi. Sitede şu an: impeccable (3 koşum) ve hallmark **public**;
 marketingskills (0bec859e, eski suite'le puanlanmış) **gizli** (kullanıcı
-kararı); animate, better-typography, ui-ux-pro-max **yüklü ama gizli** —
-yayımlama kullanıcıda. Production Dokploy'la main'e her push'ta kendiliğinden
+kararı); animate, better-typography, ui-ux-pro-max o gün gizli yüklendi,
+2026-09-11 itibarıyla kullanıcı tarafından yayımlanmış. Production Dokploy'la main'e her push'ta kendiliğinden
 dağıtılıyor.
 
 **Bulunan kusurlar ve durumları** (tablo roadmap.md 0.4.1):
@@ -229,15 +231,21 @@ geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 
 ## Sırada
 
-Sıra ve onay durumu (2026-09-10 sonunda):
+Sıra ve onay durumu (2026-09-11):
 
 1. **Kazananlı suite'le gerçek bir çakışma koşumu** — `examples/measurements/
    marketingskills.collide.winner.suite.yaml`, 0.4.2 ile; `--fast` ≈ 60 deneme,
    birkaç dolar. Web matrisi hazır ama production'da kazanan beyan eden kayıt
-   yok; bu koşum yüklenince matris sitede görünür. **Onay bekliyor (para).**
-2. **Üç eski ölçümün yayımlanması** (animate, better-typography, ui-ux-pro-max)
-   — yüklü ve gizli; sayfaları "activation not verified" diyor. `/admin/suites`
-   → Publish. **Kullanıcı kararı.**
+   yok; bu koşum yüklenince matris sitede görünür. **Koşuldu (2026-09-11):**
+   run-2026-09-11T14-11-49-883Z-2bc985d5, 19/20 vaka, 57 deneme, $3.07;
+   yüklendi, **gizli**. Hızlı mod tartışmalı vakayı atladı (kusur 0.4.3-a,
+   kodda düzeltildi). Karar bekliyor: (a) bu kaydı yayımla (tartışmalı satır
+   eksik, atlanan vaka için yanlış cümle görünür) ya da (b) 0.4.3'ü yayımla ve
+   yeniden koş (~$3). Kayıt ve suite scratch'te; ölçüm deposuna taşımak
+   kullanıcı kararı.
+2. ~~Üç eski ölçümün yayımlanması~~ — **tamam**: animate, better-typography,
+   ui-ux-pro-max public (anonim istekle doğrulandı, 2026-09-11). Yalnız
+   marketing-skills v2 (0bec859e) gizli; bilinçli karar.
 3. **0.3.1-a — uyarlanabilir durdurma.** Sabit bakış çizelgesi + Bonferroni;
    ~2 gün kod + kalibrasyon koşumu (~$10–20). **Onay bekliyor (para).**
 4. İsteğe bağlı: 0.4.1/0.4.2 için dış depo doğrulaması (`gh workflow run
@@ -246,6 +254,16 @@ Sıra ve onay durumu (2026-09-10 sonunda):
    yayımlananlara göre değişiyor (şu an hallmark) — bilinçli seçim gerekirse
    bir "featured" alanı; `robots.ts` `/compare`'ı taramaya kapalı tutuyor
    (bilinçli).
+6. **Impeccable'ı yeniden ölç — yayımlanmış bir sürüm çıkınca.** Kullanıcının
+   #744 numaralı issue'daki bulgularını referans alan bir özellik issue'su (#789)
+   ve bir test vakası (#791) açıldı, commit main'e girdi. Degraded Setup yolu artık
+   `craft-floor.md`'yi her UI düzenlemesinden önce, `document.md`'yi DESIGN.md
+   yazımından önce **koşulsuz** okutuyor — ölçülen iki bulguyu doğrudan
+   hedefliyor. main'deki commit değil, yayımlanmış sürüm ölçülecek; önceki
+   ölçümlerle karşılaştırılabilmesi için aynı suite (`impeccable.suite.yaml`,
+   c820aafc), aynı model ve aynı izin modu. skillHash değişeceği için `compare`
+   bunu reddedecek — sürümler arası fark vaka vaka, aralıklarla okunur.
+   **Tetik: yeni sürüm yayımlanınca; koşum para harcar, onay gerekir.**
 
 Ondan sonrası roadmap.md'nin "sonraki dalga"sı: model güncelleme
 sertifikasyonu, çapraz-host matrisi. Bilerek yapılmadı.

@@ -350,3 +350,46 @@ describe('hızlı mod izolasyonla birlikte', () => {
     expect(attempt?.notEvaluated?.map((a) => a.type)).toEqual(['file_exists', 'side_effect'])
   }, 120_000)
 })
+
+/**
+ * 0.4.3: kazanan beyanı bir tetiklenme iddiası. Gerçek çakışma koşumunda
+ * (2026-09-11) yalnızca `winner` taşıyan tartışmalı vaka hızlı modda "only
+ * declares assertions" diye atlandı ve hiç ölçülmedi.
+ */
+describe('hızlı mod ve kazanan beyanı', () => {
+  const COLLISION_SOURCE = `
+version: 1
+target: { skill: widget, source: local@abc123 }
+environment:
+  host: mock
+  model: test-model-1
+  system_prompt_hash: sha256:aaa
+  active_skills: [widget, other]
+runs: 5
+cases:
+  - id: contested.widget_or_other
+    prompt: one
+    expect:
+      winner: [widget, other]
+  - id: trigger.negative.unrelated
+    prompt: two
+    expect: { winner: none }
+`
+
+  it('yalnızca kazanan beyan eden vaka hızlı modda koşuluyor ve kazanan kuralıyla ölçülüyor', async () => {
+    const parsed = parseSuite(COLLISION_SOURCE)
+    if (!parsed.ok) throw new Error(parsed.issues.map((i) => i.message).join('; '))
+    const result = await runSuite(parsed.suite, new MockAdapter({ scenarios: [triggered()] }), {
+      source: COLLISION_SOURCE,
+      skillPath,
+      repeat: 3,
+      layers: ['trigger'],
+    })
+    expect(result.skipped ?? []).toEqual([])
+    const contested = result.cases.find((c) => c.caseId === 'contested.widget_or_other')
+    expect(contested?.attempts).toHaveLength(3)
+    // Pozitif kontrol: koşuldu VE kazanan kuralı uygulandı (widget ilk tetiklendi).
+    expect(contested?.attempts[0]?.triggerCheck?.verdict).toBe('pass')
+    expect(contested?.attempts[0]?.triggerCheck?.reason).toContain('triggered first')
+  })
+})

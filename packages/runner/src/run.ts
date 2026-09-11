@@ -361,9 +361,13 @@ function planWork(
   work: Array<{ testCase: SuiteCase; caseIndex: number; index: number }>
   skipped: SkippedCase[]
 } {
+  // Kazanan beyanı da bir tetiklenme iddiası (0.4.0). Hızlı mod 0.3.0'dan
+  // kalma ve bunu bilmiyordu: yalnızca `winner` taşıyan tartışmalı vaka "only
+  // declares assertions" diye atlandı (gerçek çakışma koşumu, 2026-09-11).
   const measuresTrigger = (testCase: SuiteCase): boolean =>
     testCase.expect.triggered !== undefined ||
-    (testCase.expect.not_triggered?.length ?? 0) > 0
+    (testCase.expect.not_triggered?.length ?? 0) > 0 ||
+    testCase.expect.winner !== undefined
   const layers = options.layers
   const triggerOnly = layers !== undefined && !layers.includes('assertions')
 
