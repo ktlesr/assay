@@ -701,6 +701,12 @@ body {
   color: var(--text);
   border-color: var(--text);
 }
+/* Karşılaştırma yerine neyin değiştiğini gösteren bağlantı ("conditions
+   differ"). Soluk ama gri: bir ölçüm sonucu değil, gezinme — antimon rengi
+   satırın kendi verdict'iyle karışırdı. */
+.link-quiet {
+  color: var(--text-muted);
+}
 
 /* ---------------------------------------------------------------------------
  * İz görüntüleyici
@@ -852,7 +858,8 @@ body {
 /* Geçmiş satırı — vaka satırı artı bir eylem sütunu. */
 .history-row {
   display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr) 11rem 3rem 6rem;
+  /* Son sütun "conditions differ"ı taşıyor; 6rem'e sığmıyordu. */
+  grid-template-columns: 1.5rem minmax(0, 1fr) 11rem 3rem 8rem;
   align-items: center;
   gap: var(--space-4);
   padding-block: var(--space-4);
@@ -861,16 +868,25 @@ body {
   text-align: right;
 }
 
+/* Dar ekranda vaka satırıyla aynı düzen: aralık ile yüzde ikinci satırda yan
+   yana, bağlantı üçüncüde. Yüzde eskiden işaret sütununa düşüp taşıyordu. */
 @media (max-width: 52rem) {
   .history-row {
-    grid-template-columns: 1.5rem minmax(0, 1fr) 3rem;
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    row-gap: var(--space-3);
   }
   .history-row > .case-instrument {
-    grid-column: 2 / -1;
-    padding-top: var(--space-2);
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .history-row > .case-figure {
+    grid-column: 3;
+    grid-row: 2;
+    text-align: right;
   }
   .history-action {
     grid-column: 2 / -1;
+    grid-row: 3;
     text-align: left;
   }
 }

@@ -783,3 +783,23 @@ describe('--version', () => {
     expect(out.trim()).toBe(manifest.version)
   })
 })
+
+describe('renderComparison — durduran sebep ve not', () => {
+  it('okunamayan pin gerekce satirinda degil, ayri bir satirda', async () => {
+    const { compareRuns } = await import('@ktlsr/assay-core')
+    const { renderComparison } = await import('./terminal.js')
+    // Ortam hash'i yok: pin 3'ü kapsayan denetçi yok, systemPromptHash okunamaz.
+    const blind = { environmentHash: 'not-provided-by-host' }
+    const text = renderComparison(
+      compareRuns(
+        makeRun('run-a', [['trigger.positive.a', 3, 0, 0]], blind),
+        makeRun('run-b', [['trigger.positive.a', 3, 0, 0]], { ...blind, suiteHash: 'sha256:other' }),
+      ),
+    )
+    const lines = text.split('\n')
+    const reason = lines.find((l) => l.includes('not comparable'))
+    expect(reason).toBeDefined()
+    expect(reason).not.toContain('systemPromptHash')
+    expect(lines.some((l) => l.includes('also:') && l.includes('systemPromptHash'))).toBe(true)
+  })
+})

@@ -216,3 +216,34 @@ describe('compareRuns — kayan alanın adı', () => {
     expect(comparison.environmentChanges).toEqual([])
   })
 })
+
+/**
+ * Durduran sebep önde, okunamayan pin ayrı notta. Üretimdeki cümle ikisini
+ * aynı cümlede veriyordu ("suiteHash changed; systemPromptHash could not be
+ * read") ve hangisinin karşılaştırmayı durdurduğu okunmuyordu.
+ */
+describe('compareRuns — durduran sebep ve not', () => {
+  const blind: Partial<Pins> = { systemPromptHash: 'not-provided-by-host' }
+
+  it('kayma varken okunamayan pin gerekceye degil nota gider', () => {
+    const comparison = compareRuns(
+      run([['a', 10, 0]], blind),
+      run([['a', 10, 0]], { ...blind, suiteHash: 'sha256:suite2' }),
+    )
+    expect(comparison.reason).toBe('the runs are not comparable: suiteHash changed between them')
+    expect(comparison.note).toContain('systemPromptHash could not be read')
+    expect(comparison.unavailable).toEqual(['systemPromptHash'])
+  })
+
+  it('kayma yoksa okunamayan pin durduran sebeptir, not yok', () => {
+    const comparison = compareRuns(run([['a', 10, 0]], blind), run([['a', 10, 0]], blind))
+    expect(comparison.comparable).toBe(false)
+    expect(comparison.reason).toContain('systemPromptHash could not be read')
+    expect(comparison.note).toBeUndefined()
+  })
+
+  it('yalnizca kayma varsa not yok', () => {
+    const comparison = compareRuns(run([['a', 10, 0]]), run([['a', 10, 0]], { model: 'model-2' }))
+    expect(comparison.note).toBeUndefined()
+  })
+})

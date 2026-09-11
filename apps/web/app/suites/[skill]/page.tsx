@@ -8,6 +8,7 @@ import {
   countSentence,
 } from '@ktlsr/assay-ui'
 import Link from 'next/link'
+import { baselineFor, type Baseline } from '../../../lib/baseline'
 import { coverageTag } from '../../../lib/coverage'
 import { notFound } from 'next/navigation'
 import { Shell } from '../../components/shell'
@@ -127,7 +128,9 @@ export default async function SuitePage({
         ) : (
           <div className="ruled">
             {runs.map((item, index) => {
-              const older = runs[index + 1]
+              // ponytail: her satır için daha eski koşumları tarıyor (O(n²)); bir
+              // skill'in koşum sayısı küçük, büyürse pin anahtarıyla gruplanır.
+              const baseline = baselineFor(item.run, runs.slice(index + 1))
               return (
                 <div key={item.slug} className="history-row">
                   <span className="case-mark">
@@ -152,14 +155,7 @@ export default async function SuitePage({
                     <RateFigure value={item.summary.passRate} />
                   </span>
                   <span className="history-action">
-                    {older === undefined ? null : (
-                      <Link
-                        href={`/compare?a=${older.slug}&b=${item.slug}`}
-                        className="link text-xs"
-                      >
-                        vs previous
-                      </Link>
-                    )}
+                    <BaselineLink baseline={baseline} slug={item.slug} />
                   </span>
                 </div>
               )
@@ -168,5 +164,33 @@ export default async function SuitePage({
         )}
       </section>
     </Shell>
+  )
+}
+
+/**
+ * Geçmiş satırındaki karşılaştırma bağlantısı. Yalnızca aynı koşullarda
+ * ölçülmüş bir koşuma "vs" der; aradakileri atladıysa hangi koşuma gittiğini
+ * tarihiyle söyler. Aynı koşullarda önceki koşum yoksa karşılaştırma
+ * vaat etmez: neyin değiştiğini gösteren sayfaya "conditions differ" diye gider.
+ */
+function BaselineLink({ baseline, slug }: { baseline: Baseline; slug: string }) {
+  if (baseline === null) return null
+  const href = `/compare?a=${baseline.slug}&b=${slug}`
+  if (baseline.kind === 'differs') {
+    return (
+      <Link href={href} className="link link-quiet text-xs">
+        conditions differ
+      </Link>
+    )
+  }
+  const when = baseline.startedAt.slice(0, 16).replace('T', ' ')
+  return (
+    <Link
+      href={href}
+      className="link text-xs"
+      aria-label={`Compare with the run of ${when}, the last one under the same conditions`}
+    >
+      {baseline.adjacent ? 'vs previous' : `vs ${when.slice(5)}`}
+    </Link>
   )
 }

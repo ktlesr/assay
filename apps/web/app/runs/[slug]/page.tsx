@@ -14,6 +14,7 @@ import { CollisionMatrixSection } from '../../components/collision-matrix'
 import { CoverageNotices } from '../../components/coverage-notices'
 import { Pins } from '../../components/run-meta'
 import { Shell } from '../../components/shell'
+import { baselineFor } from '../../../lib/baseline'
 import { unknownBecause } from '../../../lib/coverage'
 import { getRun, getSuite } from '../../../lib/runs'
 
@@ -32,7 +33,11 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
 
   const { run, summary } = item
   const suite = await getSuite(run.skill)
-  const previous = suite?.runs.find((r) => r.run.startedAt < run.startedAt)
+  // Bağlantı yalnızca aynı koşullarda ölçülmüş bir koşuma "compare" der.
+  const baseline = baselineFor(
+    run,
+    (suite?.runs ?? []).filter((r) => r.run.startedAt < run.startedAt),
+  )
 
   const flaky = run.cases.filter((c) => c.passed > 0 && c.failed > 0)
   const unmeasured = [
@@ -181,11 +186,24 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
           moved because the model changed is not a regression in the skill.
         </p>
         <Pins run={run} />
-        {previous === undefined ? null : (
-          <p className="mt-8">
-            <Link href={`/compare?a=${previous.slug}&b=${slug}`} className="link text-sm">
-              Compare with the previous run
-            </Link>
+        {baseline === null ? null : (
+          <p className="mt-8 text-sm">
+            {baseline.kind === 'differs' ? (
+              <>
+                <span className="text-text-muted">
+                  No earlier run was measured under the same conditions.{' '}
+                </span>
+                <Link href={`/compare?a=${baseline.slug}&b=${slug}`} className="link">
+                  See what changed since the previous run
+                </Link>
+              </>
+            ) : (
+              <Link href={`/compare?a=${baseline.slug}&b=${slug}`} className="link">
+                {baseline.adjacent
+                  ? 'Compare with the previous run'
+                  : `Compare with the last run under the same conditions (${baseline.startedAt.slice(0, 16).replace('T', ' ')})`}
+              </Link>
+            )}
           </p>
         )}
       </section>

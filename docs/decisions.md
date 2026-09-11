@@ -3069,3 +3069,50 @@ yükseltme yolu display yazı tipini değiştirmek.
 Doğrulama: açık/koyu × 1280 ve 390/375/360/320'de üst çubukta taşma ve
 çakışma yok; koyu temada koyu temanın kırmızısı (#ec8172).
 Geri dönüş maliyeti: düşük (tek CSS kuralı)
+
+## 2026-09-11 — Karşılaştırmada durduran sebep önde; "vs previous" yalnızca aynı koşullara
+
+Bağlam: Production'da frontend-design'ın `/compare` sayfası "suiteHash changed;
+systemPromptHash could not be read" diyordu: iki sebep aynı cümlede, hangisinin
+karşılaştırmayı durdurduğu belirsiz. Ayrıca suite ve koşum sayfalarındaki
+"vs previous" bağlantısı pinleri uyuşmayan çiftlere gidiyordu; ziyaretçi
+tıklayıp "Not comparable" görüyordu. Kullanıcı bağlantı için kararı bana
+bıraktı: yalnızca karşılaştırılabilir koşuma gitmek ya da görünüp
+"conditions differ" diye işaretlenmek.
+Seçenekler (gerekçe): cümleyi web'de bölmek · core'da bölmek.
+(bağlantı): pinleri uyuşan en yakın koşuma git, yoksa gizle · her zaman hemen
+öncekine git ama işaretle · ikisinin birleşimi
+Karar:
+- Core: `RunComparison.reason` yalnızca durduran sebebi söylüyor. Kayan pin
+  varsa sebep o; okunamayan pin `note`a iniyor ("even without that change the
+  conditions could not be shown to match"). Kayma yoksa okunamayan pin sebebin
+  kendisi — değişmez #2 gereği eksik pin de karşılaştırmayı durdurur, yani
+  "yalnızca bir eksiklik" olduğu durum kaymanın yanında olduğu durum. Terminal
+  notu ayrı bir `also:` satırında basıyor; web "What changed" listesinin altında
+  "Also not readable" başlığıyla. Yalnızca okunamayan pin varken eskiden boş
+  kalan "What drifted" listesi artık "What could not be read".
+- Bağlantı birleşim: pinleri uyuşan en yakın önceki koşuma gidiyor
+  (`lib/baseline.ts`, `/compare`'ın kullandığı `comparePins`le — bağlantı ile
+  sayfa ayrışamaz). Aradaki koşumları atladıysa etiket tarihi söylüyor
+  ("vs 09-08 10:15"). Aynı koşullarda önceki koşum yoksa bağlantı gizlenmiyor,
+  soluk "conditions differ" diye hemen önceki koşuma, neyin değiştiğini
+  gösteren sayfaya gidiyor. Koşum sayfasında aynı üç durum cümleyle.
+Gerekçe: Sebebi web'de bölmek CLI'daki aynı belirsizliği bırakırdı; iki
+tüketici tek kaynaktan konuşmalı (`discrimination` kararıyla aynı). Bağlantıyı
+tamamen gizlemek, bir skill'in koşulları değiştiği bilgisini de gizlerdi — ve
+"Not comparable" sayfası o bilginin kendisi (hangi pin kaydı). Sorun sayfanın
+varlığı değil, bağlantının karşılaştırma vaat etmesiydi; etiket artık vaat
+etmiyor. "conditions differ" antimon değil gri: bir ölçüm sonucu değil gezinme,
+ve satırın kendi verdict işaretiyle karışırdı.
+Aynı turda geçmiş satırında iki düzen kusuru: masaüstünde son sütun 6rem'di ve
+"conditions differ"ı taşımıyordu (8rem); 375px'te yüzde işaret sütununa düşüp
+taşıyordu — satır artık vaka satırıyla aynı düzende.
+Doğrulama: yerelde her suite sayfasındaki her bağlantının etiketi, gittiği
+sayfanın sonucuyla karşılaştırıldı (11/11 tutarlı: "conditions differ" ↔
+"Not comparable", "vs previous" ↔ vaka vaka karşılaştırma). Aradaki koşumu
+atlayan durum yerel veride yok; birim testiyle sınanıyor. Ters çevirme: core 3,
+CLI 1, `baselineFor` 3 (araçla, derleme kapılı); sayfada 2 (elle, web typecheck
+kapılı — ilk biçimi kullanılmayan import yüzünden tip hatası verdi, geçersiz
+sayılıp tip-geçerli biçimle tekrarlandı). Hepsi kırmızı. Açık/koyu × 1280/375'te
+taşma yok.
+Geri dönüş maliyeti: düşük (opsiyonel alan; `reason` metni daraldı — sürüm notunda)

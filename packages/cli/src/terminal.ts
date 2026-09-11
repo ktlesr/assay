@@ -356,6 +356,8 @@ export function renderComparison(comparison: RunComparison): string {
     for (const change of comparison.environmentChanges) {
       out.push(`    ${pad(change.field, 16)} ${change.before} → ${change.after}`)
     }
+    // Durduran sebep değil, ayrı bir eksiklik: ayrı satırda.
+    if (comparison.note !== undefined) out.push(style.grey(`  also: ${comparison.note}`))
     out.push(
       style.grey(
         '  Two runs are only comparable when the skill version, model, system prompt\n' +

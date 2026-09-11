@@ -58,7 +58,14 @@ export interface RunComparison {
   environmentChanges: readonly EnvironmentChange[]
   cases: readonly CaseComparison[]
   verdict: Verdict
+  /** Karşılaştırmayı durduran sebep. Kayan pin varsa yalnızca o. */
   reason: string
+  /**
+   * İkincil eksiklik: bir pin kaydığı hâlde başka bir pin de okunamadıysa.
+   * Karşılaştırmayı durduran o değil — kayma zaten durduruyor — ama kayma
+   * olmasaydı da koşulların aynı olduğu gösterilemezdi.
+   */
+  note?: string
 }
 
 /**
@@ -93,10 +100,15 @@ export function compareRuns(before: Run, after: Run): RunComparison {
           .join('; ')}`,
       )
     }
-    if (pins.unavailable.length > 0) {
-      parts.push(
-        `${pins.unavailable.join(', ')} could not be read in one or both runs, so the conditions cannot be shown to match`,
-      )
+    // Okunamayan pin, kayma yoksa sebebin kendisi (değişmez #2: eksik pin de
+    // karşılaştırmayı durdurur); kayma varsa ayrı bir not. Aynı cümlede
+    // durunca hangisinin durdurduğu okunmuyordu.
+    const unread =
+      pins.unavailable.length > 0
+        ? `${pins.unavailable.join(', ')} could not be read in one or both runs`
+        : undefined
+    if (unread !== undefined && parts.length === 0) {
+      parts.push(`${unread}, so the conditions cannot be shown to match`)
     }
     return {
       comparable: false,
@@ -106,6 +118,11 @@ export function compareRuns(before: Run, after: Run): RunComparison {
       cases: [],
       verdict: 'unknown',
       reason: `the runs are not comparable: ${parts.join('; ')}`,
+      ...(unread !== undefined && pins.drifted.length > 0
+        ? {
+            note: `${unread}, so even without that change the conditions could not be shown to match`,
+          }
+        : {}),
     }
   }
 
