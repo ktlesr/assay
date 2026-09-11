@@ -8,6 +8,7 @@ import {
   countSentence,
 } from '@ktlsr/assay-ui'
 import Link from 'next/link'
+import { coverageTag } from '../../../lib/coverage'
 import { notFound } from 'next/navigation'
 import { Shell } from '../../components/shell'
 import { getSuite } from '../../../lib/runs'
@@ -44,6 +45,14 @@ export default async function SuitePage({
         </div>
         <Badge verdict={latest.run.verdict} size={16} />
       </div>
+
+      {/* Son koşum hızlı mod ya da yarım kayıtsa oran kanıt değil (0.4.3-b). */}
+      {coverageTag(latest.run) === null ? null : (
+        <p className="mt-8 text-sm text-unknown">
+          The latest run is marked “{coverageTag(latest.run)}”: its numbers are not a full
+          measurement. Open it for what was and was not measured.
+        </p>
+      )}
 
       <div className="mt-12 border-t border-rule-strong">
         <MeasurementBlock

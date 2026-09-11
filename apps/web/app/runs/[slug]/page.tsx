@@ -1,4 +1,4 @@
-import { type Attempt, type CaseResult, type RunSummary } from '@ktlsr/assay-core'
+import { type Attempt, type CaseResult, type Run, type RunSummary } from '@ktlsr/assay-core'
 import {
   Badge,
   Callout,
@@ -11,8 +11,10 @@ import {
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CollisionMatrixSection } from '../../components/collision-matrix'
+import { CoverageNotices } from '../../components/coverage-notices'
 import { Pins } from '../../components/run-meta'
 import { Shell } from '../../components/shell'
+import { unknownBecause } from '../../../lib/coverage'
 import { getRun, getSuite } from '../../../lib/runs'
 
 /**
@@ -59,7 +61,7 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
       <Determination
         verdict={run.verdict}
         subject={run.skill}
-        sentence={verdictSentence(run.verdict, summary)}
+        sentence={verdictSentence(run.verdict, summary, run)}
         meta={
           <>
             <span>{run.startedAt.slice(0, 10)}</span>
@@ -70,6 +72,9 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
           </>
         }
       />
+
+      {/* Kapsam: hızlı mod, koşulmayan vakalar, yarım kayıt — sayılardan önce (0.4.3-b). */}
+      <CoverageNotices run={run} />
 
       {/* Çakışma suite'inde asıl cevap matris; altındaki iki oran yalnızca hedef skill (0.4.1-1). */}
       {summary.collision === undefined ? null : (
@@ -222,9 +227,11 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
 }
 
 /** Hükmün düz cümlesi. Sayfadan tek bir şey okunacaksa bu okunur. */
-function verdictSentence(verdict: string, summary: RunSummary): string {
+function verdictSentence(verdict: string, summary: RunSummary, run: Run): string {
   const t = summary.trigger
   if (verdict === 'unknown') {
+    const because = unknownBecause(run)
+    if (because !== null && summary.counts.unknown === 0) return because
     return `${summary.counts.unknown} of ${summary.counts.pass + summary.counts.fail + summary.counts.unknown} attempts produced no readable signal, so this run measured nothing conclusive.`
   }
   if (verdict === 'pass') {

@@ -2966,3 +2966,25 @@ onboarding, copy-editing, programmatic-seo ve hedef product-marketing hiç
 tetiklenmedi; cro'da bir denemede host'la gelen `run` önce tetiklendi; üç
 `winner: none` negatifinde 9/9 hiçbir skill tetiklenmedi.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-11 — Hosted sayfa kapsamı CLI kadar belirgin söylüyor (0.4.3-b)
+
+Bağlam: Web koşum sayfası `layers`, `skipped` ve `partial`'ı hiç okumuyordu.
+Kullanıcı üçünün de CLI'daki belirginlikte gösterilmesini istedi.
+Karar: Verdict'in hemen altında, matrisin ve oranların ÜSTÜNDE üç uyarı
+kutusu (hızlı mod, koşulmayan vakalar sebepleriyle, yarım kayıt); cümleler
+CLI'ınkiyle aynı (`lib/coverage.ts`, sınanıyor). Dizin satırında ve suite
+sayfasında son koşum için tek kelimelik not ("fast mode" / "incomplete run";
+yarım kayıt öncelikli). Ayrıca `unknown` hüküm cümlesi kapsam sebebini
+söylüyor: yarım kayıt "0 of 1 attempts produced no readable signal" diyordu —
+okunamayan tek deneme olmadan `unknown` olan bir kayıt için yanlış adres
+(0.4.1-l'nin kardeşi).
+Doğrulama verisi (yalnızca yerel): bugünkü çakışma koşumu (hızlı mod + katman
+elemesi), 0.3.1-b'nin gerçek hostta öldürülüp kurtarılmış kaydı (hızlı mod +
+yarım + kesinti elemesi) ve 0.3.0'ın gerçek bütçe kesmesi kaydı. Üçünde de
+uyarılar sayılardan önce; tam bir koşumda hiçbiri yok. 375px'te uzun vaka
+kimlikleri sayfayı taşırıyordu (15 öğe) — liste `overflow-wrap: anywhere`.
+Ters çevirme: yardımcıda 5 (araçla), sayfada 4 (elle, web typecheck kapılı;
+biri ilk biçimiyle tip hatası verdi, geçersiz sayıldı ve tip-geçerli biçimle
+tekrarlandı). Hepsi kırmızı.
+Geri dönüş maliyeti: düşük

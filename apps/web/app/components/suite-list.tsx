@@ -1,6 +1,7 @@
 import { Badge, IntervalRule, RateFigure, countSentence } from '@ktlsr/assay-ui'
 import { activationUnverified } from '@ktlsr/assay-core'
 import Link from 'next/link'
+import { coverageTag } from '../../lib/coverage'
 import type { SuiteView } from '../../lib/runs'
 
 /**
@@ -35,6 +36,10 @@ export function SuiteList({ suites }: { suites: readonly SuiteView[] }) {
               {activationUnverified(latest.run) ? (
                 <span className="ml-3 text-unknown">activation not verified</span>
               ) : null}
+              {/* Hızlı mod ya da yarım kayıt: oran kanıt değil (0.4.3-b). */}
+              {coverageTag(latest.run) === null ? null : (
+                <span className="ml-3 text-unknown">{coverageTag(latest.run)}</span>
+              )}
             </span>
             <span className="suite-meta">
               {runs.length} {runs.length === 1 ? 'run' : 'runs'} ·{' '}
