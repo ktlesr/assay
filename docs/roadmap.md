@@ -614,7 +614,7 @@ yalnız `not_triggered` taşıyan vakalara düşen uyarı.
 | 0.4.1-4 0.2.0 öncesi kayıt | Aktivasyon kontrolü "yapılmadı" olarak saklanır ve gösterilir; bozuk kayıt yerini söyler (0.4.1-a, d) | **tamam** |
 | 0.4.1-5 `/compare` yayın modunda | Açık; kapsam koşumu sızdırmıyor (0.4.1-i) | **tamam** |
 | 0.4.1-6 Küçük kusurlar turu | e, f, g, h, j, k, l, n, o (i ve m 0.4.1-5 ve 0.4.1-2'de kapandı) | **tamam** |
-| 0.4.3-a Hızlı mod kazanan beyanını ölçüyor | `--fast` yalnızca `winner` taşıyan vakayı "only declares assertions" diye atlıyordu; artık koşuyor (gerçek çakışma koşumunda bulundu, 2026-09-11) | kodda **tamam**, yayın onay bekliyor |
+| 0.4.3-a Hızlı mod kazanan beyanını ölçüyor | `--fast` yalnızca `winner` taşıyan vakayı "only declares assertions" diye atlıyordu; artık koşuyor (gerçek çakışma koşumunda bulundu, 2026-09-11) | **tamam**, 0.4.3'te yayımlandı (`a705483`, PR #9) |
 | 0.4.3-b Web koşum sayfası kapsamı söylemiyor | `layers` (hızlı mod), `skipped` ve `partial` hosted sayfada hiç gösterilmiyor: 3 denemelik bir erken uyarı tam ölçüm gibi görünür, atlanan vaka sessizce yok olur. CLI üçünü de manşette söylüyor (decisions.md 2026-09-08, 2026-09-09) | **tamam** — koşum sayfasında verdict'in altında, sayılardan önce üç uyarı; dizin ve suite sayfasında not; `unknown` hükmü kapsam sebebini söylüyor |
 
 Aşağıdaki kusur tablosu bu sürüme girecek düzeltmelerin havuzu; hangilerinin

@@ -7,8 +7,8 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 
 ## Durum
 
-**Faz 0–3 tamam** · **kalibrasyon tamam** · **npm'de 0.4.2** ·
-**eylem v1.3.2** · **0.4.3 kodda (hızlı mod + kazanan), yayımlanmadı**
+**Faz 0–3 tamam** · **kalibrasyon tamam** ·
+**npm'de 0.4.3** (eylem `v1` hâlâ v1.3.2 / 0.4.2 — taşınmadı)
 
 Son güncelleme: 2026-09-11. assayctl.dev'de public: animate, better-typography,
 ui-ux-pro-max, impeccable (3 koşum), hallmark, frontend-design. Gizli:
@@ -233,17 +233,17 @@ geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 
 Sıra ve onay durumu (2026-09-11):
 
-1. **Kazananlı suite'le gerçek bir çakışma koşumu** — `examples/measurements/
-   marketingskills.collide.winner.suite.yaml`, 0.4.2 ile; `--fast` ≈ 60 deneme,
-   birkaç dolar. Web matrisi hazır ama production'da kazanan beyan eden kayıt
-   yok; bu koşum yüklenince matris sitede görünür. **Koşuldu (2026-09-11):**
-   run-2026-09-11T14-11-49-883Z-2bc985d5, 19/20 vaka, 57 deneme, $3.07;
-   yüklendi, **gizli**. Hızlı mod tartışmalı vakayı atladı (kusur 0.4.3-a,
-   kodda düzeltildi). Web sayfası hızlı modu, atlanan vakayı ve yarım kaydı
-   hiç göstermiyor (0.4.3-b): yayımlanırsa 3 denemelik erken uyarı tam ölçüm
-   gibi görünür ve tartışmalı vaka sessizce yok olur. Öneri: 0.4.3-b'yi
-   kapat, 0.4.3'ü yayımla, yeniden koş (~$3), sonra yayımla. Karar kullanıcıda. Kayıt ve suite scratch'te; ölçüm deposuna taşımak
-   kullanıcı kararı.
+1. **Kazananlı suite'le gerçek çakışma koşumu — koşuldu ve yüklendi.**
+   0.4.3 ile `run-2026-09-11T14-54-16-671Z-912ad216`: 20/20 vaka, 60 deneme,
+   $3.04, tartışmalı satır dahil. Önceki 0.4.2 koşumu (2bc985d5, 19 vaka,
+   tartışmalı vaka atlandı) de aynı suite'te. İkisi de ölçüm deposunda
+   (`.assay/runs/`), suite orada commit'li (`suites/
+   marketingskills.collide.v3.suite.yaml`, `05b820b`). Production'da ikisi de
+   **gizli**. **Bekleyen (kullanıcı):** v3 suite'ini `/admin/suites`'ten
+   yayımla; yayımlama suite düzeyinde olduğu için 2bc985d5 de açılır — sayfası
+   atlanan vakayı 0.4.2'nin yanlış gerekçesiyle gösterir; istenirse
+   `/admin/runs`'tan silinir. Yayımlanınca matris production'da iki temada ve
+   mobilde kontrol edilecek.
 2. ~~Üç eski ölçümün yayımlanması~~ — **tamam**: animate, better-typography,
    ui-ux-pro-max public (anonim istekle doğrulandı, 2026-09-11). Yalnız
    marketing-skills v2 (0bec859e) gizli; bilinçli karar.

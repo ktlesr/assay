@@ -2988,3 +2988,21 @@ Ters çevirme: yardımcıda 5 (araçla), sayfada 4 (elle, web typecheck kapılı
 biri ilk biçimiyle tip hatası verdi, geçersiz sayıldı ve tip-geçerli biçimle
 tekrarlandı). Hepsi kırmızı.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-11 — 0.4.3 yayımlandı, `v1` taşınmadı; çakışma kaydı ölçüm deposunda
+
+Bağlam: Kullanıcı sırayı onayladı: 0.4.3-b, 0.4.3 yayını, tartışmalı vakayla
+yeniden koşum, kayıt ve suite'in ölçüm deposuna taşınması.
+Kararlar:
+- 0.4.3 npm'e çıktı (yayın koşumu `34612331881`, birleştirme `a705483`, PR #9;
+  dört paket registry'den okundu, provenance, OIDC). `v1` eylem etiketi ve
+  bir action sürümü bu kez istenmedi; etiketi zorla taşımak açık onay istiyor
+  (sözleşme 1), bu yüzden `v1` hâlâ v1.3.2 / CLI 0.4.2. main'deki `action.yml`
+  pini 0.4.3.
+- Yeniden koşum ölçüm deposundan, yayımlanmış 0.4.3 ile: 20/20 vaka, 60 deneme,
+  $3.04 (912ad216). Suite ölçüm deposunda commit'li (`05b820b`); iki kayıt
+  `.assay/runs/`'ta (gitignore, diğerleri gibi). Scratch kopyaları silindi.
+- Yayımlama kullanıcıda. Suite düzeyinde olduğu için 0.4.2 kaydı (2bc985d5)
+  da açılır; sayfası atlanan vakayı 0.4.2'nin yanlış gerekçesiyle gösterir.
+  Silmek geri alınamaz bir üretim verisi işlemi — kullanıcının.
+Geri dönüş maliyeti: düşük
