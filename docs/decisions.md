@@ -3050,3 +3050,22 @@ sayfalarında; hepsinde yatay kaydırma yok, iz tam metin. Üç birim ters çevi
 (`visibleTrail` koşulu ters, hep çiz, hiç çizme) her biri kendi testinde
 kırmızı; shell'in izi çizmemesi canlı sayfada sıfır `Breadcrumb` ile görüldü.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-11 — Üst çubukta marka sitenin kırmızısında ve kalın
+
+Bağlam: Kullanıcı üst çubuktaki "Assay"ın sitenin kırmızısıyla ve kalın
+yazılmasını istedi: daha çok öne çıksın ve yanındaki menülerden ayrışsın.
+Seçenekler: ayrı bir marka rengi üretmek · sitenin mevcut kırmızısını
+(`--fail`) kullanmak
+Karar: `.wordmark` `color: var(--fail)`, `font-weight: 700`; simge de aynı
+renkte (currentColor). Yeni token üretilmedi.
+Gerekçe: Kullanıcı kararı. 2026-09-01'deki "kroma yalnızca ölçümde" kuralının
+bilinçli tek istisnası: kırmızı başka her yerde `fail` demek, markada değil.
+Bağlamı ayırt ettiriyor (sabit konum, serif sözcük işareti). Ayrı bir marka
+kırmızısı üretmek paleti büyütürdü ve iki yakın kırmızı yan yana dururdu.
+Instrument Serif yalnızca 400 ağırlığıyla geliyor; kalınlık tarayıcının
+sentezi. Ekran görüntüsünde okunaklı; ileride gerçek bir kalın kesim gerekirse
+yükseltme yolu display yazı tipini değiştirmek.
+Doğrulama: açık/koyu × 1280 ve 390/375/360/320'de üst çubukta taşma ve
+çakışma yok; koyu temada koyu temanın kırmızısı (#ec8172).
+Geri dönüş maliyeti: düşük (tek CSS kuralı)
