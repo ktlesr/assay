@@ -10,12 +10,38 @@ Kararların tam listesi [decisions.md](decisions.md), engeller
 **Faz 0–3 tamam** · **kalibrasyon tamam** ·
 **npm'de 0.4.3** · **eylem v1.3.3** (`v1` → `a63120c`, pin 0.4.3)
 
-Son güncelleme: 2026-09-11. assayctl.dev'de public: animate, better-typography,
+**Yayımlanmamış değişiklik var:** `.changeset/compare-blocking-reason.md`
+(core `compare` gerekçesi daraldı, `RunComparison.note`, CLI `also:` satırı) —
+0.4.4 olarak yayımlanmayı bekliyor, tetik kullanıcıda. Web tarafı zaten
+production'da.
+
+Son güncelleme: 2026-09-11 akşam (oturum kapanışı). assayctl.dev'de public: animate, better-typography,
 ui-ux-pro-max, impeccable (3 koşum), hallmark, frontend-design,
 marketing-skills v3. Gizli:
 marketing-skills v2 (0bec859e, bilinçli). marketing-skills v3 (ilk kazananlı
 çakışma koşumu, 912ad216) **public**; matris production'da doğrulandı. Devam
 için **"Sırada"**.
+
+## Oturum kaydı — 2026-09-11 (akşam, üç arayüz turu)
+
+Üçü de main'de ve production'da (Dokploy, push'tan kendiliğinden); üçü de
+açık/koyu × 1280/375 ekran görüntüsüyle ve derleme kapılı ters çevirmeyle
+doğrulandı, kararları decisions.md'de (2026-09-11).
+
+| commit | ne |
+|---|---|
+| `a09430a` | Konum izi (breadcrumb) üst çubuktan çıktı, sayfanın başlık alanına geldi (`lib/trail.ts`, yalnızca bağlantılı iz çiziliyor). Attempt sayfasında 375px'te iki eski taşma (boşluksuz regex) kapandı |
+| `db9701d` | Üst çubukta "Assay" sitenin kırmızısında (`--fail`) ve kalın — kullanıcı kararı, "kroma yalnızca ölçümde" kuralının bilinçli tek istisnası; Instrument Serif'in kalını tarayıcı sentezi |
+| `4e6269f` | `/compare`: gerekçe yalnızca durduran sebebi söylüyor, okunamayan pin ayrı nota ("Also not readable"; kayma yoksa okunamayan pin sebebin kendisi — değişmez #2). "vs previous" pinleri uyuşan en yakın önceki koşuma gidiyor (`lib/baseline.ts`, `comparePins`), atlarsa tarih yazıyor, yoksa soluk "conditions differ" ile neyin değiştiğini gösteren sayfaya. Geçmiş satırı düzeni (8rem sütun, 375px'te yüzde yerinde) |
+
+Doğrulama: `4e6269f` sonrası `pnpm check` 42 dosya / 828 test yeşil; her suite
+sayfasındaki her karşılaştırma bağlantısının etiketi gittiği sayfanın sonucuyla
+tutarlı (yerelde 11/11, production'da 4/4 — frontend-design'ın iki bağlantısı da
+"conditions differ", çünkü 09-01 kayıtları ortam hash'i taşımıyor). Aradaki
+koşumu atlayan "vs <tarih>" durumunun gerçek verisi henüz yok; yalnızca birim
+testiyle sınanıyor.
+
+Açık kalan: `4e6269f`'nin core/CLI kısmı npm'e çıkmadı (changeset hazır).
 
 ## Oturum kaydı — 2026-09-10
 
@@ -233,7 +259,13 @@ geliyordu; `tools/fix-msys-domain-stall.ps1` ile kapatıldı (`a307c56`).
 
 ## Sırada
 
-Sıra ve onay durumu (2026-09-11):
+Sıra ve onay durumu (2026-09-11 akşam):
+
+0. **0.4.4 yayını** — changeset `compare-blocking-reason.md` hazır (core
+   gerekçesi daraldı, davranış değişikliği yalnızca metin). Yol her zamanki:
+   sürüm PR'ı birleşir → `gh workflow run release.yml -f confirm=yayimla` →
+   registry'den doğrula → istenirse `v1` taşı + `action-v1.3.4` (etiket taşımak
+   açık onay ister). **Tetik kullanıcıda.**
 
 1. ~~Kazananlı suite'le gerçek çakışma koşumu~~ — **tamam (2026-09-11).**
    0.4.3 ile 912ad216: 20/20 vaka, 60 deneme, $3.04; kayıt ve suite ölçüm
@@ -269,9 +301,9 @@ Ondan sonrası roadmap.md'nin "sonraki dalga"sı: model güncelleme
 sertifikasyonu, çapraz-host matrisi. Bilerek yapılmadı.
 
 **Ölçüm reposu (D:\assay-example = ktlesr/skill-trigger-measurements).**
-Commit edilmemiş değişiklik yok, origin ile eşit (`c7984f6`). Ama 40 koşum kaydı
-`.assay/runs/` altında ve `.assay/` gitignore'da: kayıtların tek kopyası bu
-makinede. Salt okunur kullanılıyor.
+Son commit `05b820b` (v3 çakışma suite'i), origin ile eşit. Koşum kayıtları
+`.assay/runs/` altında ve `.assay/` gitignore'da (912ad216 dahil): kayıtların
+tek kopyası bu makinede.
 
 ## Yayın durumu
 
@@ -340,6 +372,11 @@ istatistiksel, [calibration.md](calibration.md)'de yazılı.
   yenisini çoğu zaman kabul etmiyor. Web açıkken betikle veritabanına
   yazılmaz: web'i ve DB'yi durdur, DB'yi başlat, tek süreçte yaz, DB'yi yeniden
   başlat, web'i aç.
+- `packages/core` değişince `npx tsc -b` yetmiyor: çalışan `next dev` core'un
+  eski `dist`ini önbellekte tutuyor — web'i yeniden başlat.
+- Oturum kapanışında (2026-09-11 akşam) web 3100 ve DB 5434 bu oturumdan
+  başlatılmıştı; oturumla birlikte kapanmış olabilirler. Yeniden açmak için
+  yukarıdaki iki komut (önce DB).
 - Yerel dev veritabanında sınama için yazılanlar (production'da yok):
   `…0bec859e-rescored-local` (matris doğrulaması, 0.4.0-f kaydı), `run-f3-*`
   kopyaları, yerel public bayrakları, `xlsx` gizli.
