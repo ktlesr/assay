@@ -239,9 +239,10 @@ Sıra ve onay durumu (2026-09-11):
    yok; bu koşum yüklenince matris sitede görünür. **Koşuldu (2026-09-11):**
    run-2026-09-11T14-11-49-883Z-2bc985d5, 19/20 vaka, 57 deneme, $3.07;
    yüklendi, **gizli**. Hızlı mod tartışmalı vakayı atladı (kusur 0.4.3-a,
-   kodda düzeltildi). Karar bekliyor: (a) bu kaydı yayımla (tartışmalı satır
-   eksik, atlanan vaka için yanlış cümle görünür) ya da (b) 0.4.3'ü yayımla ve
-   yeniden koş (~$3). Kayıt ve suite scratch'te; ölçüm deposuna taşımak
+   kodda düzeltildi). Web sayfası hızlı modu, atlanan vakayı ve yarım kaydı
+   hiç göstermiyor (0.4.3-b): yayımlanırsa 3 denemelik erken uyarı tam ölçüm
+   gibi görünür ve tartışmalı vaka sessizce yok olur. Öneri: 0.4.3-b'yi
+   kapat, 0.4.3'ü yayımla, yeniden koş (~$3), sonra yayımla. Karar kullanıcıda. Kayıt ve suite scratch'te; ölçüm deposuna taşımak
    kullanıcı kararı.
 2. ~~Üç eski ölçümün yayımlanması~~ — **tamam**: animate, better-typography,
    ui-ux-pro-max public (anonim istekle doğrulandı, 2026-09-11). Yalnız
