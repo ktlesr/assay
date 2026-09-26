@@ -2,8 +2,9 @@ import { prisma } from '@ktlsr/assay-db'
 import { Badge, EmptyState } from '@ktlsr/assay-ui'
 import Link from 'next/link'
 import { Shell } from '../../components/shell'
-import { deleteRun } from '../actions'
+import { deleteRun, setRunLabel } from '../actions'
 import { DangerAction } from '../danger-action'
+import { LabelField } from '../label-field'
 import { AdminNav } from '../admin-nav'
 
 /**
@@ -51,6 +52,12 @@ export default async function AdminRunsPage() {
                   {run.uploadedAt.toISOString().slice(0, 16).replace('T', ' ')} by{' '}
                   {run.owner?.email ?? 'an account that no longer exists'}
                 </span>
+                {/*
+                  Kaydın TEK değiştirilebilir alanı (0.4.7-d): `push` bir kaydı
+                  iki kez almıyor, yani yüklenmiş bir koşumu adlandırmanın
+                  başka yolu yok.
+                */}
+                <LabelField runId={run.id} label={run.label} action={setRunLabel} />
               </span>
               <span className="flex items-center gap-4">
                 <Badge

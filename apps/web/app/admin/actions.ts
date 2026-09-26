@@ -3,6 +3,7 @@
 import { prisma } from '@ktlsr/assay-db'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '../../lib/guard'
+import { labelEdit } from '../../lib/run-label'
 
 /**
  * Yönetici işlemleri.
@@ -87,6 +88,41 @@ export async function deleteRun(runId: string): Promise<void> {
   await prisma().run.delete({ where: { id: runId } })
   await audit(session.user.id, 'run.delete', runId, { skill: run.skill })
   revalidatePath('/admin/runs')
+  revalidatePath('/')
+}
+
+/**
+ * Koşumun adı — kaydın TEK değiştirilebilir alanı (0.4.7-d).
+ *
+ * Etiket bir ölçüm değil, kaydın adı: hiçbir hash'e girmiyor ve hiçbir
+ * verdict'i etkilemiyor. Bu yüzden sonradan düzeltilebilir olması meşru —
+ * ölçülmüş bir alan için aynı şey kabul edilemezdi. `push` bir kaydı iki kez
+ * almadığı için yüklenmiş bir koşumu adlandırmanın tek yolu bu.
+ *
+ * Kural tek yerde duruyor: burada yalnızca `label` yazılıyor. Denetim kaydı
+ * eski ve yeni adı taşıyor, çünkü site ile ölçümü yapanın yerel kopyası bu tek
+ * alanda ayrışabilir ve fark sonradan açıklanabilmeli.
+ *
+ * Şekil denetimi CLI'ınkiyle aynı fonksiyondan (`labelProblem`): iki yüzeyin
+ * ayrı kuralları olsaydı biri diğerinin kabul ettiği etiketi reddederdi.
+ */
+export async function setRunLabel(runId: string, label: string): Promise<void> {
+  const session = await requireAdmin('/admin/runs')
+  const run = await prisma().run.findUnique({ where: { id: runId } })
+  if (run === null) throw new AdminRuleError('no such run')
+
+  const edit = labelEdit(run.label, label)
+  if (edit.kind === 'error') throw new AdminRuleError(edit.message)
+  if (edit.kind === 'unchanged') return
+  const next = edit.value
+
+  await prisma().run.update({ where: { id: runId }, data: { label: next } })
+  await audit(session.user.id, next === null ? 'run.unlabel' : 'run.label', runId, {
+    from: run.label,
+    to: next,
+  })
+  revalidatePath('/admin/runs')
+  revalidatePath(`/runs/${runId}`)
   revalidatePath('/')
 }
 
