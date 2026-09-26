@@ -3421,3 +3421,44 @@ bu yanlış alarm, sessiz bir eksik yayından ucuz.
 Changeset eklenmedi: araç yayımlanan paketlerin parçası değil, kullanıcıya
 görünen bir değişiklik yok. Değişiklik main'de; 0.4.7 yayını onunla koşar.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-26 — İfade bağlama kollarından yalnızca A ve B yüklendi; kolu ayıran koşul hiçbir pinde yok
+
+Bağlam: `marketingskills` ifade bağlama deneyinin beş kolu (A tablo, B yok,
+C +varsayılan, D şablon, E zorunlu slot; her biri 200 deneme, 0.4.4) siteye
+yüklenecekti. Beşi de aynı suite'i (v3, `ee4ae643…`) taşıyor — yayımlanmış
+çakışma koşumunun suite'inin aynısı.
+
+Seçenekler: beşini birden · A+B+E · A+B
+Karar: **A ve B.** Kullanıcı onayıyla; suite önce `/admin/suites`ten private
+yapıldı, çünkü suite kimliği `(skill, version, hash)` ve o satır public'ti —
+"gizli yükleme" ancak suite kapalıyken mümkün.
+
+Gerekçe: Sitenin gösterdiği her sayıda **A, C, D ve E ayırt edilemiyor** —
+dördü de PASS, precision ve recall 100% (N=20, %84–100), aynı çakışma
+köşegeni. Kolları ayıran bulgular (40/52/40/32 yazılan değişiklik; E'nin
+169/200 slotu, 162'si "none") kayıtta değil: elle okumadan ve
+`tools/slot.mjs`ten geliyor. Görünür tek karşıtlık A↔B: `compare` **11 vakada
+`improved`, güven aralıkları kesişmiyor** diyor.
+
+**Asıl bulgu — ölçümü ayıran koşul pinlenmiyor.** Kolların tek farkı çalışma
+dizininin üstündeki `CLAUDE.md`; bu dosya hiçbir pine girmiyor. Sonuç:
+`compare C D`, `compare D E` ve `compare C E` üçü de `PASS · within_noise`
+veriyor — yani Assay üç kolun aynı koşulda ölçüldüğünü iddia ediyor, oysa
+talimat dosyası farklıydı. Üçlüden yalnızca birini (hiçbirini) yüklemek bu
+tuzağı yapısal olarak kapatıyor. Aynı özellik A↔B'de de var, ama orası
+deneyin iddia ettiği karşılaştırma.
+
+Yükseltme yolu: 0.4.5'in `Environment.memory`si bu boşluğu kapatıyor ama aynı
+dosyayı bağlamdan da çıkarıyor — deney 0.4.5'te koşulamaz (rapor §7). Kaydın
+hangi kolu temsil ettiğini söyleyecek bir etiket alanı ayrı bir iş; suite
+adıyla taklit edilmez.
+
+Sızıntı notu gerekmiyor: beş kolun çalışma kökü de `D:\pb-*`, ev dizininin
+dışında. `tools/host-memory-exposure.mjs` beşine de `no` diyor, iz 0; kayıtlar
+`host-memory-exposure.json`'da değil, yani not render edilmiyor. Künye yine
+"Host memory: not measured" diyor — 0.4.4 ölçmedi.
+
+Kişisel veri: `findPersonalData` (0.4.6) beş kayıtta da maskelemeden önce 0
+bulgu. Ev yolu, hesap adı, sır ve `graphify` izi yok.
+Geri dönüş maliyeti: düşük (kayıt silinebilir; suite görünürlüğü geri alınır)
