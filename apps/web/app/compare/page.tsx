@@ -1,6 +1,7 @@
 import type { CaseComparison } from '@ktlsr/assay-core'
 import {
   Badge,
+  Callout,
   Determination,
   EmptyState,
   IntervalRule,
@@ -79,8 +80,15 @@ export default async function ComparePage({
         sentence={comparison.reason}
         meta={
           <>
-            <span>{before.run.startedAt.slice(0, 16).replace('T', ' ')}</span>
-            <span>{after.run.startedAt.slice(0, 16).replace('T', ' ')}</span>
+            {/* Koşumların adları (0.4.7): hangi iki kol karşılaştırılıyor. */}
+            <span>
+              {before.run.startedAt.slice(0, 16).replace('T', ' ')}
+              {before.run.label === undefined ? '' : ` · ${before.run.label}`}
+            </span>
+            <span>
+              {after.run.startedAt.slice(0, 16).replace('T', ' ')}
+              {after.run.label === undefined ? '' : ` · ${after.run.label}`}
+            </span>
             <span>{after.run.skill}</span>
           </>
         }
@@ -88,6 +96,18 @@ export default async function ComparePage({
 
       {comparison.comparable ? (
         <section className="mt-12">
+          {/*
+            Etiket farkı karşılaştırmayı durdurmuyor ama sayılardan ÖNCE
+            söyleniyor: sonradan söylenirse okuyucu oranları çoktan okumuş olur
+            (0.4.7). Uyarı, hüküm değil — verdict ve çıkış kodu değişmiyor.
+          */}
+          {comparison.note === undefined ? null : (
+            <div className="mb-10">
+              <Callout tone="warning" title="These runs are labelled differently">
+                <p className="mt-1">{comparison.note}.</p>
+              </Callout>
+            </div>
+          )}
           <p className="rule-label mb-2">Case by case</p>
           <p className="mb-8 mt-4 max-w-[62ch] text-sm text-text-muted">
             A move is only called a regression when the two intervals do not overlap.

@@ -44,6 +44,8 @@ export function SuiteList({ suites }: { suites: readonly SuiteView[] }) {
             <span className="suite-meta">
               {runs.length} {runs.length === 1 ? 'run' : 'runs'} ·{' '}
               {latest.run.pins.model} · {latest.run.startedAt.slice(0, 10)}
+              {/* Son koşumun adı (0.4.7): dizinde hangi kolun gösterildiği. */}
+              {latest.run.label === undefined ? null : <> · {latest.run.label}</>}
             </span>
           </span>
           <span className="case-instrument">

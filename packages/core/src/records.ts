@@ -455,6 +455,26 @@ export interface CaseResult {
   unknown: number
 }
 
+/** `Run.label` için üst sınır — künyede bir satır, kırpılmadan okunsun. */
+export const LABEL_MAX_LENGTH = 120
+
+/**
+ * Etiket kabul edilebilir mi; değilse sebebi (0.4.7).
+ *
+ * Tek satır: etiket suite geçmişinde bir satırın yanında duruyor ve satır
+ * sonu orayı bozar. Boş etiket `undefined`dan farklı bir şey söylemiyor, bu
+ * yüzden reddediliyor — veritabanındaki kısıt da aynı şeyi söylüyor.
+ */
+export function labelProblem(label: string): string | null {
+  if (label.trim() === '') return 'the label is empty'
+  if (label.length > LABEL_MAX_LENGTH) {
+    return `the label is ${label.length} characters; the most is ${LABEL_MAX_LENGTH}`
+  }
+  // eslint-disable-next-line no-control-regex -- kontrol karakterleri tam olarak aranan şey
+  if (/[\u0000-\u001f\u007f]/.test(label)) return 'the label has a line break or a control character'
+  return null
+}
+
 /** Tek bir `assay run` koşumu. */
 export interface Run {
   id: string
@@ -470,6 +490,25 @@ export interface Run {
    * ad ayrıca saklanıyor — rapor ve hosted taraf suite dosyasını görmüyor.
    */
   skill: string
+  /**
+   * Koşumun insan tarafından verilen adı — hangi kol, hangi deney (0.4.7).
+   *
+   * **Pin değil ve hiçbir hash'e girmiyor.** Etiketin denetçisi yok: metnin
+   * kendisi beyandır, doğrulanacak bir karşılığı yoktur. Karşılaştırmayı
+   * etikete bağlamak, unutulduğunda sessizce kaybolan bir koruma olurdu —
+   * beyan edilen sürümün unutulduğu ölçülmüştü ve cevabı içerik hash'i
+   * olmuştu (`skillHash`, `suiteHash`). Ayrıca gece koşumlarının etiketi
+   * doğal olarak her gün değişir; pin değişmemeli.
+   *
+   * Karşılaştırmayı **koşullar** durdurur (`contextHash` dahil), etiket değil.
+   * `compareRuns` yalnızca not düşer: iki etiket de dolu ve farklıysa, "bu
+   * fark gerçekse kayıt onu taşımıyor" der.
+   *
+   * Aynı vaka setiyle koşulan kolları ayırmanın tek yolu bu alan: `suite`
+   * alanına konsaydı `suiteHash` kayardı ve kayıt olmayan bir vaka seti farkı
+   * iddia ederdi.
+   */
+  label?: string
   pins: Pins
   /**
    * Koşumun izin modu — host'un bildirdiği hâliyle.

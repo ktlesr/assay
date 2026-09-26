@@ -39,6 +39,11 @@ export interface JournalHeader {
   startedAt: string
   host: string
   skill: string
+  /**
+   * Koşumun insan tarafından verilen adı (0.4.7). Kurtarılan kayıt da taşımalı:
+   * hangi kol olduğu, koşum yarıda kesildiğinde de kaydın üstünde yazmalı.
+   */
+  label?: string
   /** Suite'te beyan edilen tekrar sayısı. */
   runs: number
   /** Koşum başında bilinen pinler; `environmentHash` denemelerden gelir. */
@@ -266,6 +271,7 @@ export async function recoverJournal(
     finishedAt: last?.finishedAt ?? header.startedAt,
     host: header.host,
     skill: header.skill,
+    ...(header.label === undefined ? {} : { label: header.label }),
     runs: header.runs,
     pins: header.pins,
     ...(header.concurrency === undefined ? {} : { concurrency: header.concurrency }),

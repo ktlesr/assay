@@ -309,6 +309,26 @@ describe('journal', () => {
     expect((await recoverJournal(journal.path))?.run.assayVersion).toBe('0.0.1-writer')
   })
 
+  it('kurtarilan kayit etiketini koruyor; etiketsiz journal da etiketsiz kaliyor (0.4.7)', async () => {
+    // Hangi kol olduğu, koşum yarıda kesildiğinde de kaydın üstünde yazmalı:
+    // yoksa kurtarılan kayıt aynı vaka setinin öbür kollarından ayrılamaz.
+    const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))
+    const labelled = await RunJournal.open(dir, {
+      ...header,
+      id: 'run-labelled',
+      label: 'arm D — literal fork template',
+    })
+    labelled.append(attempt(0, 'pass'))
+    expect((await recoverJournal(labelled.path))?.run.label).toBe(
+      'arm D — literal fork template',
+    )
+
+    const bare = await RunJournal.open(dir, { ...header, id: 'run-unlabelled' })
+    bare.append(attempt(0, 'pass'))
+    const run = (await recoverJournal(bare.path))?.run
+    expect(run !== undefined && 'label' in run).toBe(false)
+  })
+
   it('surumsuz eski journal dan kurtarilan kayit da surumsuz kalir', async () => {
     // Tahmin yok: bilinmeyen sürüm bilinmeyen kalır, okuma tarafı etiketler.
     const dir = await mkdtemp(join(tmpdir(), 'assay-journal-'))

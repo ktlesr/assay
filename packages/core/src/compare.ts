@@ -61,9 +61,14 @@ export interface RunComparison {
   /** Karşılaştırmayı durduran sebep. Kayan pin varsa yalnızca o. */
   reason: string
   /**
-   * İkincil eksiklik: bir pin kaydığı hâlde başka bir pin de okunamadıysa.
-   * Karşılaştırmayı durduran o değil — kayma zaten durduruyor — ama kayma
-   * olmasaydı da koşulların aynı olduğu gösterilemezdi.
+   * İkincil uyarı. İki durumda doluyor:
+   *
+   * 1. Bir pin kaydığı hâlde başka bir pin de okunamadıysa. Karşılaştırmayı
+   *    durduran o değil — kayma zaten durduruyor — ama kayma olmasaydı da
+   *    koşulların aynı olduğu gösterilemezdi.
+   * 2. Karşılaştırma açık ama iki koşumun **etiketi farklı** (0.4.7). Etiket
+   *    pin değil, o yüzden durdurmuyor; ama okuyucu iki kaydın aynı koşulda
+   *    ölçüldüğünü sanmasın diye söyleniyor.
    */
   note?: string
 }
@@ -141,12 +146,33 @@ export function compareRuns(before: Run, after: Run): RunComparison {
   const regressed = cases.filter((c) => c.status === 'regressed')
   const unresolved = cases.filter((c) => c.status === 'unknown')
 
+  /*
+   * Etiket farkı karşılaştırmayı durdurmuyor, ama sessiz de geçilmiyor.
+   *
+   * Etiket bir pin olsaydı, etiketi yazmayan iki kol yine karşılaştırılabilir
+   * kalırdı — yani koruma tam da ihtiyaç duyulan yerde yok olurdu. Koşulları
+   * `contextHash` denetliyor. Buradaki cümlenin işi okuyucuyu uyarmak: iki
+   * kayıt farklı adlar taşıyor ve kayıt bu farkın nereden geldiğini bilmiyor.
+   *
+   * Yalnızca iki etiket de doluyken: biri boşsa fark hakkında bir şey
+   * söylenemez.
+   */
+  const labelsDiffer =
+    before.label !== undefined && after.label !== undefined && before.label !== after.label
+
   return {
     comparable: true,
     drifted: [],
     unavailable: [],
     environmentChanges: [],
     cases,
+    ...(labelsDiffer
+      ? {
+          note:
+            `these runs are labelled differently (${before.label} → ${after.label}), ` +
+            `but every pin matches; if the difference between them is real, the record does not carry it`,
+        }
+      : {}),
     verdict: regressed.length > 0 ? 'fail' : unresolved.length > 0 ? 'unknown' : 'pass',
     reason:
       regressed.length > 0

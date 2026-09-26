@@ -580,6 +580,18 @@ describe('0.2.0 alanları — eşleme', () => {
     expect(back.pins.environmentHash).toBe('sha256:env')
   })
 
+  it('etiket gidis-donuste kaliyor; etiketsiz kayitta alan hic yok (0.4.7)', () => {
+    const labelled = toRunRow(bareRun({ label: 'arm A — phrase-binding table' }))
+    expect(labelled.label).toBe('arm A — phrase-binding table')
+    expect(fromRunRow(labelled, []).label).toBe('arm A — phrase-binding table')
+
+    // Etiketsiz kayit null yaziyor ve geri okunurken alan hic kurulmuyor:
+    // "etiketi yok" ile "etiketi bos" ayni sey degil.
+    const bare = toRunRow(bareRun({}))
+    expect(bare.label).toBeNull()
+    expect('label' in fromRunRow(bare, [])).toBe(false)
+  })
+
   it('beklenen kazanan: iddia yok, none ve liste ayri kaliyor (0.4.0)', () => {
     const base = run.cases[0] as NonNullable<(typeof run.cases)[number]>
     for (const expectedWinner of [undefined, [], ['a'], ['a', 'b']]) {

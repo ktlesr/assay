@@ -147,6 +147,11 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
    * Hızlı mod manşette: sayfanın üstündeki oranlar hızlı modda da aynı
    * görünüyor ve okuyucu neyin ölçülmediğini onlardan önce bilmeli.
    */
+  // Koşumun adı (0.4.7). Pin değil, o yüzden künyede değil başlıkta duruyor:
+  // kaydın adı, koşulu değil.
+  const labelLine =
+    run.label === undefined ? '' : `  <p class="run-label">${escape(run.label)}</p>`
+
   const fastNote =
     run.layers === undefined || run.layers.includes('assertions')
       ? ''
@@ -274,6 +279,7 @@ ${skipped
   h1 { margin: 0 0 .25rem; font-size: 1.6rem; letter-spacing: -.02em; }
   h2 { margin: 2.5rem 0 .75rem; font-size: 1.05rem; }
   .sub { color: var(--muted); margin: 0 0 2rem; font-size: .9rem; }
+  .run-label { margin: -.5rem 0 .25rem; font-size: 1.05rem; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; }
   .note { color: var(--muted); font-size: .85rem; }
   table { width: 100%; border-collapse: collapse; }
@@ -322,6 +328,7 @@ ${skipped
 <body>
 <main>
   <h1>Assay <span class="pill ${run.verdict}">${run.verdict}</span></h1>
+${labelLine}
   <p class="sub mono">${escape(run.id)}</p>
 ${fastNote}
 ${skippedNote}

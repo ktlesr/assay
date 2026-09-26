@@ -33,6 +33,8 @@ export {
   PRE_VERSION_STAMP,
   comparePins,
   diffEnvironments,
+  labelProblem,
+  LABEL_MAX_LENGTH,
   proportion,
   formatProportion,
   type Verdict,

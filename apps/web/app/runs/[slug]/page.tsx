@@ -68,6 +68,7 @@ export default async function RunPage({ params }: { params: Promise<{ slug: stri
       <Determination
         verdict={run.verdict}
         subject={run.skill}
+        {...(run.label === undefined ? {} : { label: run.label })}
         sentence={verdictSentence(run.verdict, summary, run)}
         meta={
           <>

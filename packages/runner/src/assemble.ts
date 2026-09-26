@@ -33,6 +33,8 @@ export function assembleRun(input: {
   finishedAt: string
   host: string
   skill: string
+  /** Koşumun insan tarafından verilen adı; hiçbir hash'e girmiyor. */
+  label?: string
   runs: number
   /** Aynı anda koşan deneme sayısı; 1 ise yazılmıyor. */
   concurrency?: number
@@ -90,6 +92,7 @@ export function assembleRun(input: {
     finishedAt: input.finishedAt,
     host: input.host,
     skill: input.skill,
+    ...(input.label === undefined ? {} : { label: input.label }),
     pins: {
       ...input.pins,
       ...(environmentHash === undefined || environmentHash === ''

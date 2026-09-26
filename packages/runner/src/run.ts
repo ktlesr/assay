@@ -103,6 +103,13 @@ export interface RunOptions {
    */
   concurrency?: number
   /**
+   * Koşumun insan tarafından verilen adı — hangi kol, hangi deney (0.4.7).
+   *
+   * Kayda giriyor, hiçbir hash'e girmiyor. Aynı vaka setiyle koşulan iki kolu
+   * ayırmanın tek yolu bu: `suite` alanına konsaydı `suiteHash` kayardı.
+   */
+  label?: string
+  /**
    * Her işçiye ayrılan port aralığının başlangıcı.
    *
    * Eş zamanlı iki denemenin ajanı aynı portu isterse biri diğerinin
@@ -209,6 +216,7 @@ export async function runSuite<S extends AgentSession>(
     startedAt,
     host: adapter.id,
     skill: suite.target.skill,
+    ...(options.label === undefined ? {} : { label: options.label }),
     runs: repeat,
     pins: basePins,
     ...(concurrency === 1 ? {} : { concurrency }),
@@ -316,6 +324,7 @@ export async function runSuite<S extends AgentSession>(
     finishedAt: now().toISOString(),
     host: adapter.id,
     skill: suite.target.skill,
+    ...(options.label === undefined ? {} : { label: options.label }),
     runs: repeat,
     ...(concurrency === 1 ? {} : { concurrency }),
     ...(options.layers === undefined ? {} : { layers: options.layers }),

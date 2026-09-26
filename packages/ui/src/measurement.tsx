@@ -320,11 +320,20 @@ export function BreakableName({ name }: { name: string }) {
 export function Determination({
   verdict,
   subject,
+  label,
   sentence,
   meta,
 }: {
   verdict: VerdictKind
   subject: string
+  /**
+   * Koşumun insan tarafından verilen adı (0.4.7).
+   *
+   * Künyede DEĞİL başlıkta duruyor: künye "karşılaştırmak için aynı olması
+   * gerekenler" diyor ve pin olmayan bir alanı oraya koymak yanlış olanı
+   * öğretir. Etiket kaydın adıdır, koşulu değil.
+   */
+  label?: string
   sentence: string
   meta?: ReactNode
 }) {
@@ -337,6 +346,7 @@ export function Determination({
         <h1 className="determination-subject">
           <BreakableName name={subject} />
         </h1>
+        {label === undefined ? null : <p className="determination-label">{label}</p>}
         <p className="determination-sentence">{sentence}</p>
         {meta === undefined ? null : <div className="determination-meta">{meta}</div>}
       </div>

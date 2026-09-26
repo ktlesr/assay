@@ -140,6 +140,14 @@ export default async function SuitePage({
                     <Link href={`/runs/${item.slug}`} className="case-id link">
                       {item.run.startedAt.slice(0, 16).replace('T', ' ')}
                     </Link>
+                    {/*
+                      Koşumun adı (0.4.7). Bu satır, aynı vaka setiyle koşulmuş
+                      iki kolun ayırt edildiği yer: etiket olmadan geçmişte
+                      yalnızca saat farklı iki özdeş satır duruyordu.
+                    */}
+                    {item.run.label === undefined ? null : (
+                      <span className="history-label">{item.run.label}</span>
+                    )}
                     <span className="case-count">
                       {countSentence(item.summary.passRate, 'passed')}
                     </span>

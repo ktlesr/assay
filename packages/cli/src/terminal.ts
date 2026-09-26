@@ -138,6 +138,9 @@ export function renderRun(run: Run, summary: RunSummary): string {
 
   out.push('')
   out.push(`${style.bold('run')} ${run.id}  ${verdictLabel(run.verdict)}`)
+  // Koşumun adı, koşulu değil (0.4.7): aynı vaka setiyle koşulan iki kolu
+  // ayıran tek şey bu satır. Etiketsiz kayıtta hiç basılmıyor.
+  if (run.label !== undefined) out.push(style.bold(`  ${run.label}`))
   out.push(
     style.grey(
       `${run.host} · ${run.pins.model} · suite v${run.pins.suiteVersion} · ${run.runs} runs per case`,
@@ -386,6 +389,9 @@ export function renderComparison(comparison: RunComparison): string {
 
   const width = Math.max(...comparison.cases.map((c) => c.caseId.length), 20)
   out.push(`${style.bold('comparison')}  ${verdictLabel(comparison.verdict)}`)
+  // Etiket farkı karşılaştırmayı durdurmuyor ama sessiz de geçilmiyor:
+  // sayılardan ÖNCE, çünkü okunduktan sonra söylenirse geç kalır.
+  if (comparison.note !== undefined) out.push(style.yellow(`  note: ${comparison.note}`))
   out.push('')
   for (const change of comparison.cases) out.push(renderChange(change, width))
   out.push('')

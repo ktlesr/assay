@@ -314,6 +314,27 @@ it('Run: atlanan vaka sebepsiz olamaz', async () => {
     await expect(run(sql, [next(), suiteId, '0.3.2'])).resolves.toBeDefined()
   })
 
+  it('Run: etiket bos, cok uzun ya da kontrol karakterli olamaz (0.4.7)', async () => {
+    const suiteId = await makeSuite()
+    const sql = `INSERT INTO "Run" ("id","suiteId","startedAt","finishedAt","host","skill",
+         "pinSkillSource","pinSkillHash","pinModel","pinSystemPromptHash",
+         "pinSuiteVersion","pinSuiteHash","runsPerCase","verdict","label")
+       VALUES ($1,$2,now(),now(),'h','docx','a','b','c','d',1,'e',10,'PASS'::"Verdict",$3)`
+    await violates('run_label_shape', sql, [next(), suiteId, '  '])
+    await violates('run_label_shape', sql, [next(), suiteId, 'x'.repeat(121)])
+    // Satır sonu suite geçmişindeki satırı bozar; kısıt onu da reddediyor.
+    await violates('run_label_shape', sql, [
+      next(),
+      suiteId,
+      `arm A${String.fromCharCode(10)}arm B`,
+    ])
+    await expect(run(sql, [next(), suiteId, null])).resolves.toBeDefined()
+    await expect(
+      run(sql, [next(), suiteId, 'arm A — phrase-binding table']),
+    ).resolves.toBeDefined()
+    await expect(run(sql, [next(), suiteId, 'x'.repeat(120)])).resolves.toBeDefined()
+  })
+
   it('Run: normal biten koşumda partial NULL kalabilir', async () => {
     const suiteId = await makeSuite()
     const [sql, params] = partialSql(suiteId, null)

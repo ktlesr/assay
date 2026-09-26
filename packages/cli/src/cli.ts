@@ -18,6 +18,7 @@ import {
 } from '@ktlsr/assay-adapters'
 import {
   compareRuns,
+  labelProblem,
   parseSuite,
   redactDeep,
   summarizeRun,
@@ -79,6 +80,11 @@ Options
   --html <file>       also write a self-contained HTML report
   --store <dir>       run store root (default: .assay)
   --model <id>        override the suite's model
+  --label <text>      a human name for this run (which arm, which experiment).
+                      It goes into the record and onto the report, and it is
+                      NOT a pin: it enters no hash and never blocks a
+                      comparison. Conditions block comparisons; a label only
+                      makes two runs of the same case set tellable apart.
   --permission-mode <mode>
                       host permission mode (default: acceptEdits). A skill that
                       declares allowed-tools cannot activate under acceptEdits.
@@ -153,6 +159,7 @@ export async function main(argv: readonly string[]): Promise<number> {
         store: { type: 'string' },
         model: { type: 'string' },
         'permission-mode': { type: 'string' },
+        label: { type: 'string' },
         'allow-bypass-permissions': { type: 'boolean' },
         'allow-unknown': { type: 'boolean' },
         'allow-unmasked': { type: 'boolean' },
@@ -382,6 +389,21 @@ async function run(
     return EXIT.usage
   }
 
+  /*
+   * Etiket ölçümün adı, koşulu değil: karşılaştırmayı durdurmuyor ve hiçbir
+   * hash'e girmiyor. Ama kayda giriyor ve yayımlanabiliyor, o yüzden şekli
+   * burada sınanıyor — bozuk bir etiket suite geçmişinde bir satırı bozar.
+   */
+  const requestedLabel = options['label']
+  if (requestedLabel !== undefined) {
+    const problem = labelProblem(String(requestedLabel))
+    if (problem !== null) {
+      process.stderr.write(`${style.red('error')} --label: ${problem}\n`)
+      return EXIT.usage
+    }
+  }
+  const label = requestedLabel === undefined ? undefined : String(requestedLabel).trim()
+
   const adapter = new ClaudeCodeAdapter({
     ...(permissionMode === undefined ? {} : { permissionMode }),
     ...(options['allow-bypass-permissions'] === true
@@ -513,6 +535,7 @@ async function run(
         ? {}
         : { container: { image: containerImage, api: containerApi } }),
       ...(concurrency === undefined ? {} : { concurrency }),
+      ...(label === undefined ? {} : { label }),
       ...(fast ? { layers: ['trigger'] as const } : {}),
       ...(budget === undefined ? {} : { maxAttempts: budget }),
       /*

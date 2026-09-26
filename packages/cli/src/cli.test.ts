@@ -222,6 +222,58 @@ cases:
  * Doğrulama gerçek koşumdan ÖNCE: yanlış yazılmış bir mod sessizce
  * varsayılana düşseydi kullanıcı ölçtüğünü sandığı şeyi ölçmemiş olurdu.
  */
+describe('--label (0.4.7)', () => {
+  const validSuite = async () => {
+    const dir = await scratch()
+    const path = join(dir, 'ok.yaml')
+    await writeFile(
+      path,
+      `version: 1
+target: { skill: s, source: o/r@1 }
+environment: { host: h, model: m, system_prompt_hash: x }
+runs: 3
+cases:
+  - id: trigger.positive.a
+    prompt: p
+    expect: { triggered: true }
+  - id: trigger.negative.near_neighbor.b
+    prompt: p
+    expect: { triggered: false }
+`,
+      'utf8',
+    )
+    return { path, dir }
+  }
+
+  it('bos etiket sessizce yok sayilmaz, usage ile reddedilir', async () => {
+    const { path, dir } = await validSuite()
+    expect(await main(['run', path, '--skill', dir, '--label', '   '])).toBe(EXIT.usage)
+    expect(err).toContain('--label')
+    expect(err).toContain('empty')
+  })
+
+  it('cok uzun etiket reddedilir', async () => {
+    const { path, dir } = await validSuite()
+    expect(await main(['run', path, '--skill', dir, '--label', 'x'.repeat(121)])).toBe(
+      EXIT.usage,
+    )
+    expect(err).toContain('the most is 120')
+  })
+
+  it('satir sonu tasiyan etiket reddedilir: etiket tek satir', async () => {
+    const { path, dir } = await validSuite()
+    const label = `arm A${String.fromCharCode(10)}arm B`
+    expect(await main(['run', path, '--skill', dir, '--label', label])).toBe(EXIT.usage)
+    expect(err).toContain('line break')
+  })
+
+  it('kullanim metni etiketin pin OLMADIGINI soyluyor', async () => {
+    await main(['--help'])
+    expect(out).toContain('--label')
+    expect(out).toContain('NOT a pin')
+  })
+})
+
 describe('--permission-mode', () => {
   const validSuite = async () => {
     const dir = await scratch()
