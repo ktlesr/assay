@@ -9,6 +9,7 @@ const pins: Pins = {
   systemPromptHash: 'sha256:sp',
   suiteVersion: 1,
   suiteHash: 'sha256:suite1',
+  contextHash: 'sha256:context1',
 }
 
 const item = (slug: string, overrides: Partial<Pins> = {}) => ({

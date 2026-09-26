@@ -9,6 +9,9 @@ const pins: Pins = {
   systemPromptHash: 'sha256:sp',
   suiteVersion: 1,
   suiteHash: 'sha256:suite1',
+  // Bağlam ölçüldü ve iki kayıtta da aynı (0.4.8); ölçülmediğinde
+  // karşılaştırma durur ve bunun kendi testleri var.
+  contextHash: 'sha256:context1',
 }
 
 const run = (

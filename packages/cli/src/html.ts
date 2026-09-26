@@ -371,6 +371,7 @@ ${unknownList}
     <dt>Environment hash</dt><dd class="mono">${escape(run.pins.environmentHash ?? 'not reported by the host')}</dd>
     <dt>Permission mode</dt><dd class="mono">${escape(run.permissionMode ?? 'not reported by the host')}</dd>
     <dt>Host memory</dt><dd class="mono">${escape(hostMemoryLabel(run))}</dd>
+    <dt>Context hash</dt><dd class="mono">${escape(run.pins.contextHash ?? 'not measured (the record predates 0.4.5 or the probe did not run)')}</dd>
     <dt>Container</dt><dd class="mono">${escape(containerLabel(run))}</dd>
     <dt>Assay version</dt><dd class="mono">${escape(assayVersionLabel(run))}</dd>
   </dl>

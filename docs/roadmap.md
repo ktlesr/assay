@@ -738,7 +738,7 @@ altında açılınca istekte iz 6 ve kayıt
 `Project C:\Users\<user>\.claude\CLAUDE.md sha256:f7d43e69…` — ölçüm sızıntıyı
 yakaladı. Kök düzeltmesi ve dışlama ayrı ayrı da tutuyor.
 
-## 0.5.0 — Koşumun adı: etiket, ve ayıran koşulun ölçülmesi
+## 0.4.7 ve 0.4.8 — Koşumun adı, ve ayıran koşulun ölçülmesi
 
 **Amaç:** Aynı vaka seti ve aynı dört pinle koşulmuş iki kaydın hangisi
 olduğunu okuyucunun görebilmesi — ve kolları gerçekten ayıran koşulun pine
@@ -758,17 +758,23 @@ slotu, 162'si "none") kayıtta hiç yok; elle okumadan geliyor.
 Bugün siteye yalnızca A ve B yüklendi, tam da bu yüzden (decisions.md,
 2026-09-26). İkisi de etiketsiz duruyor.
 
-| Adım | Çıktı | İş | Geri dönüş | Durum |
-|---|---|---|---|---|
-| 0.5.0-a Etiket alanı | `Run.label`, `assay run --label`; journal başlığında; hash'e **girmez** | S (~0.5 gün) | düşük | bekliyor |
-| 0.5.0-b Etiket farkı not düşer | `compare` iki etiket de dolu ve farklıysa uyarır; verdict ve çıkış kodu değişmez | S | düşük | bekliyor |
-| 0.5.0-c Ayıran koşul ölçülsün | Bağlam talimat dosyası çalışma dizininin **içinde**; 0.4.5 onu zaten ölçüyor ve ortam hash'ine katıyor. Belgelenir ve testle sabitlenir | S–M | düşük | bekliyor |
-| 0.5.0-d Etiket sitede | Koşum sayfası, suite geçmişi, `/suites` satırı, `compare` başlığı, terminal ve HTML | S | düşük | bekliyor |
-| 0.5.0-e Yüklenmiş kaydın etiketi | Yöneticinin tek alanı; denetim günlüğüne yazılır | S | düşük | bekliyor |
+**Sürüm ayrımı.** Etiket hiçbir davranışı değiştirmiyor ve **0.4.7**'de;
+bağlam pini karşılaştırmaların sonucunu değiştiriyor ve kendi sürümünde,
+**0.4.8**'de. Bu depoda davranış değişikliği kendi sürümünde yayımlanıyor.
+
+| Adım | Çıktı | Durum |
+|---|---|---|
+| 0.4.7-a Etiket alanı | `Run.label`, `assay run --label`; journal başlığında ve kurtarmada; hash'e **girmez** | **tamam** |
+| 0.4.7-b Etiket farkı not düşer | `compare` iki etiket de dolu ve farklıysa sayıların üstünde uyarıyor; verdict ve çıkış kodu değişmiyor | **tamam** |
+| 0.4.7-c Etiket sitede | Koşum sayfası başlığı, suite geçmişi satırı, `/suites` künyesi, `compare` başlığı, terminal ve HTML | **tamam** |
+| 0.4.8-a Bağlam pini | `Pins.contextHash`, ölçülmüş talimat dosyalarından; ölçülmediğinde karşılaştırma durur | **tamam** |
+| 0.4.8-b Bir koşul, bir adres | `memory` ortam hash'inden çıktı; kayma bağlam pininin adıyla raporlanıyor | **tamam** |
+| 0.4.8-c Bağlam sitede ve raporlarda | Künyede `Context hash` satırı; terminal ve HTML aynı cümleyi kullanıyor | **tamam** |
+| 0.4.7-d Yüklenmiş kaydın etiketi | Yöneticinin tek alanı; denetim günlüğüne yazılır | **bekliyor** — sitedeki A ve B etiketsiz duruyor |
 
 ---
 
-### 0.5.0-a — Etiket nerede durur, kim yazar
+### 0.4.7-a — Etiket nerede durur, kim yazar
 
 **Kayıtta, vaka setinde değil.** `Run.label?: string` — opsiyonel, tek satır,
 en çok 120 karakter, kontrol karakteri yok. Serbest metin; `redactDeep`ten
@@ -798,7 +804,7 @@ geçmesi makul ama **şimdi değil**: bugünkü ihtiyaç elle koşulan kol ölç
 
 ---
 
-### 0.5.0-b — Etiket ortam hash'ine girmez; farkı `compare` not olarak söyler
+### 0.4.7-b — Etiket ortam hash'ine girmez; farkı `compare` not olarak söyler
 
 | # | Seçenek | Karar |
 |---|---|---|
@@ -829,11 +835,20 @@ hüküm değil: `verdict` ve çıkış kodu değişmiyor. Etiketlerden biri boş
 yok — oradan bir sonuç çıkmaz.
 
 **Tavan, açıkça.** Not bir koruma değil, okuyucuya bir hatırlatma. Gerçek
-koruma 0.5.0-c'de ve ölçülmüş bir alandan geliyor.
+koruma 0.4.8'de ve ölçülmüş bir alandan geliyor.
 
 ---
 
-### 0.5.0-c — Ayıran koşulu ölçmenin yolu zaten var
+### 0.4.8 — Ayıran koşulun pini
+
+> **Tasarımdan sapma (2026-09-26).** Bu bölümün ilk hâli "yeni bir pin
+> gerekmiyor, dosya çalışma dizininin içinde dursun yeter" diyordu. **Eksikti.**
+> Doğru olan kısmı duruyor: içerideki dosya 0.4.5 tarafından ölçülüyor ve iki
+> ÖLÇÜLMÜŞ koşum arasındaki farkı yakalıyor. Yakalamadığı şey, kullanıcının
+> sorduğu şeydi: bağlamı **hiç ölçülmemiş** iki koşum (0.4.4 ve öncesi, yani
+> beş kolun hepsi) bütün pinleri eşit olduğu için hâlâ karşılaştırılabilir
+> kalıyordu. Ölçüm yokluğunun kendisi bir pin durumu olmalı; o yüzden
+> `contextHash` eklendi ve üç durumu birden taşıyor.
 
 Bugünkü kusurun cevabı yeni bir pin değil: **bağlam talimat dosyası çalışma
 dizininin içinde durmalı.**
@@ -864,14 +879,14 @@ söylenir — etrafından dolaşılmaz. Beş kolun 0.4.4'te kalmasının sebebi 
 
 ---
 
-### 0.5.0-d — Sitede nerede görünür
+### 0.4.7-c — Sitede nerede görünür
 
 | Yer | Ne |
 |---|---|
 | Koşum sayfası | Skill adının altında, hüküm cümlesinin üstünde — sayfanın adı gibi |
 | Suite geçmişi satırı | Zaman damgasının yanında; bugünkü karışıklık tam orada (dört satır, aynı sayılar, yalnızca saat farklı) |
 | `/suites` dizini | Son koşumun `suite-meta` satırında |
-| `compare` | Başlıkta iki etiket; farklılarsa 0.5.0-b'nin notu |
+| `compare` | Başlıkta iki etiket; farklılarsa 0.4.7-b'nin notu |
 | Terminal ve HTML | Koşum başlığının altında tek satır |
 
 **KOŞULLAR bloğuna girmez.** O blok "karşılaştırmak için aynı olması
@@ -882,7 +897,7 @@ Etiketi olmayan kayıtta hiçbir şey render edilmez — boş satır yok.
 
 ---
 
-### 0.5.0-e — Zaten yüklenmiş kaydın etiketi
+### 0.4.7-d — Zaten yüklenmiş kaydın etiketi
 
 Bugünkü A ve B etiketsiz yüklendi ve `push` bir kaydı iki kez kabul etmiyor.
 Seçenekler: silip yeniden yüklemek (geri alınamaz üretim verisi işlemi) ya da
@@ -898,9 +913,19 @@ günlüğü kimin değiştirdiğini söyler.
 
 ### Davranış değişikliği
 
-**Yok.** Alan opsiyonel; eski kayıtlar okunmaya devam ediyor; hiçbir hash'in
-tanımı değişmiyor; hiçbir varsayılan değişmiyor; çıkış kodları aynı. 0.5.0-c
-yeni bir davranış eklemiyor, var olanı belgeliyor ve testle sabitliyor.
+**0.4.7: yok.** Alan opsiyonel; eski kayıtlar okunmaya devam ediyor; hiçbir
+hash'in tanımı değişmiyor; hiçbir varsayılan değişmiyor; çıkış kodları aynı.
+
+**0.4.8: var, ve büyük.** Bağlamı ölçülmemiş iki koşum artık karşılaştırılmıyor,
+yani **0.4.5 öncesi hiçbir kayıt hiçbir şeyle karşılaştırılamıyor** ve
+`assay compare` eskiden 0 ya da 1 dönen yerde 3 dönüyor. Doğru cevap bu: o
+koşumlarda bağlama ne girdiği ölçülmedi ve Windows'ta bir şey girdi. Ayrıca
+`memory` ortam hash'inden çıktığı için 0.4.5–0.4.6 kayıtları 0.4.8 kayıtlarıyla
+karşılaştırılmıyor.
+
+Sitede yayımlı A ve B çifti de bu kapsamda: dün "11 cases improved" diyen
+karşılaştırma artık "Not comparable — contextHash could not be read" diyor.
+Ölçüldü ve ekran görüntüsüyle doğrulandı.
 ---
 
 ## Temiz koşum ortamı — planlandı, onay bekliyor

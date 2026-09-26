@@ -107,6 +107,8 @@ export interface RunRow {
    * ve karşılaştırmanın hep `unknown` üretmesiydi.
    */
   pinEnvironmentHash: string | null
+  /** Bağlamın pini; null = ölçülmedi, karşılaştırma durur (0.4.8). */
+  pinContextHash: string | null
   permissionMode: string | null
   /** Koşumun insan tarafından verilen adı; pin değil (0.4.7). */
   label: string | null
@@ -255,6 +257,7 @@ export function toRunRow(run: Run): RunRow {
     pinSuiteVersion: run.pins.suiteVersion,
     pinSuiteHash: run.pins.suiteHash,
     pinEnvironmentHash: run.pins.environmentHash ?? null,
+    pinContextHash: run.pins.contextHash ?? null,
     permissionMode: run.permissionMode ?? null,
     label: run.label ?? null,
     assayVersion: run.assayVersion ?? null,
@@ -506,6 +509,11 @@ export function fromRunRow(row: RunRow, cases: readonly CaseResult[]): Run {
       suiteVersion: row.pinSuiteVersion,
       suiteHash: row.pinSuiteHash,
       ...(row.pinEnvironmentHash === null ? {} : { environmentHash: row.pinEnvironmentHash }),
+      // Migration öncesi satırlarda sütun hiç olmayabilir; yokluk
+      // "ölçülmedi" demek ve karşılaştırmayı durduruyor.
+      ...(row.pinContextHash === null || row.pinContextHash === undefined
+        ? {}
+        : { contextHash: row.pinContextHash }),
     },
     ...(row.permissionMode === null ? {} : { permissionMode: row.permissionMode }),
     // Migration öncesi satırlarda sütun hiç olmayabilir.

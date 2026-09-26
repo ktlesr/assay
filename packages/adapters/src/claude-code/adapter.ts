@@ -473,7 +473,19 @@ export function environmentHash(
   init: NonNullable<ParsedStream['init']>,
   memory?: readonly string[],
 ): string {
-  const canonical = JSON.stringify(environmentOf(init, memory))
+  /*
+   * Talimat dosyaları bu hash'in DIŞINDA (0.4.8).
+   *
+   * 0.4.5'te içerideydiler ve doğru sonucu veriyorlardı — ama yanlış adresle:
+   * bağlam değiştiğinde rapor "the environment record changed" diyordu, oysa
+   * host ortamı kımıldamamıştı. Bağlamın kendi pini var (`contextHash`) ve
+   * ölçülmediğinde karşılaştırmayı durduran da o. Bir koşul, bir adres.
+   */
+  const environment = environmentOf(init, memory)
+  const hashable = Object.fromEntries(
+    Object.entries(environment).filter(([field]) => field !== 'memory'),
+  )
+  const canonical = JSON.stringify(hashable)
   return `sha256:${createHash('sha256').update(canonical).digest('hex')}`
 }
 
@@ -498,8 +510,8 @@ export function environmentOf(
     skills: [...init.skills].sort(),
     agents: [...init.agents].sort(),
     plugins: init.plugins.map((p) => `${p.name}@${p.version ?? ''}`).sort(),
-    // Yalnızca ölçüldüyse: ölçülmemiş bir oturumun hash'i 0.4.5 öncesiyle
-    // aynı kalır, ölçülmüş ve ölçülmemiş iki kayıt ise ayrışır.
+    // Yalnızca ölçüldüyse. Alan kayıtta duruyor ama `environmentHash`in
+    // dışında (0.4.8): bağlamın denetçisi `contextHash`.
     ...(memory === undefined ? {} : { memory: [...memory].sort() }),
   }
 }

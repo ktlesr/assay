@@ -7,6 +7,7 @@
  * fark tam da kimsenin bakmadığı yerde ortaya çıkardı.
  */
 
+import { createHash } from 'node:crypto'
 import {
   proportion,
   type Attempt,
@@ -27,6 +28,22 @@ import type { JournalAttempt } from './journal.js'
  * kurtarılan kayıt ile normal kayıt er geç ayrışırdı ve fark, tam da kimsenin
  * bakmadığı yerde ortaya çıkardı.
  */
+/**
+ * Bağlam pininin değeri — yüklenen talimat dosyalarının tek hash'i (0.4.8).
+ *
+ * Girişler zaten yol + içerik hash'i taşıyor; sıralanıp birleştiriliyor, yani
+ * yükleme sırası değişince pin kaymıyor ama dosyanın içeriği değişince
+ * kayıyor. Boş liste kendi hash'ini alır: "ölçtüm, hiçbir şey yüklenmedi"
+ * ölçülebilir bir sonuçtur ve ölçülmemişlikten ayrılmalı.
+ *
+ * `core` hash alamıyor (I/O ve `node:crypto` yasak, docs/stack.md), bu yüzden
+ * burada — `suiteHash` ile aynı sebep.
+ */
+export function hashContext(memory: readonly string[]): string {
+  const canonical = JSON.stringify([...memory].sort())
+  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`
+}
+
 export function assembleRun(input: {
   id: string
   startedAt: string
@@ -86,6 +103,21 @@ export function assembleRun(input: {
   const environmentHash =
     environmentHashes.size === 1 ? [...environmentHashes][0] : undefined
 
+  /*
+   * Bağlam pini (0.4.8): host'un yüklediği talimat dosyalarının hash'i.
+   *
+   * Ortam kaydından türüyor, çünkü ölçümü 0.4.5 zaten yapıyor: her giriş bir
+   * yol ve bir **içerik hash'i**. Buradaki iş onları tek bir pine indirmek.
+   *
+   * Ölçülmediyse (`memory` yok, 0.4.5 öncesi ya da kanca koşmadı) değer
+   * YAZILMIYOR. Boş liste ile ölçülmemiş arasındaki fark tam da bu pinin
+   * varlık sebebi: `[]` "ölçtüm, hiçbir şey yüklenmedi" der ve kendi hash'ini
+   * alır; alanın yokluğu "bilmiyorum" der ve karşılaştırmayı durdurur.
+   */
+  const environment = environments.size === 1 ? [...environments.values()][0] : undefined
+  const contextHash =
+    environment?.memory === undefined ? undefined : hashContext(environment.memory)
+
   return {
     id: input.id,
     startedAt: input.startedAt,
@@ -98,13 +130,12 @@ export function assembleRun(input: {
       ...(environmentHash === undefined || environmentHash === ''
         ? {}
         : { environmentHash }),
+      ...(contextHash === undefined ? {} : { contextHash }),
     },
     ...(permissionModes.size === 1
       ? { permissionMode: [...permissionModes][0] as string }
       : {}),
-    ...(environments.size === 1
-      ? { environment: [...environments.values()][0] as Environment }
-      : {}),
+    ...(environment === undefined ? {} : { environment }),
     runs: input.runs,
     ...(input.concurrency === undefined ? {} : { concurrency: input.concurrency }),
     ...(input.layers === undefined ? {} : { layers: input.layers }),

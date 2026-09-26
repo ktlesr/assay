@@ -161,17 +161,25 @@ describe('finalize — memory ortam kaydinda ve hash te', () => {
   })
   const adapter = new ClaudeCodeAdapter({ cleanup: false })
 
-  it('olculmus bellek kayda girer ve hash i degistirir', async () => {
+  it('olculmus bellek kayda girer ama ORTAM hash ini degistirmez (0.4.8)', async () => {
+    // Bağlamın kendi pini var (`contextHash`). Ortam hash'i host ortamını
+    // söylüyor ve o kımıldamadı; bağlam kaymasını onun adına yazmak, 0.3.0-a'da
+    // düzeltilen "doğru karar, yanlış adres" kusurunun aynısı olurdu.
     const leaked = await adapter.finalize(session(['Project C:/Users/u/.claude/CLAUDE.md sha256:aa']))
     const clean = await adapter.finalize(session([]))
     expect(leaked.environment?.memory).toEqual(['Project C:/Users/u/.claude/CLAUDE.md sha256:aa'])
     expect(clean.environment?.memory).toEqual([])
-    expect(leaked.environmentHash).not.toBe(clean.environmentHash)
+    expect(leaked.environmentHash).toBe(clean.environmentHash)
   })
 
-  it('olculmemis oturumda alan yazilmaz ve hash 0.4.5 oncesiyle ayni kalir', async () => {
+  it('olculmemis oturumda alan yazilmaz ve hash olculmus oturumunkiyle ayni kalir', async () => {
+    // Ortam hash'i artık bağlamdan bağımsız: ölçülmüş ve ölçülmemiş oturum
+    // AYNI ortam hash'ini alıyor. Aralarındaki farkı `contextHash` söylüyor —
+    // ölçülmemiş olanda o alan hiç yok ve karşılaştırma durur.
     const unmeasured = await adapter.finalize(session())
+    const clean = await adapter.finalize(session([]))
     expect(unmeasured.environment?.memory).toBeUndefined()
     expect(unmeasured.environmentHash).toBe(environmentHash(init))
+    expect(unmeasured.environmentHash).toBe(clean.environmentHash)
   })
 })

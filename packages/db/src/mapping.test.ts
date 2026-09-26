@@ -592,6 +592,30 @@ describe('0.2.0 alanları — eşleme', () => {
     expect('label' in fromRunRow(bare, [])).toBe(false)
   })
 
+  it('baglam pini gidis-donuste kaliyor; olculmemis kayitta alan hic yok (0.4.8)', () => {
+    const measured = toRunRow(
+      bareRun({
+        pins: {
+          skillSource: 'o/r@1',
+          skillHash: 'sha256:a',
+          model: 'm',
+          systemPromptHash: 'not-provided-by-host',
+          suiteVersion: 1,
+          suiteHash: 'sha256:b',
+          contextHash: 'sha256:ctx',
+        },
+      }),
+    )
+    expect(measured.pinContextHash).toBe('sha256:ctx')
+    expect(fromRunRow(measured, []).pins.contextHash).toBe('sha256:ctx')
+
+    // Olculmemis: null yaziliyor ve geri okunurken alan hic kurulmuyor, yani
+    // `comparePins` onu eksik pin sayip karsilastirmayi durduruyor.
+    const bare = toRunRow(bareRun({}))
+    expect(bare.pinContextHash).toBeNull()
+    expect('contextHash' in fromRunRow(bare, []).pins).toBe(false)
+  })
+
   it('beklenen kazanan: iddia yok, none ve liste ayri kaliyor (0.4.0)', () => {
     const base = run.cases[0] as NonNullable<(typeof run.cases)[number]>
     for (const expectedWinner of [undefined, [], ['a'], ['a', 'b']]) {

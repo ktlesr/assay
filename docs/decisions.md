@@ -3490,3 +3490,53 @@ Yani bağlam dosyası çalışma dizininin içinde durduğunda `compare` iki kol
 bugün zaten reddediyor. 0.5.0-c yeni bir mekanizma değil, bunun belgelenmesi
 ve testle sabitlenmesi.
 Geri dönüş maliyeti: düşük (opsiyonel alan, hiçbir hash tanımı değişmiyor)
+
+## 2026-09-26 — Bağlam kendi pinini alıyor; ölçülmemiş bağlam karşılaştırmayı durduruyor (0.4.8)
+
+Bağlam: Etiket tasarımı (0.4.7) "yeni bir pin gerekmiyor" diyordu — çalışma
+dizininin içindeki `CLAUDE.md` 0.4.5 tarafından zaten ölçülüyor ve ortam
+hash'ine giriyor. Kullanıcı doğru soruyu sordu: 0.4.4 ile koşulan beş kolda
+bu ölçüm yok; etiket geldikten sonra D ve E yüklenirse `compare` onları
+karşılaştırılabilir mi sayacak, yoksa `unknown` mı verecek?
+**Ölçüldü: karşılaştırılabilir sayıyordu.** Üç kayıtta da `environmentHash`
+dolu ve eşit, `memory` üçünde de yok; yani eksikliğin kendisi hash'i
+kaydırmıyor ve `comparePins` pin 3'ü kapsanmış sayıp devam ediyor.
+Seçenekler: (a) olduğu gibi bırakmak, etiket notu yetsin · (b) etiketi hash'e
+katmak · (c) bağlama kendi pinini vermek ve ölçülmemişliği eksik pin saymak
+Karar: (c). `Pins.contextHash` — ölçülmüş talimat dosyalarından (yol + içerik
+hash'i) türüyor; yoksa `unavailable`, yani karşılaştırma durur. Ayrıca `memory`
+`environmentHash`ten **çıkarıldı**: bir koşul, bir adres.
+Gerekçe: (a) bugünkü kusuru sürdürürdü — not okunmayabilir, verdict alanı
+tek başına okunuyor. (b) reddedildi ve gerekçesi değişmedi (aynı gün, etiket
+kaydı): etiketin denetçisi yok ve etiketsiz iki kol yine karşılaştırılırdı.
+(c) değişmez #2'nin doğrudan uygulanması: "pinlerden biri eksik veya farklıysa
+karşılaştırma yapılmaz". `contextHash` pin olabiliyor çünkü denetçisi var —
+değer host'un bildirdiği dosyaların içerik hash'lerinden geliyor, beyandan
+değil. Üç durumu da ayrı tutuyor: alan yok = ölçülmedi, `[]` = ölçüldü ve
+temiz (kendi hash'i var), dolu = bunlar yüklendi.
+`memory`yi ortam hash'inden çıkarmanın sebebi 0.3.0-a'nın aynısı: içeride
+kalsaydı bir bağlam değişikliği iki pini birden kaydırır ve rapor "the
+environment record changed" derdi — host ortamı kımıldamamışken.
+Bedeli, bilerek: 0.4.5 öncesi hiçbir kayıt artık karşılaştırılamıyor (sitedeki
+A/B çifti dahil — dünkü "11 cases improved" bugün "Not comparable"), ve
+0.4.5–0.4.6 kayıtları 0.4.8 kayıtlarıyla karşılaştırılamıyor. Aynı bedel
+`environmentHash` (2026-09-03) ve izin modu (2026-09-05) eklenirken de ödendi
+ve her seferinde doğru cevap sayıldı: o koşumlarda koşulların aynı olduğu
+gerçekten bilinmiyor.
+Doğrulama: 10 ters çevirme, derleme kapılı, hepsi kendi testinde kırmızı. Biri
+ilk biçimiyle `exactOptionalPropertyTypes` yüzünden derlemedi ve "geçersiz"
+sayıldı; tip-geçerli biçimiyle tekrarlandı. Uçtan uca yerel sitede: A/B çifti
+"Not comparable — contextHash could not be read", bağlamı ölçülmüş çift ise
+"11 cases improved" + etiket notu (iki tema, 1280/375).
+Geri dönüş maliyeti: orta (pin listesi ve iki hash tanımı değişti)
+
+## 2026-09-26 — Sürüm ayrımı: etiket 0.4.7, bağlam pini 0.4.8
+
+Bağlam: İki iş aynı turda bitti; tek sürümde yayımlanabilirlerdi.
+Karar: Ayrı sürümler. Etiket 0.4.7 (davranış değişikliği yok), bağlam pini
+0.4.8 (her karşılaştırmanın sonucunu etkiliyor).
+Gerekçe: Depo bu ayrımı daha önce de yaptı (0.1.3, 0.2.0-d): davranış
+değiştiren bir yama kendi sürüm notunu hak ediyor, çünkü CI çıkış kodu kayıyor.
+İkisini birleştirmek, "etiket eklendi" diye okunan bir sürümün sessizce her
+karşılaştırmayı durdurması olurdu.
+Geri dönüş maliyeti: düşük

@@ -163,6 +163,13 @@ export function renderRun(run: Run, summary: RunSummary): string {
       ? style.yellow(`host memory loaded from outside the working directory: ${leaked.join('; ')}`)
       : style.grey(`host memory ${hostMemoryLabel(run)}`),
   )
+  // Bağlamın pini (0.4.8). Ölçülmediğinde karşılaştırma durur, o yüzden
+  // yokluğu da basılıyor: okuyucu neden compare'in reddettiğini burada görsün.
+  out.push(
+    style.grey(
+      `context hash ${run.pins.contextHash ?? 'not measured — runs without it do not compare'}`,
+    ),
+  )
   // Denemeler bir konteynerde koştuysa koşulları (K2); ana makinede koşan
   // koşumda satır yok, her dizüstü raporuna bir "none" satırı eklenmesin diye.
   if (run.environment?.container !== undefined) {

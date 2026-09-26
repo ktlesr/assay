@@ -29,6 +29,8 @@ const pins: Pins = {
   environmentHash: 'sha256:env',
   suiteVersion: 1,
   suiteHash: 'sha256:c1',
+  // Bağlam ölçüldü (0.4.8).
+  contextHash: 'sha256:ctx',
 }
 
 const run = (

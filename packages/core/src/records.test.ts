@@ -79,6 +79,9 @@ describe('comparePins — değişmez #2', () => {
     systemPromptHash: 'sha256:aaa',
     suiteVersion: 3,
     suiteHash: 'sha256:bbb',
+    // Bağlam ölçüldü (0.4.8). Ölçülmediğinde karşılaştırmanın durduğu ayrı
+    // testte; buradaki taban "koşullar tuttu" demek.
+    contextHash: 'sha256:ccc',
   }
 
   it('dört pin aynıysa karşılaştırılabilir', () => {

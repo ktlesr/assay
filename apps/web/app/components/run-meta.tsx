@@ -61,8 +61,15 @@ export function Pins({ run, drifted = [] }: { run: Run; drifted?: readonly strin
       value: run.permissionMode ?? 'not reported by the host',
     },
     // Host'un yüklediği talimat dosyaları, ölçülmüş hâliyle (0.4.5). Ortam
-    // hash'inin içinde; ölçülmemiş bir kayıt "none" demez.
-    { key: 'memory', driftKey: 'environmentHash', label: 'Host memory', value: hostMemoryLabel(run) },
+    // hash'inin DEĞİL, bağlam pininin girdisi (0.4.8): kayma o satırda
+    // işaretlenir. Ölçülmemiş bir kayıt "none" demez.
+    { key: 'memory', driftKey: 'contextHash', label: 'Host memory', value: hostMemoryLabel(run) },
+    {
+      key: 'contextHash',
+      driftKey: 'contextHash',
+      label: 'Context hash',
+      value: run.pins.contextHash ?? 'not measured (the record predates 0.4.5 or the probe did not run)',
+    },
     { key: 'suiteVersion', driftKey: 'suiteVersion', label: 'Case set version', value: String(run.pins.suiteVersion) },
     { key: 'suiteHash', driftKey: 'suiteHash', label: 'Case set hash', value: run.pins.suiteHash },
     // Pin değil ama yargının koşulu: kaydı hangi Assay sürümü üretti (0.3.2).

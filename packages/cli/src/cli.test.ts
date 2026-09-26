@@ -46,6 +46,8 @@ const pins: Pins = {
   environmentHash: 'sha256:env',
   suiteVersion: 1,
   suiteHash: 'sha256:suite1',
+  // Bağlam ölçüldü (0.4.8); ölçülmemiş kayıtlar karşılaştırılmıyor.
+  contextHash: 'sha256:context1',
 }
 
 const attempt = (caseId: string, verdict: Attempt['verdict']): Attempt => ({

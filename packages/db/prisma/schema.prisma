@@ -145,6 +145,10 @@ model Run {
   /// Adaptör veremediyse null ve pin 3 "ölçülemedi" kalır.
   pinEnvironmentHash String?
 
+  /// Bağlamın pini — host'un yüklediği talimat dosyalarının içerik hash'i
+  /// (0.4.8). NULL = ölçülmedi; "temiz" değil, ve karşılaştırmayı durdurur.
+  pinContextHash String?
+
   /// Host'un bildirdiği izin modu. Ölçümün koşulu: araçları kısıtlanmış bir
   /// skill ile kısıtlanmamış olan aynı skill değil. Host bildirmediyse null.
   permissionMode String?

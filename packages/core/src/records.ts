@@ -68,6 +68,30 @@ export interface Pins {
    * Adaptör veremediyse alan hiç yok.
    */
   environmentHash?: string
+  /**
+   * Bağlamın pini — host'un yüklediği talimat dosyalarının içerik hash'i
+   * (0.4.8).
+   *
+   * Ölçümün koşullarından biri, çünkü yüklenen bir `CLAUDE.md` sistem
+   * istemine girer ve modelin davranışını değiştirir. Denetçisi var ve o
+   * yüzden pin olabiliyor: değer, host'un bildirdiği her dosyanın yolundan ve
+   * **içerik hash'inden** türüyor (`Environment.memory`), insanın beyanından
+   * değil.
+   *
+   * Üç durum, üçü de ayrı:
+   *  - alan yok → **ölçülmedi**. 0.4.5 öncesi kayıtlar, ve host'un ölçüm
+   *    kancasının koşmadığı oturumlar. Karşılaştırmayı DURDURUR: bağlamın
+   *    aynı olduğu bilinmiyor. Ölçüldü ki bu boşluk gerçek — aynı vaka
+   *    setiyle, farklı talimat dosyalarıyla koşulmuş beş kol 0.4.4'te
+   *    birbiriyle `within_noise` karşılaştırılıyordu.
+   *  - iki tarafta eşit → bağlam aynı.
+   *  - iki tarafta farklı → bağlam kaydı; kayma bu pinin adıyla raporlanır.
+   *
+   * `environmentHash`in İÇİNDE değil: 0.4.5'te içindeydi ve kayma "the
+   * environment record changed" diye raporlanıyordu — doğru karar, yanlış
+   * adres (0.3.0-a'daki kusurun aynısı).
+   */
+  contextHash?: string
 }
 
 /**
@@ -117,6 +141,16 @@ export function comparePins(a: Pins, b: Pins): PinComparison {
     'systemPromptHash',
     'suiteVersion',
     'suiteHash',
+    /*
+     * Bağlam pini (0.4.8). Ölçülmediğinde `unavailable`, yani karşılaştırma
+     * durur — değişmez #2: eksik pin de karşılaştırmayı durdurur.
+     *
+     * Bedeli bilerek ödeniyor: 0.4.5 öncesi hiçbir kayıt başka bir kayıtla
+     * karşılaştırılamaz. O koşumlarda bağlama ne girdiği gerçekten
+     * ölçülmedi ve aynı vaka setiyle koşulmuş iki kol sessizce
+     * karşılaştırılabilir görünüyordu.
+     */
+    'contextHash',
   ]
 
   /*
