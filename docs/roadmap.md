@@ -738,6 +738,169 @@ altında açılınca istekte iz 6 ve kayıt
 `Project C:\Users\<user>\.claude\CLAUDE.md sha256:f7d43e69…` — ölçüm sızıntıyı
 yakaladı. Kök düzeltmesi ve dışlama ayrı ayrı da tutuyor.
 
+## 0.5.0 — Koşumun adı: etiket, ve ayıran koşulun ölçülmesi
+
+**Amaç:** Aynı vaka seti ve aynı dört pinle koşulmuş iki kaydın hangisi
+olduğunu okuyucunun görebilmesi — ve kolları gerçekten ayıran koşulun pine
+girmesi. İkisi ayrı iş: biri insan notu, diğeri ölçüm.
+
+**Kanıt.** 2026-09-26, `marketingskills` ifade bağlama deneyinin beş kolu
+(ölçüm deposu, `reports/marketingskills.phrase-binding.md`). Beşi de aynı
+suite'i (v3, `ee4ae643…`), aynı skill hash'ini ve aynı modeli taşıyor; A, C, D
+ve E sitenin gösterdiği **her** sayıda özdeş: PASS, precision ve recall 100%
+(N=20, %84–100), aynı çakışma köşegeni. Aralarındaki tek fark çalışma dizininin
+üstüne konan `CLAUDE.md`'nin içeriği ve bunu hiçbir pin taşımıyor. Sonuç
+ölçüldü: `compare C D`, `compare D E` ve `compare C E` üçü de
+`PASS · within_noise` diyor — Assay üç kolun aynı koşulda ölçüldüğünü iddia
+ediyor. Kolları ayıran bulgular (yazılan değişiklik 40/52/40/32; E'nin 169/200
+slotu, 162'si "none") kayıtta hiç yok; elle okumadan geliyor.
+
+Bugün siteye yalnızca A ve B yüklendi, tam da bu yüzden (decisions.md,
+2026-09-26). İkisi de etiketsiz duruyor.
+
+| Adım | Çıktı | İş | Geri dönüş | Durum |
+|---|---|---|---|---|
+| 0.5.0-a Etiket alanı | `Run.label`, `assay run --label`; journal başlığında; hash'e **girmez** | S (~0.5 gün) | düşük | bekliyor |
+| 0.5.0-b Etiket farkı not düşer | `compare` iki etiket de dolu ve farklıysa uyarır; verdict ve çıkış kodu değişmez | S | düşük | bekliyor |
+| 0.5.0-c Ayıran koşul ölçülsün | Bağlam talimat dosyası çalışma dizininin **içinde**; 0.4.5 onu zaten ölçüyor ve ortam hash'ine katıyor. Belgelenir ve testle sabitlenir | S–M | düşük | bekliyor |
+| 0.5.0-d Etiket sitede | Koşum sayfası, suite geçmişi, `/suites` satırı, `compare` başlığı, terminal ve HTML | S | düşük | bekliyor |
+| 0.5.0-e Yüklenmiş kaydın etiketi | Yöneticinin tek alanı; denetim günlüğüne yazılır | S | düşük | bekliyor |
+
+---
+
+### 0.5.0-a — Etiket nerede durur, kim yazar
+
+**Kayıtta, vaka setinde değil.** `Run.label?: string` — opsiyonel, tek satır,
+en çok 120 karakter, kontrol karakteri yok. Serbest metin; `redactDeep`ten
+zaten geçiyor, yani içine kaçan bir ev yolu bedavaya maskeleniyor.
+
+| # | Seçenek | Karar |
+|---|---|---|
+| A | Suite alanı (`label:` YAML'de) | **Hayır** |
+| B | CLI bayrağı → kayıt | **Evet** |
+| C | İkisi birden (suite varsayılan, CLI ezer) | Hayır |
+
+**A neden hayır.** Suite vaka setidir; beş kol onu byte byte paylaştı ve bu
+**doğru**. Suite'e alan eklemek `suiteHash`i kaydırır, yani kayıt "vaka
+setleri farklıydı" der — olmayan bir farkı iddia eder. Deneyin kendisi bu
+yüzden suite'i byte-özdeş tuttu ve slotu suite dışında puanladı (2026-09-11).
+Ayrıca etiket koşumu tanımlıyor, vaka setini değil: aynı suite'le on farklı kol
+koşulur.
+
+**C neden hayır.** İki kaynak er geç ayrışır ve "hangisi kazandı" diye bir
+kural gerekir; tek satırlık bir not bunu hak etmiyor.
+
+**Kim yazar.** Koşumu başlatan: `assay run … --label "arm C — table + standing
+default"`. Etiket journal başlığına giriyor (`layers`, `planned` ve
+`assayVersion` gibi), böylece öldürülüp `assay recover` ile kurtarılan kayıt
+etiketini koruyor. GitHub Action'ın dal ya da PR adını varsayılan etiket olarak
+geçmesi makul ama **şimdi değil**: bugünkü ihtiyaç elle koşulan kol ölçümü.
+
+---
+
+### 0.5.0-b — Etiket ortam hash'ine girmez; farkı `compare` not olarak söyler
+
+| # | Seçenek | Karar |
+|---|---|---|
+| A | Etiket hash'e girsin; farklı etiketli koşumlar karşılaştırılmasın | **Hayır** |
+| B | Etiket hiçbir şeyi etkilemesin | Yetersiz |
+| C | Hash'e girmez; iki etiket de dolu ve farklıysa `compare` not düşer | **Evet** |
+
+**A neden hayır — dördü de tek başına yeterli.**
+
+1. **Denetçisi olmayan bir pin.** Beyan edilen sürümün unutulduğu ölçüldü ve
+   cevabı içerik hash'i olmuştu (2026-08-31, `skillHash`; aynısı `suiteHash`).
+   Etiketin hash'i yok, olamaz da: metnin kendisi beyanın ta kendisi.
+2. **En kötüsü ters yönde.** Bugünkü sorun etiketin *yokluğunda* sürüyor: iki
+   kolu etiketlemeyen kullanıcı yine `within_noise` alır. Yani hash'e katmak
+   sorunu çözmüyor, çözdüğü izlenimini veriyor — değişmez #1'in yasakladığı
+   sınıfın karşılaştırma tarafındaki hâli.
+3. **Yanlış güvenlik hissi.** "compare reddetti" cümlesi "araç koşulun
+   kaydığını gördü" diye okunur. Oysa görülen bir dizgidir; ölçüme dair hiçbir
+   şey söylemez.
+4. **Sıradan durumu kırar.** Gece koşumlarının etiketi doğal olarak her gün
+   değişir (`nightly 2026-09-25`). Pin değişmemeli; etiket değişmeli. İkisini
+   aynı alana koymak, etiketi kullanan herkesi karşılaştırmadan eder.
+
+**C'nin cümlesi.** Pinlerin hepsi tutuyor ve iki etiket farklıysa, sonucun
+üstünde: *"these two runs are labelled differently, but every pin matches. If
+the difference between them is real, the record does not carry it."* Bir uyarı,
+hüküm değil: `verdict` ve çıkış kodu değişmiyor. Etiketlerden biri boşsa not
+yok — oradan bir sonuç çıkmaz.
+
+**Tavan, açıkça.** Not bir koruma değil, okuyucuya bir hatırlatma. Gerçek
+koruma 0.5.0-c'de ve ölçülmüş bir alandan geliyor.
+
+---
+
+### 0.5.0-c — Ayıran koşulu ölçmenin yolu zaten var
+
+Bugünkü kusurun cevabı yeni bir pin değil: **bağlam talimat dosyası çalışma
+dizininin içinde durmalı.**
+
+- Kesim yalnızca **üst** dizinleri kapsıyor; çalışma dizininin kendi
+  `CLAUDE.md`'si bilerek dışarıda bırakıldı — "oradaki CLAUDE.md suite'in
+  fixture'ı ve ölçümün bir parçası" (`ancestorExcludes`, ve `memory.test.ts`
+  bunu ayrıca sınıyor).
+- 0.4.5'in ölçümü onu `./CLAUDE.md sha256:…` olarak kayda yazıyor — **içerik
+  hash'iyle** — ve ölçüldüğü için ortam hash'ine giriyor.
+- Fixture içeriği `suiteHash`e girmiyor (2026-09-11), yani vaka seti aynı
+  kalıyor. Tam istenen ayrım: **aynı vaka seti, farklı koşul.**
+
+Sonuç: aynı suite'le koşulmuş iki kol, yalnızca o dosyanın içeriğiyle
+ayrıldığında `compare` bugün zaten reddediyor ve kayan alanı adıyla söylüyor
+(0.3.0-a'nın alan alan farkı). Yeni bayrak yok, yeni pin yok.
+
+**Bu adımda yapılacak iş belgeleme ve kanıt:** kol ölçümünün nasıl kurulacağı
+yazılır, ve yalnızca o dosyayla ayrılan iki kaydın `compare` tarafından
+reddedildiğini — gerekçesinde `memory` girişi geçerek — gösteren bir test
+eklenir. Test olmadan bu bir iddia, ölçüm değil.
+
+**Tavan.** Üst dizindeki bir dosyayı *modellemesi gereken* bir kol 0.4.5+ ile
+koşulamaz: o dışlama sızıntı düzeltmesinin kendisi. Böyle bir kol dosyayı
+çalışma dizinine taşır; bu farklı bir konum, aynı mekanizma, ve raporda
+söylenir — etrafından dolaşılmaz. Beş kolun 0.4.4'te kalmasının sebebi de buydu
+(rapor §7).
+
+---
+
+### 0.5.0-d — Sitede nerede görünür
+
+| Yer | Ne |
+|---|---|
+| Koşum sayfası | Skill adının altında, hüküm cümlesinin üstünde — sayfanın adı gibi |
+| Suite geçmişi satırı | Zaman damgasının yanında; bugünkü karışıklık tam orada (dört satır, aynı sayılar, yalnızca saat farklı) |
+| `/suites` dizini | Son koşumun `suite-meta` satırında |
+| `compare` | Başlıkta iki etiket; farklılarsa 0.5.0-b'nin notu |
+| Terminal ve HTML | Koşum başlığının altında tek satır |
+
+**KOŞULLAR bloğuna girmez.** O blok "karşılaştırmak için aynı olması
+gerekenler" diyor; pin olmayan bir alanı oraya koymak yanlış olanı öğretir.
+Etiket kaydın adıdır, koşulu değil.
+
+Etiketi olmayan kayıtta hiçbir şey render edilmez — boş satır yok.
+
+---
+
+### 0.5.0-e — Zaten yüklenmiş kaydın etiketi
+
+Bugünkü A ve B etiketsiz yüklendi ve `push` bir kaydı iki kez kabul etmiyor.
+Seçenekler: silip yeniden yüklemek (geri alınamaz üretim verisi işlemi) ya da
+yöneticinin alanı düzenlemesi.
+
+**Karar:** yönetici düzenler, denetim günlüğüne yazılır. Etiket bir ölçüm değil
+bir not olduğu için düzeltilebilir olması meşru; **kaydın tek değiştirilebilir
+alanı odur** ve bu kuralın kodda tek bir yerde durması gerekiyor. Yerel kayıt
+dokunulmadan kalır; site ile yerel kopya bu tek alanda ayrışabilir ve denetim
+günlüğü kimin değiştirdiğini söyler.
+
+---
+
+### Davranış değişikliği
+
+**Yok.** Alan opsiyonel; eski kayıtlar okunmaya devam ediyor; hiçbir hash'in
+tanımı değişmiyor; hiçbir varsayılan değişmiyor; çıkış kodları aynı. 0.5.0-c
+yeni bir davranış eklemiyor, var olanı belgeliyor ve testle sabitliyor.
 ---
 
 ## Temiz koşum ortamı — planlandı, onay bekliyor

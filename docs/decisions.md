@@ -3462,3 +3462,31 @@ dışında. `tools/host-memory-exposure.mjs` beşine de `no` diyor, iz 0; kayıt
 Kişisel veri: `findPersonalData` (0.4.6) beş kayıtta da maskelemeden önce 0
 bulgu. Ev yolu, hesap adı, sır ve `graphify` izi yok.
 Geri dönüş maliyeti: düşük (kayıt silinebilir; suite görünürlüğü geri alınır)
+
+## 2026-09-26 — Etiket kaydın adıdır, koşulu değil: hash'e girmez (0.5.0)
+
+Bağlam: Beş kol aynı suite hash'ini, aynı dört pini ve aynı aktivasyon
+sayılarını taşıyor; gerçek fark üst dizindeki talimat dosyasının içeriği ve
+bunu hiçbir pin taşımıyor. `compare` üçünü `within_noise` sayıyor. Kayda insan
+tarafından okunabilir bir etiket alanı isteniyor.
+Seçenekler: (yer) suite alanı · CLI bayrağı · ikisi ·
+(hash) etiket ortam hash'ine girsin · hiç etkilemesin · girmesin ama `compare`
+etiket farkına not düşsün
+Karar: `Run.label`, `assay run --label` ile; **ortam hash'ine girmez**;
+`compare` iki etiket de dolu ve farklıysa uyarı basar, verdict ve çıkış kodu
+değişmez. Suite alanı reddedildi: suite vaka setidir ve beş kol onu byte byte
+paylaştı — alan eklemek `suiteHash`i kaydırıp olmayan bir vaka seti farkı
+iddia ederdi.
+Gerekçe: Etiketin denetçisi yok. Beyan edilen sürümün unutulduğu ölçülmüştü ve
+cevabı içerik hash'i olmuştu (2026-08-31); bir metnin hash'i kendisidir, yani
+etiket unutulduğunda koruma da yok olur — bugünkü sorun etiketsiz koşumlarda
+aynen sürer. Hash'e katmak sorunu çözmüyor, çözdüğü izlenimini veriyor.
+Ayrıca gece koşumlarının etiketi her gün doğal olarak değişir; pin değişmemeli.
+Gerçek koruma ölçülmüş alandan geliyor ve **zaten var**: kesim yalnızca üst
+dizinleri kapsıyor, çalışma dizininin kendi `CLAUDE.md`'si bilerek dışarıda
+bırakıldı ve 0.4.5 onu içerik hash'iyle `memory`ye yazıp ortam hash'ine
+katıyor; fixture içeriği `suiteHash`e girmediği için vaka seti aynı kalıyor.
+Yani bağlam dosyası çalışma dizininin içinde durduğunda `compare` iki kolu
+bugün zaten reddediyor. 0.5.0-c yeni bir mekanizma değil, bunun belgelenmesi
+ve testle sabitlenmesi.
+Geri dönüş maliyeti: düşük (opsiyonel alan, hiçbir hash tanımı değişmiyor)
