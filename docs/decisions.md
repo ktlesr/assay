@@ -3540,3 +3540,71 @@ değiştiren bir yama kendi sürüm notunu hak ediyor, çünkü CI çıkış kod
 İkisini birleştirmek, "etiket eklendi" diye okunan bir sürümün sessizce her
 karşılaştırmayı durdurması olurdu.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-27 — 0.4.7 ve 0.4.8 yayımlandı; eylem v1.3.7; beş kol etiketli ve gizli
+
+Kullanıcının talimatıyla, iki ayrı yayın (davranış değiştiren yama kendi
+sürümünde):
+- **0.4.7** — etiket. Yayın koşumu `36269369674`, `f2d2317`. Dört paket
+  registry'den okundu: `latest=0.4.7`, `_npmVersion 12.1.0` (OIDC).
+- **0.4.8** — bağlam pini. Yayın koşumu `36269965601`, `e9e1685`. Dört pakette
+  de SLSA provenance; temiz dizinde `npm i @ktlsr/assay@0.4.8` sonrası
+  `--version` 0.4.8 ve `--help` `--label` metnini taşıyor.
+
+İkiye bölmek için önce yalnız etiket commit'i main'e gönderildi, yayımlandı,
+kalanlar üstüne rebase edildi; tek push'ta changesets ikisini tek sürüme
+katlardı.
+
+**Eylem.** `action-v1.3.7` (açıklamalı) `897322a`'da, GitHub Release "Latest";
+`v1` açık onayla `7b43191` → `897322a` zorla taşındı. Pin API'den okundu:
+iki etiketin `action.yml`i de `0.4.8`.
+
+**0.4.7-d** (yönetici etiket alanı) yayımlanan paketlerin parçası değil,
+yalnızca siteye dağıtıldı — `apps/web` npm'e gitmiyor.
+
+**Etiketlenen kayıtlar** (hepsi gizli; yayımlama kullanıcının kararı):
+`6e03681d` arm A — phrase-binding table · `5ec9e04b` arm B — descriptions only ·
+`71c261de` arm C — table + standing default · `097d7682` arm D — the fork line
+as a literal template · `e4e274a9` arm E — a mandatory closing slot.
+D, E ve C yayımlanmış 0.4.8 CLI'ıyla yüklendi; beşi de yöneticinin tek
+değiştirilebilir alanından adlandırıldı ve beş yazma denetim günlüğünde
+`from: null` ile duruyor. C ve D/E'nin adları raporun kendi bölüm
+başlıklarından (§7, §8, §9) alındı: site ile yazı ayrışmasın.
+
+**Beklenen sonuç gerçekleşti.** Sitedeki A/B karşılaştırması artık
+"Not comparable — contextHash could not be read"; suite geçmişindeki her satır
+"conditions differ" diyor, çünkü 0.4.5 öncesi hiçbir kaydın bağlamı ölçülmedi.
+Kullanıcı bunu önceden kabul etti; bulgu ölçüm deposundaki raporda duruyor.
+Geri dönüş maliyeti: yüksek (yayımlanmış sürümler geri alınamaz)
+
+## 2026-09-27 — İletişim formu: kolofonda modal, Hostinger yönetilen kutusundan
+
+Bağlam: Sitede iletişim yolu yoktu. İstenen: modal form (ad, e-posta, mesaj
+zorunlu; telefon opsiyonel), `hostinger-mail-api-sdk` ile contact@ktlsr.com.
+Seçenekler (tetik yeri): üst çubuk · kolofon · ayrı sayfa
+Karar: Kolofonda "Source" sütununda, paylaşılan `Dialog` üstünde bir modal.
+Üst çubuk reddedildi: 320 px'te sözcük işareti zaten çekiliyor (0.4.1-o), bir
+bağlantı daha sığmıyor. Ayrı sayfa bir tanıtım sitesinde gereksiz bir adım.
+Gerekçe ve tavanlar:
+- **Doğrulama iki yerde, tek fonksiyondan** (`lib/contact.ts`). İstemcideki
+  anlık geri bildirim bir kolaylık; güven sınırı sunucu eylemi.
+- **Düz metin, tek satır konu.** Ziyaretçinin metnini HTML'e ya da başlığa
+  koymak enjeksiyon yüzeyi; bu form için hiçbir şey kazandırmıyor.
+- **Sağlayıcı hatası kullanıcıya gösterilmiyor** — token durumu ve kutu
+  kimliği o metinlerde geçiyor. Kütüğe yazılıyor, ekranda "gönderilemedi".
+- **Yapılandırılmamışken sessizce başarılı olmuyor.** Bir iletişim formunun en
+  kötü hatası, aldığını söyleyip hiçbir yere göndermemektir.
+- **İki ucuz koruma:** IP başına 10 dakikada 3 mesaj ve ekran okuyucudan da
+  gizli bir bal küpü. İkisi de mükemmel değil; sıradan otomatik gönderimi
+  kesiyor, kutuyu hedef olmaktan çıkarmıyor.
+- **SDK'nın üretilmiş tipi yanlış:** her alanı zorunlu ilan ediyor, kendi
+  belgesi hepsinin opsiyonel olduğunu söylüyor. Boş `html` göndermemek için
+  yük bir kez daraltılıyor.
+Yan etki: paylaşılan `Dialog` denetimli açılış ve kayan panel kazandı — bir
+form kendini kapatabilmeli, uzun bir pencere sayfayı değil kendini kaydırmalı.
+Depo kendi `deploy-config` testiyle iki ortam değişkeninin compose'a ve
+`.env.example`'a girmesini zorladı; aksi hâlde değişken Dokploy'a girilse bile
+konteynere ulaşmazdı.
+Sır gerekiyor: `HOSTINGER_MAIL_TOKEN` ve `HOSTINGER_MAILBOX_ID` boş; kullanıcı
+girene kadar form gönderemiyor ve bunu söylüyor.
+Geri dönüş maliyeti: düşük
