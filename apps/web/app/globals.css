@@ -713,6 +713,84 @@ body {
   font-size: var(--text-xs);
 }
 
+/* -------------------------------------------------------------------------
+ * İletişim formu (modal)
+ *
+ * Sayfanın dili: dolgu yok, hairline çerçeve, küçük kapital etiketler. Panel
+ * `--surface-raised` üstünde duruyor ve derinliği gölge değil çizgi veriyor.
+ *
+ * Renk: hata satırları `--fail` mürekkebini kullanıyor. "Kroma yalnızca
+ * ölçümde" kuralının kenarı burası — ama bu sitede yanlışın rengi zaten o
+ * (giriş ekranındaki `Callout tone="danger"`), ve ikinci bir kırmızı üretmek
+ * paleti büyütüp ilkini zayıflatırdı.
+ * ------------------------------------------------------------------------- */
+.contact-lede {
+  margin: var(--space-3) 0 0;
+  max-width: 52ch;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+/* Alanlar arası boşluk, bir alanın kendi iç boşluğundan belirgin biçimde
+   büyük: hata satırı hangi alana ait olduğunu konumuyla söylemeli. */
+.contact-form {
+  display: grid;
+  gap: var(--space-6);
+}
+.contact-form .contact-lede {
+  margin-top: 0;
+}
+.contact-textarea {
+  min-height: 9rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+.contact-required,
+.contact-optional {
+  margin-left: var(--space-2);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+/* Niteleyen, nitelediğinden yüksek sesle konuşmaz: ikisi de sessiz, ayrımı
+   sözcüğün kendisi yapıyor. */
+.contact-required,
+.contact-optional {
+  color: var(--text-faint);
+}
+.contact-error,
+.contact-problem {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--fail);
+}
+.contact-problem {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--fail-rule);
+  font-size: var(--text-sm);
+}
+.contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+/* Bu satırda iki düğme yan yana; `btn-primary` normalde tam genişlik. */
+.contact-actions .btn-primary {
+  width: auto;
+}
+/* Bal küpü: görünmez ama `display: none` değil — bazı botlar onu atlıyor. */
+.contact-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
 /* Kod parçası — kimlik, komut, hash. */
 .code {
   font-family: var(--font-mono);

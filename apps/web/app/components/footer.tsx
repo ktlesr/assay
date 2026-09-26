@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import cli from '../../../../packages/cli/package.json'
+import { ContactDialog } from './contact-dialog'
 import { Mark } from './mark'
 
 /**
@@ -113,6 +114,20 @@ export function Footer() {
                 <a className="colophon-link" href={`${REPO}/blob/main/LICENSE`}>
                   Apache-2.0
                 </a>
+              </li>
+              {/*
+                İletişim burada, kolofonda: üst çubuk gezinme için ve orada
+                yer yok (0.4.1-o'da 320px'te sözcük işareti çekilmişti). Bir
+                bağlantı gibi görünüyor ama düğme — açtığı şey bir sayfa değil.
+              */}
+              <li>
+                <ContactDialog
+                  trigger={
+                    <button type="button" className="colophon-link">
+                      Contact
+                    </button>
+                  }
+                />
               </li>
             </ul>
           </div>

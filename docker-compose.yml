@@ -44,6 +44,11 @@ services:
       # ulaşmaz ve mod sessizce açılmaz — dağıtımdan önce fark edilmesi zor
       # bir hata olurdu.
       ASSAY_PUBLIC_SITE: ${ASSAY_PUBLIC_SITE:-}
+      # İletişim formunun giden postası (Hostinger yönetilen posta kutusu).
+      # Boşken form "gönderilemedi" diyor ve HİÇBİR ŞEY göndermiyor: bir
+      # iletişim formunun en kötü hatası, aldığını söyleyip yollamamaktır.
+      HOSTINGER_MAIL_TOKEN: ${HOSTINGER_MAIL_TOKEN:-}
+      HOSTINGER_MAILBOX_ID: ${HOSTINGER_MAILBOX_ID:-}
       # Üretimde boş kalır. Yalnızca PGlite soketiyle koşarken 1 olmalı.
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-}
       # İlk yöneticiyi açan tek seferlik ucun anahtarı. Boşken uç 404 döner.

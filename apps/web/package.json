@@ -9,12 +9,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.3",
     "@ktlsr/assay-core": "workspace:*",
     "@ktlsr/assay-db": "workspace:*",
     "@ktlsr/assay-ui": "workspace:*",
-    "@auth/prisma-adapter": "^2.11.3",
     "@node-rs/argon2": "^2.2.0",
     "@tailwindcss/postcss": "^4.3.3",
+    "hostinger-mail-api-sdk": "^1.19.3",
     "next": "^15.5.4",
     "next-auth": "5.0.0-beta.32",
     "react": "^19.2.0",

@@ -33,7 +33,9 @@ const OVERLAY = `${LAYER} fixed inset-0 bg-surface-sunken/70 data-[state=open]:a
 
 const PANEL =
   `${LAYER} fixed left-1/2 top-1/2 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 ` +
-  'border border-rule-strong bg-surface-raised p-6'
+  // Uzun içerik (bir form, uzun bir gerekçe) kısa bir ekranda paneli taşırır:
+  // panel kendi içinde kayıyor, sayfa değil.
+  'max-h-[calc(100dvh-2rem)] overflow-y-auto border border-rule-strong bg-surface-raised p-6'
 
 const SURFACE = `${LAYER} border border-rule bg-surface-raised p-1`
 
@@ -47,15 +49,28 @@ export function Dialog({
   description,
   children,
   footer,
+  open,
+  onOpenChange,
 }: {
   trigger: ReactNode
   title: string
   description?: string
   children?: ReactNode
   footer?: ReactNode
+  /**
+   * Denetimli açılış. Verilmezse Radix kendi durumunu tutuyor.
+   *
+   * Bir form gönderildikten sonra pencereyi kapatabilmenin tek yolu bu:
+   * kapanma kararı içerikte, açılma kararı tetikte.
+   */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
   return (
-    <RadixDialog.Root>
+    <RadixDialog.Root
+      {...(open === undefined ? {} : { open })}
+      {...(onOpenChange === undefined ? {} : { onOpenChange })}
+    >
       <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger>
       <RadixDialog.Portal>
         <RadixDialog.Overlay className={OVERLAY} />
