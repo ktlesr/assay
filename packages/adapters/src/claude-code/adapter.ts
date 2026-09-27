@@ -50,6 +50,11 @@ export interface ClaudeCodeSession extends AgentSession {
    * demek, "yüklenmedi" değil (bkz. `Environment.memory`).
    */
   readonly memory?: readonly string[]
+  /**
+   * Vaka setinin beyan ettiği talimat dosyaları (0.5.0). Ölçülen `memory`
+   * ile karşılaştırıldığında farkı sızıntı: yüklenmiş ama istenmemiş dosya.
+   */
+  readonly declaredContext?: readonly string[]
 }
 
 /** Claude Code'un kabul ettiği izin modları. */
@@ -302,6 +307,10 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
       ...(spawned.error === undefined ? {} : { spawnError: spawned.error }),
       configDir,
       ...(memory === undefined ? {} : { memory }),
+      // Suite'in beyanı oturumla birlikte taşınıyor (0.5.0).
+      ...(config.declaredContext === undefined
+        ? {}
+        : { declaredContext: config.declaredContext }),
     }
   }
 
@@ -371,7 +380,18 @@ export class ClaudeCodeAdapter implements HostAdapter<ClaudeCodeSession> {
       ...(session.exitCode === null ? {} : { exitCode: session.exitCode }),
       ...(init === undefined ? {} : { activeSkills: init.skills }),
       ...(init === undefined ? {} : { environmentHash: environmentHash(init, session.memory) }),
-      ...(init === undefined ? {} : { environment: environmentOf(init, session.memory) }),
+      ...(init === undefined
+        ? {}
+        : {
+            environment: {
+              ...environmentOf(init, session.memory),
+              // Beyan hiçbir hash'e girmiyor: `suiteHash` beyanı, `contextHash`
+              // içeriği zaten pinliyor. Burada yalnızca okunabilir olsun diye.
+              ...(session.declaredContext === undefined
+                ? {}
+                : { declaredContext: session.declaredContext }),
+            },
+          }),
       // Host'un BİLDİRDİĞİ mod; adaptörün istediği değil. İkisi ayrışırsa
       // ölçümün koşulu host'un söylediğidir.
       // Host'un BİLDİRDİĞİ mod; adaptörün istediği değil. İkisi ayrışırsa

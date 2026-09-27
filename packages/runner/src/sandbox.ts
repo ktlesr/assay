@@ -92,10 +92,29 @@ export function resolveFixtures(fixtures: string | undefined, suitePath?: string
   return join(dirname(suitePath), fixtures)
 }
 
+/**
+ * Vaka setinin beyan ettiği talimat dosyasının çalışma dizinindeki adı (0.5.0).
+ *
+ * Host burayı arıyor ve ÜST dizinlerin aksine burası dışlanmıyor: çalışma
+ * dizininin kendi talimat dosyası ölçümün parçası sayılıyor
+ * (`ancestorExcludes`). Beyan edilen dosya bu yüzden üste değil içeri konuyor.
+ */
+export const CONTEXT_FILENAME = 'CLAUDE.md'
+
+/** Beyan edilen dosyanın kayıttaki adı — `memory` girişleriyle aynı biçim. */
+export const CONTEXT_WORKDIR_PATH = `./${CONTEXT_FILENAME}`
+
 /** Bir attempt için temiz çalışma dizini kurar ve fixture'ları kopyalar. */
 export async function createWorkspace(options: {
   /** Kopyalanacak fixture dizini veya dosyası. */
   fixtures?: string | undefined
+  /**
+   * Vaka setinin beyan ettiği talimat dosyası (0.5.0).
+   *
+   * Fixture'lardan SONRA kopyalanıyor: ikisi de aynı yola düşerse beyan
+   * kazanır, çünkü beyan suite'in açık isteği ve `suiteHash`te duruyor.
+   */
+  contextInstructions?: string | undefined
   prefix?: string
 }): Promise<Workspace> {
   const dir = await mkdtemp(join(await workRoot(), options.prefix ?? 'assay-work-'))
@@ -108,6 +127,19 @@ export async function createWorkspace(options: {
     await cp(source, info.isDirectory() ? dir : join(dir, basename(source)), {
       recursive: true,
     })
+  }
+  if (options.contextInstructions !== undefined && options.contextInstructions !== '') {
+    const source = resolve(options.contextInstructions)
+    const info = await stat(source).catch(() => null)
+    // Beyan edilmiş ama var olmayan bir dosya sessizce atlanmıyor: suite bir
+    // şey tarif etti ve ölçüm onu kuramadı, yani ölçülecek şey tarif edilen
+    // şey değil. Çağıran bunu `unknown`a çeviriyor.
+    if (info === null || !info.isFile()) {
+      throw new Error(
+        `context.instructions is not a file: ${options.contextInstructions}`,
+      )
+    }
+    await cp(source, join(dir, CONTEXT_FILENAME))
   }
   return { dir, before: await snapshot(dir) }
 }

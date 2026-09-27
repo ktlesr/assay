@@ -44,6 +44,7 @@ import {
   directoryHash,
   envDiff,
   resolveFixtures,
+  CONTEXT_WORKDIR_PATH,
   snapshot,
 } from './sandbox.js'
 import { assembleRun } from './assemble.js'
@@ -560,6 +561,16 @@ export async function runAttempt<S extends AgentSession>(
   try {
     workspace = await createWorkspace({
       fixtures: resolveFixtures(testCase.setup?.fixtures, options.suitePath),
+      // Vaka setinin bilinçli olarak bağlama koyduğu talimat dosyası (0.5.0).
+      // Yol suite dosyasına göreli — fixture'larla aynı çözümleme.
+      ...(suite.context === undefined
+        ? {}
+        : {
+            contextInstructions: resolveFixtures(
+              suite.context.instructions,
+              options.suitePath,
+            ),
+          }),
       prefix: 'assay-attempt-',
     })
   } catch (cause) {
@@ -598,6 +609,8 @@ export async function runAttempt<S extends AgentSession>(
         source: suite.target.source,
         path: options.skillPath,
       },
+      // Beyan edilen talimat dosyası kayda adıyla giriyor (0.5.0).
+      ...(suite.context === undefined ? {} : { declaredContext: [CONTEXT_WORKDIR_PATH] }),
       model: suite.environment.model,
       activeSkills: suite.environment.active_skills ?? [],
       workdir: workspace.dir,

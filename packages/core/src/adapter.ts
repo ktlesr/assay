@@ -49,6 +49,14 @@ export interface RunConfig {
   workdir: string
   /** Vakanın `setup.fixtures` yolu, varsa. */
   fixtures?: string
+  /**
+   * Vaka setinin beyan ettiği talimat dosyalarının çalışma dizinine göreli
+   * yolları (0.5.0), `memory` girişleriyle aynı biçimde (`./CLAUDE.md`).
+   *
+   * Adaptör bunları kayda geçiriyor ki "host bunu yükledi" ile "suite bunu
+   * istedi" ayrı okunabilsin: ikisi arasındaki fark sızıntıdır.
+   */
+  declaredContext?: readonly string[]
   timeoutMs?: number
 }
 

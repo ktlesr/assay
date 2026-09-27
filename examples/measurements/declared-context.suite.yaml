@@ -1,0 +1,50 @@
+# Bir vaka setinin bilinçli olarak bağlama koyduğu talimat dosyası (0.5.0).
+#
+# NEDEN VAR: 0.4.5 sızıntıyı kapatırken çalışma dizininin ÜSTÜNDEKİ her
+# talimat dosyasını dışladı. Doğru karar — ama bir talimat dosyasının modeli
+# nasıl yönlendirdiğini ölçen bir deney tam da o mekanizmayı kullanıyordu ve
+# ölçülemez hâle geldi. 0.4.4'e dönmek de çözüm değildi: `contextHash` 0.4.5'in
+# ölçümünden türüyor, 0.4.4'te yok.
+#
+# `context.instructions` dosyayı her denemenin ÇALIŞMA DİZİNİNE `CLAUDE.md`
+# olarak koyuyor. Üste değil: üst dizin sızıntının konumu, ve bir suite için
+# oraya yazmak kapatılan deliği vaka seti başına yeniden açmak olurdu.
+#
+# BİR ABLASYON NASIL KOŞULUR. Kolları ayırmak için bu dosyaya değil, beyan
+# edilen dosyanın İÇERİĞİNE dokunulur:
+#   - yol aynı kalır  → `suiteHash` aynı  → vaka seti aynı
+#   - içerik değişir  → `contextHash` kayar → `compare` doğru adresi söyler
+# Yol değiştirilirse `suiteHash` kayar ve iki kol farklı vaka seti sayılır;
+# bir ablasyonda istenen bu değildir.
+
+version: 1
+
+target:
+  skill: cro
+  source: local@example
+
+environment:
+  host: claude-code
+  model: claude-haiku-4-5-20251001
+  system_prompt_hash: not-provided-by-host
+  active_skills: [cro, emails]
+
+# Bağlama bilinçli olarak konan talimat dosyası. Yol bu suite dosyasına
+# göreli — `setup.fixtures` ile aynı çözümleme.
+context:
+  instructions: fixtures/declared-context/CLAUDE.md
+
+runs: 3
+
+cases:
+  - id: trigger.positive.pricing_page
+    prompt: Our pricing page is not converting. Rework it.
+    expect:
+      triggered: true
+
+  # Değişmez #5: yalnızca pozitif vaka taşıyan bir tetiklenme suite'i
+  # geçersizdir. Yakın komşu, ölçülmek istenen özellikte ayrılıyor.
+  - id: trigger.negative.near_neighbor.pricing_decision
+    prompt: Should we charge 49 or 79 dollars a month? Give me your reasoning.
+    expect:
+      triggered: false

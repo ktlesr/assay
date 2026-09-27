@@ -9,6 +9,7 @@
 
 import {
   assayVersionLabel,
+  declaredButNotLoaded,
   hostMemoryLabel,
   containerLabel,
   memoryFromOutside,
@@ -163,6 +164,19 @@ export function renderRun(run: Run, summary: RunSummary): string {
       ? style.yellow(`host memory loaded from outside the working directory: ${leaked.join('; ')}`)
       : style.grey(`host memory ${hostMemoryLabel(run)}`),
   )
+  /*
+   * Vaka seti bir talimat dosyası istedi ve ölçüm onu görmedi (0.5.0).
+   * Oranlardan önce ve sarı: ölçülen şey suite'in tarif ettiği şey değil.
+   */
+  const missingContext = declaredButNotLoaded(run)
+  if (missingContext.length > 0) {
+    out.push(
+      style.yellow(
+        `the case set declared ${missingContext.join(', ')} but the context measurement did not see it; ` +
+          'what was measured is not what the case set describes',
+      ),
+    )
+  }
   // Bağlamın pini (0.4.8). Ölçülmediğinde karşılaştırma durur, o yüzden
   // yokluğu da basılıyor: okuyucu neden compare'in reddettiğini burada görsün.
   out.push(

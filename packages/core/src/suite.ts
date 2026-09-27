@@ -203,6 +203,35 @@ const targetSchema = z.object({
     ),
 })
 
+/**
+ * Vaka setinin **bilinçli olarak** bağlama koyduğu talimat dosyası (0.5.0).
+ *
+ * Neden gerekiyor: 0.4.5 sızıntıyı kapatırken çalışma dizininin ÜSTÜNDEKİ her
+ * talimat dosyasını dışlıyor. Doğru karar — ama bir talimat dosyasının modeli
+ * nasıl yönlendirdiğini ölçen bir deney tam da o mekanizmayı kullanıyordu ve
+ * 0.4.5'ten sonra koşulamaz hâle geldi. 0.4.4'e düşmek de çözüm değil:
+ * `contextHash` 0.4.5'in ölçümünden türüyor, 0.4.4'te yok. Yani bu deneyi hem
+ * ölçen hem karşılaştırılabilir kılan bir sürüm hiç olmadı.
+ *
+ * Dosya çalışma dizinine `CLAUDE.md` olarak konuyor — **üstüne değil.**
+ * Üst dizin sızıntının konumu; bir suite için oraya yazmak, kapatılan deliği
+ * suite başına yeniden açmak olurdu. Çalışma dizininin kendi talimat dosyası
+ * zaten dışlanmıyor ve ölçümün parçası sayılıyor (`ancestorExcludes`).
+ *
+ * Yol suite dosyasına göreli; `setup.fixtures` ile aynı çözümleme.
+ *
+ * **Hash'lerdeki yeri.** Beyanın kendisi (bu satır) `suiteHash`e giriyor:
+ * başka bir dosya isteyen suite başka bir vaka setidir. Dosyanın İÇERİĞİ
+ * `suiteHash`e girmiyor, `contextHash`e giriyor — host onu yüklüyor, ölçüm
+ * yakalıyor. Böylece bir ablasyon (aynı yol, farklı içerik) aynı vaka seti
+ * kalıp bağlam pininde ayrışıyor; karşılaştırma doğru adresi söylüyor.
+ */
+const contextSchema = z.object({
+  instructions: z
+    .string()
+    .min(1, 'context.instructions cannot be empty: give a path to the instruction file'),
+})
+
 export const suiteSchema = z.object({
   /**
    * Pin 4 — vaka seti sürümü. Vakalar değiştiğinde artırılır.
@@ -225,6 +254,8 @@ export const suiteSchema = z.object({
       2,
       'runs must be at least 2: a single attempt is an observation, not a measurement (invariant: the repeat count is never 1)',
     ),
+  /** Bilinçli olarak bağlama konan talimat dosyası (0.5.0). */
+  context: contextSchema.optional(),
   cases: z.array(caseSchema).min(1, 'cases cannot be empty'),
 })
 

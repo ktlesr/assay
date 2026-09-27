@@ -28,6 +28,8 @@ export {
   hostMemoryLabel,
   containerLabel,
   memoryFromOutside,
+  declaredButNotLoaded,
+  memoryEntryPath,
   activationUnverified,
   ACTIVATION_UNVERIFIED,
   PRE_VERSION_STAMP,

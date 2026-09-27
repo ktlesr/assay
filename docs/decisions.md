@@ -3608,3 +3608,64 @@ konteynere ulaşmazdı.
 Sır gerekiyor: `HOSTINGER_MAIL_TOKEN` ve `HOSTINGER_MAILBOX_ID` boş; kullanıcı
 girene kadar form gönderemiyor ve bunu söylüyor.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-27 — Vaka seti bir talimat dosyası beyan edebiliyor (0.5.0)
+
+Bağlam: 0.4.5 sızıntıyı kapatırken çalışma dizininin ÜSTÜNDEKİ her talimat
+dosyasını dışladı. Doğru karar — ama bir talimat dosyasının modeli nasıl
+yönlendirdiğini ölçen deney tam da o mekanizmayı kullanıyordu ve 0.4.8'de
+koşulamaz hâle geldi. 0.4.4'e dönmek de çözüm değildi: `contextHash` 0.4.5'in
+`memory` ölçümünden türüyor, 0.4.4'te o ölçüm yok. Yani bu deneyi hem ölçen
+hem karşılaştırılabilir kılan bir sürüm hiç olmadı.
+
+**Bayrak mı, suite alanı mı?** Suite alanı (`context.instructions`).
+Seçenekler: CLI bayrağı · suite alanı · ikisi
+Gerekçe: Suite ölçümün yeniden üretilebilir tarifi. Bağlam bayraktan gelseydi
+`assay run suite.yaml` suite'in tarif ettiği ölçümü koşmazdı. Aynı sebeple
+0.2.0-c `sandbox.allow_commands`i suite'e koymuştu: ajanın gördüğünü genişleten
+her şey vaka setinde durur ve `suiteHash`e girer.
+
+**"Farklı talimat dosyası farklı suite" doğru mu?** Soru yerinde, ve cevap
+alanın hangi yarısına baktığına bağlı:
+- **Beyan** (yol) `suiteHash`e giriyor. Başka bir dosya İSTEYEN suite başka bir
+  vaka setidir; bu doğru.
+- **İçerik** `suiteHash`e girmiyor, `contextHash`e giriyor.
+Ablasyonun istediği tam olarak bu ayrım: kollar aynı yolu beyan eder, dosyanın
+içeriği değişir → `suiteHash` aynı (vaka seti aynı), `contextHash` kayar ve
+`compare` doğru adresi söyler. Yol değiştirilirse iki kol farklı vaka seti
+sayılır — bir ablasyonda istenen bu değildir ve örnek suite bunu yazıyor.
+Aynı kalıp zaten var: `suiteVersion`/`suiteHash`, `skillSource`/`skillHash` —
+beyan bir yerde, içerik denetçisi başka yerde.
+
+**Konum: çalışma dizininin İÇİ, üstü değil.** Üst dizin sızıntının konumu; bir
+suite için oraya yazmak kapatılan deliği vaka seti başına yeniden açmak olurdu.
+Çalışma dizininin kendi `CLAUDE.md`'si zaten dışlanmıyor ve ölçümün parçası
+sayılıyor (`ancestorExcludes`). Ayrıca üst dizin bugün denemeler arasında
+PAYLAŞILAN kök: oraya yazmak eş zamanlı denemeleri birbirine karıştırırdı.
+Tavan: üst dizin konumunu modellemek isteyen bir kol bunu yapamıyor; dosya
+projenin içinde duruyor. Host ikisini de "Project" belleği olarak yüklüyor,
+yani ölçülen şey aynı; fark yalnızca dosyanın kime ait göründüğü.
+
+**Sızıntı ile bilinçli dahil etme.** `Environment.declaredContext` — suite'in
+İSTEDİĞİ yollar. `memory` neyin yüklendiğini söylüyor; ikisi arasındaki fark
+sızıntı. Künye beyan edilen dosyayı adıyla anıyor ("declared by the case set").
+Hiçbir hash'e girmiyor: beyan `suiteHash`te, içerik `contextHash`te — üçüncü
+bir yere koymak aynı koşulu iki pine yaymak olurdu.
+Beyan edilip YÜKLENMEYEN dosya ayrı bir soru (`declaredButNotLoaded`) ve
+raporun manşetinde: ölçülen şey suite'in tarif ettiği şey değil. Bağlam hiç
+ölçülmediyse iddia yok — "yüklenmedi" ile "bilmiyorum" ayrı.
+
+**Ters çevirmede bulunan kusur.** `memoryFromOutside`a eklediğim "beyan edilen
+dosya sızıntı değildir" dalı SAĞ KALDI: beyan çalışma dizininde olduğu için
+yolu zaten `./` ile başlıyor ve mevcut kural onu geçiriyor — dal hiç
+çalışmıyordu ve testi yanlış sebeple yeşildi. Dal silindi, yerine konumla
+bağlantısını söyleyen bir yorum kondu. Sınanmayan dal tutulmaz.
+
+**Doğrulama.** 11 ters çevirme, derleme kapılı, hepsi kendi testinde kırmızı
+(altısı ilk biçimiyle derlemedi, tip-geçerli biçimleriyle tekrarlandı).
+Gerçek host'la, ücretsiz (`probe-host-memory` türevi): beyan edilen dosyanın
+metni host'un gönderdiği istekte geçiyor (1 kez) ve kayıt
+`Project ./CLAUDE.md sha256:c223489d…` diyor — yani hem bağlama giriyor hem
+ölçülüyor. Beyansız kontrol koşumunda istek 0, kayıt `[]`.
+Geri dönüş maliyeti: düşük (opsiyonel suite alanı ve opsiyonel kayıt alanı;
+beyansız suite'lerin davranışı ve hash'i değişmiyor)

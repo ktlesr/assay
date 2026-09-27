@@ -739,6 +739,20 @@ export interface Environment {
    */
   memory?: readonly string[]
   /**
+   * Vaka setinin **istediği** talimat dosyaları, `memory` ile aynı yol
+   * biçiminde (0.5.0).
+   *
+   * "Dışlandı" ile "suite bunu istedi" aynı şey değil. `memory` neyin
+   * yüklendiğini söylüyor; bu alan hangisinin BEYAN EDİLDİĞİNİ. İkisi
+   * arasındaki fark sızıntı: yüklenmiş ama istenmemiş bir dosya.
+   *
+   * Hiçbir hash'e girmiyor ve girmemeli. Beyanın kendisi `suiteHash`in
+   * içinde (suite dosyasında duruyor); dosyanın içeriği `contextHash`in
+   * içinde (host yükledi, ölçüm yakaladı). Üçüncü bir yere koymak aynı
+   * koşulu iki pine yaymak olurdu.
+   */
+  declaredContext?: readonly string[]
+  /**
    * Deneme bir konteynerde koştuysa, konteynerin koşulları (K2).
    *
    * Alan yoksa deneme ana makinede, runner'ın bir alt sürecinde koştu. Varsa
@@ -863,11 +877,48 @@ const memoryText =(memory: readonly string[] | undefined) =>
  * Terminal, HTML ve hosted sayfa aynı cümleyi kullanıyor. Ölçülmemiş bir
  * kayıt "none" demez — ölçülmediğini söyler.
  */
+/**
+ * Bir `memory` girişinin yol kısmı.
+ *
+ * Giriş `<tür> <yol> sha256:<16>` (ya da okunamadıysa `<tür> <yol> unreadable`).
+ * Beyan yalnızca YOLU biliyor — içerik hash'i ancak host dosyayı yükledikten
+ * sonra ölçülüyor — bu yüzden eşleştirme yol üzerinden yapılıyor.
+ *
+ * Boşlukla bölmek yetmez: Windows yollarında boşluk olabiliyor. Baştaki tür
+ * ve sondaki hash soyuluyor, kalan yolun kendisi.
+ */
+export function memoryEntryPath(entry: string): string {
+  return entry
+    .replace(/^\S+ /, '')
+    .replace(/ (sha256:[0-9a-f]+|unreadable)$/, '')
+}
+
 export function hostMemoryLabel(run: Pick<Run, 'environment'>): string {
   const memory = run.environment?.memory
   if (memory === undefined) return 'not measured (the record predates 0.4.5 or the probe did not run)'
   if (memory.length === 0) return 'none loaded (measured)'
-  return memory.join('; ')
+  // Beyan edilen dosya adıyla anılıyor: okuyucu onu sızıntı sanmasın.
+  const declared = new Set(run.environment?.declaredContext ?? [])
+  return memory
+    .map((entry) =>
+      declared.has(memoryEntryPath(entry)) ? `${entry} (declared by the case set)` : entry,
+    )
+    .join('; ')
+}
+
+/**
+ * Vaka setinin istediği ama host'un YÜKLEMEDİĞİ talimat dosyaları (0.5.0).
+ *
+ * Boş olmaması gereken bir liste: suite bir dosya beyan ettiyse ve ölçüm onu
+ * bağlamda görmediyse, ölçülen şey suite'in tarif ettiği şey değil. Sessizce
+ * geçmemesi için ayrı bir soru olarak duruyor.
+ */
+export function declaredButNotLoaded(run: Pick<Run, 'environment'>): readonly string[] {
+  const declared = run.environment?.declaredContext ?? []
+  const memory = run.environment?.memory
+  if (declared.length === 0 || memory === undefined) return []
+  const loaded = new Set(memory.map(memoryEntryPath))
+  return declared.filter((path) => !loaded.has(path))
 }
 
 /**
@@ -877,6 +928,17 @@ export function hostMemoryLabel(run: Pick<Run, 'environment'>): string {
  * host dosyası (0.4.5).
  */
 export function memoryFromOutside(run: Pick<Run, 'environment'>): readonly string[] {
+  /*
+   * Beyan edilen dosya için ayrı bir kontrol YOK ve olmamalı (0.5.0).
+   *
+   * Vaka setinin beyan ettiği dosya çalışma dizinine konuyor, yani yolu zaten
+   * `./` ile başlıyor ve buradaki kural onu geçiriyor. Bir de beyan listesine
+   * bakmak, hiçbir zaman çalışmayan bir dal olurdu — ve sınanmayan dal, yanlış
+   * sebeple yeşil olan testtir.
+   *
+   * Beyanın konumu bir gün çalışma dizininin dışına çıkarsa (üst dizin) bu
+   * fonksiyon onu sızıntı sayar; o değişiklik buraya da dokunmak zorunda.
+   */
   return (run.environment?.memory ?? []).filter((entry) => !/^\S+ \.\//.test(entry))
 }
 

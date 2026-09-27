@@ -10,6 +10,7 @@
 
 import {
   assayVersionLabel,
+  declaredButNotLoaded,
   hostMemoryLabel,
   containerLabel,
   collisionPrefix,
@@ -151,6 +152,19 @@ ${[...new Map(unknowns.map((a) => [`${a.caseId}:${a.reason}`, a])).values()]
   // kaydın adı, koşulu değil.
   const labelLine =
     run.label === undefined ? '' : `  <p class="run-label">${escape(run.label)}</p>`
+
+  // Vaka setinin istediği ama yüklenmeyen talimat dosyası (0.5.0).
+  const missingContext = declaredButNotLoaded(run)
+  const contextNote =
+    missingContext.length === 0
+      ? ''
+      : `  <section class="callout">
+    <h2>The case set declared an instruction file the host did not load</h2>
+    <p>${escape(missingContext.join(', '))} was declared by the case set, and the
+    context measurement did not see it. What was measured is not what the case
+    set describes.</p>
+  </section>
+`
 
   const fastNote =
     run.layers === undefined || run.layers.includes('assertions')
@@ -330,7 +344,7 @@ ${skipped
   <h1>Assay <span class="pill ${run.verdict}">${run.verdict}</span></h1>
 ${labelLine}
   <p class="sub mono">${escape(run.id)}</p>
-${fastNote}
+${contextNote}${fastNote}
 ${skippedNote}
 ${partialNote}
 ${collisionSection}

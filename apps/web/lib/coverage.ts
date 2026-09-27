@@ -1,4 +1,4 @@
-import type { Run } from '@ktlsr/assay-core'
+import { declaredButNotLoaded, type Run } from '@ktlsr/assay-core'
 
 /**
  * Koşumun kapsamı — oranlardan ÖNCE okunması gereken üç durum (0.4.3-b).
@@ -9,7 +9,7 @@ import type { Run } from '@ktlsr/assay-core'
  * CLI raporu üçünü de manşette söylüyor (terminal.ts); cümleler buradan aynı.
  */
 export interface CoverageNotice {
-  key: 'fast' | 'skipped' | 'partial'
+  key: 'fast' | 'skipped' | 'partial' | 'context'
   title: string
   body: string[]
   items?: ReadonlyArray<{ caseId: string; reason: string }>
@@ -17,6 +17,24 @@ export interface CoverageNotice {
 
 export function coverageNotices(run: Run): CoverageNotice[] {
   const notices: CoverageNotice[] = []
+
+  /*
+   * Vaka seti bir talimat dosyası beyan etti ve ölçüm onu bağlamda görmedi
+   * (0.5.0). Sayılar okunmadan önce bilinmeli: ölçülen şey suite'in tarif
+   * ettiği şey değil — beyan edilen dosyayı isteyen bir kol, dosyasız kola
+   * dönmüş olabilir.
+   */
+  const missing = declaredButNotLoaded(run)
+  if (missing.length > 0) {
+    notices.push({
+      key: 'context',
+      title: 'The case set declared an instruction file the host did not load',
+      body: [
+        `${missing.join(', ')} was declared by the case set, and the context measurement did not see it.`,
+        'What was measured is not what the case set describes. Treat these numbers as a run without that file.',
+      ],
+    })
+  }
 
   if (run.layers !== undefined && !run.layers.includes('assertions')) {
     notices.push({
