@@ -3709,3 +3709,21 @@ Sürüm: changeset `minor`dan `patch`e çevrildi. Depo 0.x ve bugüne kadar
 özellikleri yama olarak yayımladı (0.4.5 bellek ölçümü, 0.4.8 yeni pin); bu da
 öyle çıkıyor — **0.4.9**.
 Geri dönüş maliyeti: düşük
+
+## 2026-09-27 — 0.4.9 yayımlandı; eylem v1.3.8
+
+Kullanıcının talimatıyla (tetik kullanıcıdan). Yayın koşumu `36311543919`,
+`08818d6` üzerinde (sürüm PR'ı #15). Dört paket registry'den okundu:
+`latest=0.4.9`, `_npmVersion 12.1.0` (OIDC, token yok), dördünde de SLSA
+provenance. Temiz bir dizinde `npm i @ktlsr/assay@0.4.9` sonrası `--version`
+0.4.9 bastı ve yayımlanan CLI `context.instructions` taşıyan bir suite'i
+doğruladı — alan gerçekten yayımlanan pakette.
+
+`action-v1.3.8` (açıklamalı) `08818d6`'da açıldı, GitHub Release "Latest";
+`v1` `897322a` → `08818d6` zorla taşındı. Pin API'den okundu: iki etiketin de
+`action.yml`i `0.4.9`.
+
+İçerik: vaka setinin bilinçli olarak beyan ettiği talimat dosyası. Beyan
+`suiteHash`te, içerik `contextHash`te; `context` alanı olmayan suite'ler için
+davranış ve hash değişmiyor, yani eylemi kullanan mevcut depolar etkilenmiyor.
+Geri dönüş maliyeti: yüksek (yayımlanmış sürüm geri alınamaz)
