@@ -1,8 +1,8 @@
 ---
-'@ktlsr/assay-core': minor
-'@ktlsr/assay-runner': minor
-'@ktlsr/assay-adapters': minor
-'@ktlsr/assay': minor
+'@ktlsr/assay-core': patch
+'@ktlsr/assay-runner': patch
+'@ktlsr/assay-adapters': patch
+'@ktlsr/assay': patch
 ---
 
 A case set can declare an instruction file that belongs in the context

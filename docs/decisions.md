@@ -3669,3 +3669,43 @@ metni host'un gönderdiği istekte geçiyor (1 kez) ve kayıt
 ölçülüyor. Beyansız kontrol koşumunda istek 0, kayıt `[]`.
 Geri dönüş maliyeti: düşük (opsiyonel suite alanı ve opsiyonel kayıt alanı;
 beyansız suite'lerin davranışı ve hash'i değişmiyor)
+
+## 2026-09-27 — Beyan edilen bağlam arm C'nin gerçek düzeniyle, koşumdan ÖNCE doğrulandı
+
+Bağlam: 0.5.0'ın (yayında 0.4.9) iddiası "beyan edilen dosya bağlama giriyor,
+ölçülüyor, `contextHash`e dönüşüyor ve sızıntıdan ayrılıyor". Birim testler
+bunu kendi kurdukları verilerle gösteriyordu; para harcayan bir koşumdan önce
+gerçek host'la görmek istendi.
+Araç: `tools/probe-declared-context.mjs` — `probe-host-memory`nin aynı ücretsiz
+hilesi (sahte anahtar + yerel yakalayıcı), farkı adaptörü değil **bütün
+`runSuite` yolunu** koşuyor; `contextHash` adaptörde değil kayıt kurulurken
+hesaplandığı için sorulan şeyin görülebildiği tek yer orası.
+
+Düzen: ölçüm deposunun gerçek v3 çakışma suite'i, gerçek `marketing-site`
+fixture'ı, gerçek `marketing-skills-collide` skill'i, ve arm C'nin gerçek
+talimat dosyası (`fixtures/phrase-binding-stop/CLAUDE.md` — tablo + Default).
+
+Sonuç (arm C):
+- `marker in request 1` — tablonun başlığı host'un GÖNDERDİĞİ istekte geçiyor.
+- `record.memory  Project ./CLAUDE.md sha256:b33a9173… (declared by the case set)`
+- `contextHash sha256:1f802bab…` — pin gerçek bir kayıtta üretildi.
+- `counted as a leak []`, `declared, unloaded []`.
+Kontrol (beyansız aynı suite): istekte 0, `memory` "none loaded (measured)",
+`contextHash` boş listenin hash'i — yani fark dosyadan geliyor.
+
+Ablasyon iddiası da ölçüldü: TEK yol beyan edilip dosya arm C ile arm A
+arasında değiştirildiğinde
+`suiteHash` **819042f9… (aynı)**, `contextHash` `1f802bab…` → `32b5fbc8…`.
+`comparePins` bu çiftte `drifted: ["contextHash"]` diyor, `suiteHash` demiyor —
+tasarımın "aynı vaka seti, farklı bağlam, doğru adres" iddiası uçtan uca
+doğrulanmış oldu.
+
+Sonda sırasında bulunan iki şey (ikisi de sondanın kendi kusuru, ürün değil):
+`runSuite`a `isolate: false` geçmek worker yolunu açıyor ve anlaşılmaz bir
+`startsWith` hatasıyla düşüyor — kütüphane çağrısında süreç içi koşum için alan
+hiç verilmemeli; ve işaret metni büyük/küçük harf duyarlı.
+
+Sürüm: changeset `minor`dan `patch`e çevrildi. Depo 0.x ve bugüne kadar
+özellikleri yama olarak yayımladı (0.4.5 bellek ölçümü, 0.4.8 yeni pin); bu da
+öyle çıkıyor — **0.4.9**.
+Geri dönüş maliyeti: düşük
