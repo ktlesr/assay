@@ -1,8 +1,8 @@
 ---
-'@ktlsr/assay-core': patch
-'@ktlsr/assay-runner': patch
-'@ktlsr/assay-adapters': patch
-'@ktlsr/assay': patch
+'@ktlsr/assay-core': minor
+'@ktlsr/assay-runner': minor
+'@ktlsr/assay-adapters': minor
+'@ktlsr/assay': minor
 ---
 
 Hash instruction files when the host loads them, not when the attempt ends
