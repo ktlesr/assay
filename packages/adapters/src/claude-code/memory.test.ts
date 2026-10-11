@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { appendFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -8,6 +8,7 @@ import {
   ClaudeCodeAdapter,
   environmentHash,
   memoryEntries,
+  readMemoryProbe,
   writeMemoryProbe,
 } from './adapter.js'
 import type { ClaudeCodeSession } from './adapter.js'
@@ -78,6 +79,111 @@ describe('writeMemoryProbe', () => {
 
     const entries = memoryEntries(await readFile(log as string, 'utf8'), workdir, new Map())
     expect(entries).toEqual([`Project ${leaked} unreadable`])
+  })
+})
+
+describe('talimat dosyasi YUKLEME aninda hash leniyor (0.5.0)', () => {
+  /*
+   * Ölçülen kusur: hash deneme bittikten sonra alınıyordu. Ajan talimat
+   * dosyasını düzenlerse o denemenin ortam kaydı diğerlerinden ayrışıyor ve
+   * BÜTÜN koşum `environment` ile `contextHash`ini kaybediyordu. Gerçek
+   * ölçümde (arm H, 2026-10-11) 200 denemenin 1'i `CLAUDE.md`'yi yazdı ve
+   * koşumun bağlam pini düştü.
+   */
+  const probe = async () => {
+    const configDir = await mkdtemp(join(tmpdir(), 'assay-cc-test-'))
+    const workdir = await mkdtemp(join(tmpdir(), 'assay-work-test-'))
+    cleanup.push(configDir, workdir)
+    await writeMemoryProbe(configDir, workdir)
+    const settings = JSON.parse(await readFile(join(configDir, 'settings.json'), 'utf8')) as {
+      hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>
+    }
+    const command = settings.hooks['InstructionsLoaded']?.[0]?.hooks[0]?.command ?? ''
+    const [bin, script, log] = [...command.matchAll(/"([^"]+)"/g)].map((m) => m[1] as string)
+    const fire = (event: object) =>
+      spawnSync(bin as string, [script as string, log as string], {
+        input: JSON.stringify(event),
+      })
+    return { configDir, workdir, log: log as string, fire }
+  }
+
+  const loaded = (file: string) => ({
+    hook_event_name: 'InstructionsLoaded',
+    file_path: file,
+    memory_type: 'Project',
+    load_reason: 'session_start',
+  })
+
+  it('deneme sirasinda DUZENLENEN dosya yukleme anindaki hash i koruyor', async () => {
+    const { configDir, workdir, fire } = await probe()
+    const file = join(workdir, 'CLAUDE.md')
+    await writeFile(file, 'as loaded', 'utf8')
+
+    fire(loaded(file))
+    fire({ hook_event_name: 'UserPromptSubmit', prompt: 'x' })
+    const atLoad = await readMemoryProbe(configDir, workdir)
+
+    // Ajan dosyayı denemenin ortasında değiştiriyor.
+    await writeFile(file, 'edited by the measured agent', 'utf8')
+    const afterEdit = await readMemoryProbe(configDir, workdir)
+
+    expect(atLoad).toHaveLength(1)
+    expect(afterEdit).toEqual(atLoad)
+    expect(atLoad?.[0]).toContain('./CLAUDE.md sha256:')
+    expect(atLoad?.[0]).not.toContain('unreadable')
+  })
+
+  it('iki dosya ayri ayri hash leniyor ve icerik hash i degisince giris degisiyor', async () => {
+    const one = await probe()
+    await writeFile(join(one.workdir, 'CLAUDE.md'), 'table A', 'utf8')
+    one.fire(loaded(join(one.workdir, 'CLAUDE.md')))
+    one.fire({ hook_event_name: 'UserPromptSubmit', prompt: 'x' })
+
+    const two = await probe()
+    await writeFile(join(two.workdir, 'CLAUDE.md'), 'table B', 'utf8')
+    two.fire(loaded(join(two.workdir, 'CLAUDE.md')))
+    two.fire({ hook_event_name: 'UserPromptSubmit', prompt: 'x' })
+
+    expect(await readMemoryProbe(one.configDir, one.workdir)).not.toEqual(
+      await readMemoryProbe(two.configDir, two.workdir),
+    )
+  })
+
+  it('hash alinamayan dosya unreadable; simdi okunup bosluk DOLDURULMUYOR', async () => {
+    const { configDir, workdir, fire } = await probe()
+    const file = join(workdir, 'CLAUDE.md')
+    // Yükleme anında dosya yok: kanca hash alamıyor.
+    fire(loaded(file))
+    fire({ hook_event_name: 'UserPromptSubmit', prompt: 'x' })
+    // Sonradan ortaya çıkıyor — okuma anı bunu kullanmamalı.
+    await writeFile(file, 'appeared after the load', 'utf8')
+
+    expect(await readMemoryProbe(configDir, workdir)).toEqual(['Project ./CLAUDE.md unreadable'])
+  })
+
+  it('hash ALANI HIC YOKKEN de dosya simdi okunmuyor', async () => {
+    // Kancanın yazamadığı (ya da eski bir üreticinin bıraktığı) bir satır:
+    // yükleme anındaki içerik bilinmiyor. Dosya şimdi diskte duruyor olabilir
+    // ama onu okumak, bilinmeyeni bilinen gibi göstermek olurdu.
+    const { configDir, workdir, log, fire } = await probe()
+    const file = join(workdir, 'CLAUDE.md')
+    await writeFile(file, 'present on disk right now', 'utf8')
+    await appendFile(
+      log,
+      `${JSON.stringify({ ...loaded(file) })}${String.fromCharCode(10)}`,
+      'utf8',
+    )
+    fire({ hook_event_name: 'UserPromptSubmit', prompt: 'x' })
+
+    expect(await readMemoryProbe(configDir, workdir)).toEqual(['Project ./CLAUDE.md unreadable'])
+  })
+
+  it('kanarya yoksa yine olculmedi: hash degisikligi bu kurali bozmuyor', async () => {
+    const { configDir, workdir, fire } = await probe()
+    const file = join(workdir, 'CLAUDE.md')
+    await writeFile(file, 'x', 'utf8')
+    fire(loaded(file))
+    expect(await readMemoryProbe(configDir, workdir)).toBeUndefined()
   })
 })
 

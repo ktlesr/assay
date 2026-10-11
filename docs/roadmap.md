@@ -926,6 +926,62 @@ karşılaştırılmıyor.
 Sitede yayımlı A ve B çifti de bu kapsamda: dün "11 cases improved" diyen
 karşılaştırma artık "Not comparable — contextHash could not be read" diyor.
 Ölçüldü ve ekran görüntüsüyle doğrulandı.
+## 0.5.0 — Talimat dosyası yükleme anında hash'leniyor
+
+**Amaç:** Bağlam pini "modelin bağlamına ne girdi"yi söylesin, "deneme bitince
+diskte ne vardı"yı değil.
+
+**Kanıt.** Ölçüm deposu, arm H (`run-2026-10-11T09-54-39-699Z-56966467`,
+assay 0.4.9, 200 deneme). Kayıt `contextHash` taşımıyor ve `environment`
+bloğu hiç yazılmamış; aynı kurulumla koşulan arm G
+(`…-2d4b4a5b`) ikisini de taşıyor. Sebep kayıtta duruyor: **200 denemenin
+1'i** (`collide.product_marketing.positioning` #9) `CLAUDE.md`'yi yazdı.
+
+Zincir: `readMemoryProbe` hash'i deneme bittikten SONRA, dosyayı yeniden
+okuyarak alıyordu. Düzenlenmiş dosya farklı hash veriyor → o denemenin
+`Environment` nesnesi diğerlerinden ayrışıyor → `assembleRun`'ın
+"attempt'ler ayrışırsa hiçbir değer yazma" kuralı devreye giriyor →
+`environment` düşüyor → `contextHash` ondan türediği için o da düşüyor.
+Tek bir denemenin yan etkisi bütün koşumun pinini götürüyor.
+
+| Adım | Çıktı | Durum |
+|---|---|---|
+| 0.5.0-a Yükleme anında hash | `InstructionsLoaded` kancası dosyayı yüklendiği anda okuyup hash'liyor; digest log satırında (`assay_sha256`) | **tamam** |
+| 0.5.0-b Okuma anı dosyaya dokunmuyor | `readMemoryProbe` hash'leri log'dan alıyor; talimat dosyalarını yeniden OKUMUYOR | **tamam** |
+| 0.5.0-c Düzenleme ayrı bir olay | Yeni alan eklenmedi: çalışma dizinindeki düzenleme zaten `EnvDiff.writes`te, deneme başına | **tamam** |
+
+### Neden kanca, neden runner değil
+
+Hash'i yükleme anına taşımanın iki yolu vardı: (a) oturum öncesi aday
+yolları tarayıp hash'lemek, (b) host'un `InstructionsLoaded` kancasında
+hash'lemek.
+
+(a) hangi dosyaların yükleneceğini **tahmin etmek** demek — 0.4.5'te tam da
+bu reddedildi: "Runner'da üst dizinleri taramak host'un kuralını tahmin etmek
+olurdu; kural değişirse tahmin sessizce yanlış çıkar." (b) gerçek yolu
+host'un kendisinden alıyor ve yükleme anında okuyor.
+
+**Tavan.** Kanca host dosyayı okuduktan hemen *sonra* koşuyor, onunla aynı
+anda değil. O pencerede değişen bir dosya yine yanlış hash'lenir; oturum
+başında ajan henüz koşmadığı için pencere pratikte boş.
+
+### Düzenleme neden yeni bir alan almadı
+
+İlk akla gelen `Environment.memoryChanged` gibi bir alan, **aynı kusuru bir
+alan öteye taşırdı**: `Environment` attempt'ler arasında eşitlik üzerinden
+teklenıyor, yani tek bir denemede dolan bir alan ortam kaydını yine bölerdi.
+
+Düzenleme zaten kayıtta ve doğru yerde — deneme başına: beyan edilen dosya
+çalışma dizininde durduğu için anlık görüntü farkı onu yakalıyor. Arm H'de
+`attempt #9`'un `env.writes` alanı `["CLAUDE.md"]` diyor.
+
+### Davranış değişikliği
+
+**Kayıt tarafında yok**, ama ölçülen değer değişiyor: bundan sonraki
+koşumlarda digest yükleme anındaki içeriğin. Dosyayı düzenleyen bir denemenin
+bulunduğu eski kayıtlarda `contextHash` yok ve geriye dönük doldurulmuyor —
+o koşumlarda yükleme anındaki içerik ölçülmedi.
+
 ---
 
 ## Temiz koşum ortamı — planlandı, onay bekliyor

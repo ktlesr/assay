@@ -588,13 +588,46 @@ export function ancestorExcludes(workdir: string): string[] {
  */
 export async function writeMemoryProbe(configDir: string, workdir: string): Promise<void> {
   const script = join(configDir, MEMORY_HOOK)
+  /*
+   * Kanca dosyayı YÜKLENDİĞİ anda hash'liyor (0.5.0).
+   *
+   * Eskiden hash deneme bittikten sonra alınıyordu. Ölçülen ajan talimat
+   * dosyasını düzenlerse o denemenin hash'i diğerlerinden ayrışıyor, ortam
+   * kaydı tek bir değere inmiyor ve BÜTÜN koşum `environment`ını ve
+   * `contextHash`ini kaybediyordu. Ölçüldü: arm H'de 200 denemenin **1'i**
+   * `CLAUDE.md`'yi yazdı ve koşumun bağlam pini düştü.
+   *
+   * Doğru an yükleme anı: `contextHash` "modelin bağlamına ne girdi"yi
+   * söylüyor, "deneme bitince diskte ne vardı"yı değil.
+   *
+   * Kanca hiçbir koşulda oturumu düşürmüyor: hash alınamazsa satır yine
+   * yazılıyor ve dosya `unreadable` olarak geçiyor.
+   *
+   * Tavan: kanca host dosyayı okuduktan hemen SONRA koşuyor, onunla aynı anda
+   * değil. O mikrosaniyelik pencerede değişen bir dosya yine yanlış
+   * hash'lenir; oturum başında ajan henüz koşmadığı için pencere pratikte boş.
+   */
   await writeFile(
     script,
     [
-      "import { appendFileSync } from 'node:fs'",
+      "import { appendFileSync, readFileSync } from 'node:fs'",
+      "import { createHash } from 'node:crypto'",
       "let input = ''",
       "process.stdin.on('data', (chunk) => (input += chunk))",
-      "process.stdin.on('end', () => appendFileSync(process.argv[2], input.trim() + String.fromCharCode(10)))",
+      "process.stdin.on('end', () => {",
+      '  let line = input.trim()',
+      '  try {',
+      '    const event = JSON.parse(line)',
+      "    if (typeof event.file_path === 'string') {",
+      "      let digest = 'unreadable'",
+      '      try {',
+      "        digest = 'sha256:' + createHash('sha256').update(readFileSync(event.file_path)).digest('hex').slice(0, 16)",
+      '      } catch {}',
+      '      line = JSON.stringify({ ...event, assay_sha256: digest })',
+      '    }',
+      '  } catch {}',
+      '  appendFileSync(process.argv[2], line + String.fromCharCode(10))',
+      '})',
       '',
     ].join('\n'),
   )
@@ -615,21 +648,30 @@ export async function writeMemoryProbe(configDir: string, workdir: string): Prom
   )
 }
 
-async function readMemoryProbe(
+export async function readMemoryProbe(
   configDir: string,
   workdir: string,
 ): Promise<readonly string[] | undefined> {
   const text = await readFile(join(configDir, MEMORY_LOG), 'utf8').catch(() => undefined)
   if (text === undefined) return undefined
+  /*
+   * Hash'ler kancanın YÜKLEME ANINDA yazdığı değerler; dosyalar burada
+   * yeniden OKUNMUYOR (0.5.0). Buradan okumak, ajanın denemeyi bitirdikten
+   * sonraki diskini ölçmek olurdu — düzeltilen kusurun ta kendisi.
+   *
+   * Girişi olmayan bir yol `unreadable`: kanca o satırda hash yazamadıysa
+   * yükleme anındaki içerik bilinmiyor. Dosyayı şimdi okuyup boşluğu
+   * doldurmak, bilinmeyeni bilinen gibi göstermek olurdu.
+   */
   const hashes = new Map<string, string>()
   for (const line of text.split('\n')) {
-    const path = (safeJson(line) as { file_path?: unknown } | undefined)?.file_path
+    const event = safeJson(line) as
+      | { file_path?: unknown; assay_sha256?: unknown }
+      | undefined
+    const path = event?.file_path
     if (typeof path !== 'string' || hashes.has(path)) continue
-    const bytes = await readFile(path).catch(() => undefined)
-    hashes.set(
-      path,
-      bytes === undefined ? 'unreadable' : `sha256:${createHash('sha256').update(bytes).digest('hex').slice(0, 16)}`,
-    )
+    const digest = event?.assay_sha256
+    hashes.set(path, typeof digest === 'string' && digest !== '' ? digest : 'unreadable')
   }
   return memoryEntries(text, workdir, hashes)
 }

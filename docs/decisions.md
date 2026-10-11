@@ -3727,3 +3727,55 @@ doğruladı — alan gerçekten yayımlanan pakette.
 `suiteHash`te, içerik `contextHash`te; `context` alanı olmayan suite'ler için
 davranış ve hash değişmiyor, yani eylemi kullanan mevcut depolar etkilenmiyor.
 Geri dönüş maliyeti: yüksek (yayımlanmış sürüm geri alınamaz)
+
+## 2026-10-11 — Talimat dosyası yükleme anında hash'leniyor (0.5.0)
+
+Bağlam: Arm H'nin kaydı (`…56966467`, 0.4.9, 200 deneme) `contextHash`
+taşımıyor ve `environment` bloğu hiç yazılmamış; aynı kurulumla koşulan arm G
+ikisini de taşıyor. Kayıttan okundu: **200 denemenin 1'i**
+(`collide.product_marketing.positioning` #9) `CLAUDE.md`'yi yazmış.
+`readMemoryProbe` hash'i deneme bittikten sonra dosyayı yeniden okuyarak
+alıyordu; düzenlenmiş dosyanın farklı hash'i o denemenin `Environment`
+nesnesini ayrıştırdı, `assembleRun`ın "ayrışırsa hiçbir değer yazma" kuralı
+devreye girdi ve koşumun tamamı pinini kaybetti.
+Seçenekler (hash ne zaman): (a) deneme sonunda (bugünkü kusur) · (b) oturum
+öncesi aday yolları tarayıp hash'lemek · (c) host'un `InstructionsLoaded`
+kancasında, yükleme anında
+Karar: (c). Kanca dosyayı yüklendiği anda okuyup hash'liyor ve digest log
+satırına (`assay_sha256`) giriyor; `readMemoryProbe` hash'leri oradan alıyor
+ve talimat dosyalarını **yeniden okumuyor**.
+Gerekçe: `contextHash`in iddiası "modelin bağlamına ne girdi". Deneme
+sonundaki disk, ölçülen ajanın kendi yan etkisini içeriyor — yani pin,
+ölçtüğü şey tarafından bozuluyordu. (b) hangi dosyaların yükleneceğini tahmin
+etmek olurdu ve 0.4.5 bunu zaten reddetmişti ("host'un kuralını tahmin etmek;
+kural değişirse tahmin sessizce yanlış çıkar"); kanca gerçek yolu host'un
+kendisinden alıyor.
+Digest'i olmayan bir satır `unreadable` kalıyor ve dosya o anda OKUNMUYOR:
+boşluğu şimdi doldurmak, bilinmeyeni bilinen gibi göstermek olurdu. Kanca
+hiçbir koşulda oturumu düşürmüyor; hash alınamazsa satır yine yazılıyor.
+
+**Düzenleme için yeni alan eklenmedi.** `Environment.memoryChanged` gibi bir
+alan aynı kusuru bir alan öteye taşırdı: `Environment` attempt'ler arasında
+eşitlikle tekleniyor, yani tek bir denemede dolan alan ortam kaydını yine
+bölerdi. Düzenleme zaten deneme başına kayıtta: beyan edilen dosya çalışma
+dizininde durduğu için anlık görüntü farkı onu yakalıyor — arm H'de attempt
+#9'un `env.writes` alanı `["CLAUDE.md"]` diyor.
+
+Tavan: kanca host dosyayı okuduktan hemen sonra koşuyor, onunla aynı anda
+değil; o pencerede değişen dosya yine yanlış hash'lenir (oturum başında ajan
+koşmadığı için pencere pratikte boş). Ve denemeler gerçekten farklı bağlam
+bildirirse pin yine düşüyor — bu doğru davranış, zamanlama düzeltmesi yalnızca
+en sık sebebini kaldırıyor; ikisi de ayrı testlerde sabit.
+
+Doğrulama: 6 ters çevirme, derleme kapılı, hepsi kendi testinde kırmızı. Biri
+ilk turda SAĞ KALDI ve gerçek bir boşluk gösterdi: "digest alanı hiç yokken
+dosyayı şimdi oku" mutasyonu, testlerim yalnızca kancanın `unreadable`
+yazdığı durumu kurduğu için yakalanmıyordu; alansız satırı doğrudan log'a
+yazan bir test eklendi. Gerçek host'la ve ücretsiz
+(`tools/probe-declared-context.mjs`): kayıt
+`Project ./CLAUDE.md sha256:ac84a7fab8cbc6c0`, `contextHash` üretildi ve
+digest dosyanın gerçek içeriğinin hash'iyle birebir aynı. Düzenleme senaryosu
+birim testinde: kanca ateşleniyor, dosya değiştiriliyor, okunan digest
+değişmiyor.
+Geri dönüş maliyeti: düşük (kayıt şeması değişmedi; yalnızca hash'in alındığı
+an değişti)

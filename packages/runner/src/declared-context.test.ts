@@ -124,7 +124,7 @@ const environment = (over: Partial<Environment> = {}): Environment => ({
   ...over,
 })
 
-const runWith = (env: Environment) =>
+const runWith = (...envs: readonly Environment[]) =>
   assembleRun({
     id: 'r',
     startedAt: '2026-09-27T10:00:00.000Z',
@@ -140,26 +140,24 @@ const runWith = (env: Environment) =>
       suiteVersion: 1,
       suiteHash: 'sha256:c',
     },
-    attempts: [
-      {
-        kind: 'attempt' as const,
+    attempts: envs.map((env, index) => ({
+      kind: 'attempt' as const,
+      caseId: 'trigger.positive.a',
+      expectedTrigger: true,
+      environmentHash: 'sha256:env',
+      environment: env,
+      attempt: {
+        index,
         caseId: 'trigger.positive.a',
-        expectedTrigger: true,
-        environmentHash: 'sha256:env',
-        environment: env,
-        attempt: {
-          index: 0,
-          caseId: 'trigger.positive.a',
-          startedAt: '2026-09-27T10:00:01.000Z',
-          finishedAt: '2026-09-27T10:00:02.000Z',
-          trigger: { available: false as const, reason: 'mock' },
-          assertions: [],
-          verdict: 'pass' as const,
-          reason: 'mock',
-          latencyMs: 1,
-        },
+        startedAt: '2026-09-27T10:00:01.000Z',
+        finishedAt: '2026-09-27T10:00:02.000Z',
+        trigger: { available: false as const, reason: 'mock' },
+        assertions: [],
+        verdict: 'pass' as const,
+        reason: 'mock',
+        latencyMs: 1,
       },
-    ],
+    })),
   })
 
 const declaredEntry = `Project ${CONTEXT_WORKDIR_PATH} sha256:aaaa`
@@ -188,6 +186,36 @@ describe('beyan edilen dosya contextHash e giriyor', () => {
     )
     const without = runWith(environment({ memory: [declaredEntry] }))
     expect(withDeclaration.pins.contextHash).toBe(without.pins.contextHash)
+  })
+})
+
+describe('bir denemenin düzenlemesi koşumun bağlam pinini düşürmüyor (0.5.0)', () => {
+  const measured = environment({
+    memory: [declaredEntry],
+    declaredContext: [CONTEXT_WORKDIR_PATH],
+  })
+
+  it('bütün denemeler aynı yükleme-anı hash ini bildirince pin duruyor', () => {
+    // Ölçülen kusur: arm H'de 200 denemenin 1'i `CLAUDE.md`'yi düzenledi.
+    // Hash deneme SONUNDA alındığı için o denemenin ortam kaydı ayrıştı ve
+    // koşumun tamamı `environment` ile `contextHash`ini kaybetti. Hash artık
+    // yükleme anında alınıyor; düzenleme onu kaydırmıyor.
+    const run = runWith(measured, measured, measured)
+    expect(run.environment).toBeDefined()
+    expect(run.pins.contextHash).toBeDefined()
+  })
+
+  it('TAVAN: denemeler gerçekten farklı bağlam bildirirse pin yine düşüyor', () => {
+    // Bu doğru davranış ve değişmedi: koşum tek bir bağlamda ölçülmediyse
+    // tek bir bağlam pini yazmak yalan olurdu. Zamanlama düzeltmesi bu
+    // durumun en sık sebebini kaldırıyor, kuralı değil.
+    const other = environment({
+      memory: [otherContent],
+      declaredContext: [CONTEXT_WORKDIR_PATH],
+    })
+    const run = runWith(measured, other)
+    expect(run.environment).toBeUndefined()
+    expect(run.pins.contextHash).toBeUndefined()
   })
 })
 
