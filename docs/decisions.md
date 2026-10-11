@@ -3779,3 +3779,44 @@ birim testinde: kanca ateşleniyor, dosya değiştiriliyor, okunan digest
 değişmiyor.
 Geri dönüş maliyeti: düşük (kayıt şeması değişmedi; yalnızca hash'in alındığı
 an değişti)
+
+## 2026-10-11 — 0.5.0 yayımlandı; eylem v1.3.9; CLI registry'ye 7 dakika sonra düştü
+
+Kullanıcının talimatıyla. Changeset `patch`ten `minor`a çevrildi (`aff05c4`),
+yoksa 0.4.10 çıkacaktı. Sürüm PR'ı #16 dört pakette de `0.5.0` ve `action.yml`
+pininde `0.5.0` gösterdi; `f426609` olarak birleşti.
+
+**Yayın koşumu `38142613112` kırmızı bitti** ama kısmi yayın değil:
+`verify-published.mjs` 116 saniyelik penceresinde `@ktlsr/assay@0.5.0`ı
+göremedi. Yayın kütüğü npm'in paketi **kabul ettiğini** söylüyor
+(`+ @ktlsr/assay@0.5.0`, provenance Sigstore'a `logIndex 3207946135`) ve
+notu da bunu yazıyor: "Your package is being processed and may take a few
+minutes to become available." Registry API'si ara dönemde sürümü hiç
+göstermiyordu — `versions`ta yok, `time[0.5.0]` yok, `/0.5.0` ucu
+"version not found". **13:22:34Z yayımlandı, 13:31:05Z göründü: ~8.5 dakika.**
+Diğer üç paket 10–21 saniyede görünmüştü.
+
+Bu, 2026-09-24'te pencere 41 sn'den 116 sn'ye çıkarılırken kabul edilen
+durumun kendisi: "Pencere yine aşılırsa iş kırmızı kalır ve elle `npm view`
+ile ayrılır; bu yanlış alarm, sessiz bir eksik yayından ucuz." Pencere
+yeniden büyütülmedi — sekiz buçuk dakika bekleyen bir CI adımı, yakalaması
+gereken gerçek kusura (kısmi yayın) karşı hiçbir şey kazandırmıyor ve her
+yayını o kadar uzatırdı. Ayırt etme yolu kütükte duruyor: npm'in kabul
+satırı varsa bekleme, yoksa yeniden koşum.
+
+`v1` sürüm kayıp görünürken **bilerek taşınmadı**: eylem
+`@ktlsr/assay@0.5.0` kuruyor ve o anda kuran herkeste kırılırdı. Sürüm
+göründükten sonra taşındı.
+
+Doğrulama: dört paket registry'den okundu — `latest=0.5.0`,
+`_npmVersion 12.2.0` (OIDC, token yok), dördünde de SLSA provenance. Temiz
+bir dizinde `npm i @ktlsr/assay@0.5.0` sonrası `assay --version` 0.5.0 bastı
+ve **yayımlanan adaptörde düzeltme var**: `assay_sha256` iki yerde (kancada
+yazan, okuyucuda okuyan), deneme sonundaki yeniden okuma yok.
+
+`action-v1.3.9` (açıklamalı) `f426609`'da açıldı ve GitHub Release deponun
+"latest"i; `v1` açık onayla `08818d6` → `f426609` zorla taşındı. İki ref'in
+`action.yml` pini de API'den okundu: `0.5.0`.
+
+Dış depo doğrulaması yapılmadı (istenmedi).
+Geri dönüş maliyeti: yüksek (yayımlanmış sürüm geri alınamaz)
